@@ -10,7 +10,7 @@ public struct ConversationParticipant: Codable, Sendable {
     /// wire: `muted`. 
     public let muted: Bool
     /// wire: `name`. 成员在这个会话里显示成什么（成员列表、@ 选择用）：别名、会话内昵称、资料名， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的成员都带它。
-    public let name: DisplayName?
+    public let name: DisplayName
     /// wire: `nickname`. 
     public let nickname: String
     /// wire: `pinned`. 
@@ -20,7 +20,7 @@ public struct ConversationParticipant: Codable, Sendable {
     /// wire: `userId`. 
     public let userId: String
 
-    public init(attributes: [String: String] = [:], joinedAt: UInt64 = 0, muted: Bool = false, name: DisplayName? = nil, nickname: String = "", pinned: Bool = false, roles: [String] = [], userId: String = "") {
+    public init(attributes: [String: String] = [:], joinedAt: UInt64 = 0, muted: Bool = false, name: DisplayName, nickname: String = "", pinned: Bool = false, roles: [String] = [], userId: String = "") {
         self.attributes = attributes
         self.joinedAt = joinedAt
         self.muted = muted

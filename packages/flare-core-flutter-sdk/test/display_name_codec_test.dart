@@ -44,21 +44,32 @@ void main() {
       }
     });
 
-    test('keeps names absent on values from a core that does not project them',
-        () {
+    test(
+        'requires the names every value carries and leaves lastSender out '
+        'without a latest message', () {
+      final isRequired = (String field) => throwsA(isA<ArgumentError>()
+          .having((error) => error.message, 'message', '$field is required'));
+      expect(
+        () => conversationFromJson(
+            _golden('responses/conversation_get_one.json')..remove('title')),
+        isRequired('Conversation.title'),
+      );
       final conversation =
           conversationFromJson(_golden('responses/conversation_get_one.json'));
-      expect(conversation.title, isNull);
+      expect(_wire(conversation.title),
+          {'kind': 'named', 'text': 'User Two', 'source': 'profile'});
       expect(conversation.lastSender, isNull);
-      expect(conversation.displayName, 'User Two');
-      expect(conversation.lastSenderNickname, 'User Two');
 
-      final message =
-          messageFromJson(_golden('responses/build_thread_reply_message.json'));
-      expect(message.sender, isNull);
-      expect(message.senderDisplayName, 'User One');
-
-      expect(conversationParticipantFromJson(_participant('u2')).name, isNull);
+      expect(
+        () => messageFromJson(
+            _golden('responses/build_thread_reply_message.json')
+              ..remove('sender')),
+        isRequired('Message.sender'),
+      );
+      expect(
+        () => conversationParticipantFromJson(_participant('u2')),
+        isRequired('ConversationParticipant.name'),
+      );
       expect(displayNameFromJson(null), isNull);
     });
 

@@ -23,6 +23,7 @@ function messageFixture(text: string) {
     senderName: "alice",
     senderAvatar: "",
     senderDisplayName: "Alice",
+    sender: { kind: "named", text: "alice", source: "snapshot" },
     status: 2,
     isRead: false,
     isRecalled: false,

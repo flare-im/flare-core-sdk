@@ -24,7 +24,7 @@ SDK 本地会话参与者快照。单聊不依赖该结构；群聊/频道/客�
 | `attributes` | `attributes` | `StringMap` | yes |  |
 | `joinedAt` | `joinedAt` | `UInt64` | yes |  |
 | `muted` | `muted` | `Boolean` | yes |  |
-| `name` | `name` | `DisplayName` | no | 成员在这个会话里显示成什么（成员列表、@ 选择用）：别名、会话内昵称、资料名， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的成员都带它。 |
+| `name` | `name` | `DisplayName` | yes | 成员在这个会话里显示成什么（成员列表、@ 选择用）：别名、会话内昵称、资料名， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的成员都带它。 |
 | `nickname` | `nickname` | `String` | yes |  |
 | `pinned` | `pinned` | `Boolean` | yes |  |
 | `roles` | `roles` | `StringList` | yes |  |
@@ -70,7 +70,7 @@ SDK 层会话类型：内部统一使用，从 proto ConversationSummary 获取�
 | `lastSender` | `lastSender` | `DisplayName` | no | 最后一条消息的发送者名（人名解析链，群会话含会话内昵称）；没有最后一条消息时缺省。 读取时由核心投影，不落库。 |
 | `lastSenderAvatarUrl` | `lastSenderAvatarUrl` | `String` | yes | 最后一条消息发送者头像 URL |
 | `lastSenderId` | `lastSenderId` | `String` | no |  |
-| `lastSenderNickname` | `lastSenderNickname` | `String` | yes | 最后一条消息发送者展示名（列表用） |
+| `lastSenderNickname` | `lastSenderNickname` | `String` | yes | 旧字段：最后一条消息发送者在身份缓存里的资料名（是真名字时），否则为本地已存的名字或空串， 永不为 id。列表读 `last_sender`。 |
 | `maxSeq` | `maxSeq` | `UInt64` | yes |  |
 | `memberPreview` | `memberPreview` | `ConversationParticipantList` | yes | 摘要级成员预览，最多少量成员，不能作为完整成员列表使用。 |
 | `membersCount` | `membersCount` | `UInt32` | yes |  |
@@ -81,7 +81,7 @@ SDK 层会话类型：内部统一使用，从 proto ConversationSummary 获取�
 | `peerReadSeq` | `peerReadSeq` | `UInt64` | yes | 对端（其他成员）最大已读序列号；用于发送方已读双勾在重连/重登后恢复。 由服务端同步摘要 `ext.peer_read_seq` 下发并持久化。 |
 | `remark` | `remark` | `String` | no |  |
 | `role` | `role` | `String` | no |  |
-| `title` | `title` | `DisplayName` | no | 列表与聊天头显示的会话标题：备注、单聊对端人名、业务名、无名群的成员名拼接， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的会话都带它。 |
+| `title` | `title` | `DisplayName` | yes | 列表与聊天头显示的会话标题：备注、单聊对端人名、业务名、无名群的成员名拼接， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的会话都带它。 |
 | `unreadCount` | `unreadCount` | `UInt32` | yes |  |
 | `updatedAt` | `updatedAt` | `UInt64` | yes |  |
 | `updatedAtTs` | `updatedAtTs` | `UInt64` | no | 更新时间戳（毫秒，用于排序/筛选） |
@@ -200,9 +200,9 @@ SDK 层消息类型：与 message.proto 的 Message 属性一致，content 为�
 | `quotePreview` | `quotePreview` | `String` | no |  |
 | `reactions` | `reactions` | `ReactionEntryList` | yes | 表情反应快照（由 ReactionEvent 驱动更新并持久化） |
 | `replyTo` | `replyTo` | `String` | no |  |
-| `sender` | `sender` | `DisplayName` | no | 发送者名：别名、群会话里的会话内昵称、资料名、发送时快照（`sender_name`），都没有时为 结构化的「无名」。读取时由核心投影，不落库；SDK 交出的消息都带它。 |
+| `sender` | `sender` | `DisplayName` | yes | 发送者名：别名、群会话里的会话内昵称、资料名、发送时快照（`sender_name`），都没有时为 结构化的「无名」。读取时由核心投影，不落库；SDK 交出的消息都带它。 |
 | `senderAvatar` | `senderAvatar` | `String` | yes |  |
-| `senderDisplayName` | `senderDisplayName` | `String` | yes | SDK计算展示名 |
+| `senderDisplayName` | `senderDisplayName` | `String` | yes | 旧字段：身份缓存里发送者的资料名（是真名字时），否则为空，永不为 id。读发送者名用 `sender`。 |
 | `senderId` | `senderId` | `String` | yes | 发送者 |
 | `senderName` | `senderName` | `String` | yes |  |
 | `serverId` | `serverId` | `String` | yes | 服务端唯一ID |

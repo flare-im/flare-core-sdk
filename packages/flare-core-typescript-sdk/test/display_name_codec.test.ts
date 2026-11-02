@@ -72,18 +72,22 @@ describe("DisplayName wire codec", () => {
     }
   });
 
-  it("keeps the names absent on values from a core that does not project them", () => {
+  it("requires the names every value carries and leaves lastSender out without a latest message", () => {
+    const { title: _title, ...untitled } = readJson("responses/conversation_get_one.json");
+    expect(() => conversationFromJson(untitled)).toThrow("Conversation.title is required");
+    expect(() => conversationFromJson({ ...untitled, title: null })).toThrow("Conversation.title is required");
     const conversation = conversationFromJson(readJson("responses/conversation_get_one.json"));
-    expect("title" in conversation).toBe(false);
+    expect(conversation.title).toEqual({ kind: DisplayNameKind.Named, text: "User Two", source: "profile" });
     expect("lastSender" in conversation).toBe(false);
-    expect(conversation.displayName).toBe("User Two");
-    expect(conversation.lastSenderNickname).toBe("User Two");
 
-    const message = messageFromJson(readJson("responses/build_thread_reply_message.json"));
-    expect("sender" in message).toBe(false);
-    expect(message.senderDisplayName).toBe("User One");
+    const { sender: _sender, ...unsent } = readJson("responses/build_thread_reply_message.json");
+    expect(() => messageFromJson(unsent)).toThrow("Message.sender is required");
 
-    expect("name" in conversationParticipantFromJson(participant("u2"))).toBe(false);
+    expect(() => conversationParticipantFromJson(participant("u2"))).toThrow("ConversationParticipant.name is required");
+    expect(() =>
+      conversationFromJson({ ...readJson("responses/conversation_get_one.json"), memberPreview: [participant("u2")] }),
+    ).toThrow("ConversationParticipant.name is required");
+
     expect(displayNameFromJson(undefined)).toBeUndefined();
     expect(displayNameFromJson(null)).toBeUndefined();
   });

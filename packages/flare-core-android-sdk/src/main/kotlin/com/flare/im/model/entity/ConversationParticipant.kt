@@ -10,7 +10,7 @@ data class ConversationParticipant(
     /** wire: `muted`.  */
     val muted: Boolean = false,
     /** wire: `name`. 成员在这个会话里显示成什么（成员列表、@ 选择用）：别名、会话内昵称、资料名， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的成员都带它。 */
-    val name: DisplayName? = null,
+    val name: DisplayName,
     /** wire: `nickname`.  */
     val nickname: String = "",
     /** wire: `pinned`.  */

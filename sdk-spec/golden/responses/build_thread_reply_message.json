@@ -18,6 +18,7 @@
   "senderName": "User One",
   "senderAvatar": "",
   "senderDisplayName": "User One",
+  "sender": {"kind": "named", "text": "User One", "source": "snapshot"},
   "threadId": "thread_root_msg_001",
   "status": 0,
   "isRead": false,

@@ -44,10 +44,10 @@ public struct Message: Sendable {
     /// wire: `replyTo`. 
     public let replyTo: String?
     /// wire: `sender`. 发送者名：别名、群会话里的会话内昵称、资料名、发送时快照（`sender_name`），都没有时为 结构化的「无名」。读取时由核心投影，不落库；SDK 交出的消息都带它。
-    public let sender: DisplayName?
+    public let sender: DisplayName
     /// wire: `senderAvatar`. 
     public let senderAvatar: String
-    /// wire: `senderDisplayName`. SDK计算展示名
+    /// wire: `senderDisplayName`. 旧字段：身份缓存里发送者的资料名（是真名字时），否则为空，永不为 id。读发送者名用 `sender`。
     public let senderDisplayName: String
     /// wire: `senderId`. 发送者
     public let senderId: String
@@ -74,7 +74,7 @@ public struct Message: Sendable {
     /// wire: `receipt`. Core-computed receipt projection (status and, on the viewer's own group messages, the read summary); always present on messages the SDK returns.
     public let receipt: MessageReceiptView?
 
-    public init(attributes: [String: String] = [:], channelId: String = "", clientCreatedAt: UInt64 = 0, clientMsgId: String = "", content: MessageContent? = nil, conversationId: String = "", conversationSeq: UInt64 = 0, conversationType: Int32 = 0, createdAt: UInt64 = 0, extensions: [String: [UInt8]] = [:], isEdited: Bool = false, isRead: Bool = false, isRecalled: Bool = false, localState: MessageLocalState? = nil, mentionAll: Bool = false, mentionUsers: [String] = [], messageType: Int32 = 0, quotePreview: String? = nil, reactions: [ReactionEntry] = [], replyTo: String? = nil, sender: DisplayName? = nil, senderAvatar: String = "", senderDisplayName: String = "", senderId: String = "", senderName: String = "", serverId: String = "", source: Int32 = 0, status: Int32 = 0, textPreview: String = "", threadId: String? = nil, updatedAt: UInt64 = 0, version: UInt64 = 0, timelineKey: String = "", timelineSortTs: UInt64 = 0, receipt: MessageReceiptView? = nil) {
+    public init(attributes: [String: String] = [:], channelId: String = "", clientCreatedAt: UInt64 = 0, clientMsgId: String = "", content: MessageContent? = nil, conversationId: String = "", conversationSeq: UInt64 = 0, conversationType: Int32 = 0, createdAt: UInt64 = 0, extensions: [String: [UInt8]] = [:], isEdited: Bool = false, isRead: Bool = false, isRecalled: Bool = false, localState: MessageLocalState? = nil, mentionAll: Bool = false, mentionUsers: [String] = [], messageType: Int32 = 0, quotePreview: String? = nil, reactions: [ReactionEntry] = [], replyTo: String? = nil, sender: DisplayName, senderAvatar: String = "", senderDisplayName: String = "", senderId: String = "", senderName: String = "", serverId: String = "", source: Int32 = 0, status: Int32 = 0, textPreview: String = "", threadId: String? = nil, updatedAt: UInt64 = 0, version: UInt64 = 0, timelineKey: String = "", timelineSortTs: UInt64 = 0, receipt: MessageReceiptView? = nil) {
         self.attributes = attributes
         self.channelId = channelId
         self.clientCreatedAt = clientCreatedAt

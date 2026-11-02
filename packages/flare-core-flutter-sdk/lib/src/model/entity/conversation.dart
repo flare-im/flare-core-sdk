@@ -50,7 +50,7 @@ final class Conversation {
   final String lastSenderAvatarUrl;
   /// wire: `lastSenderId`. 
   final String? lastSenderId;
-  /// wire: `lastSenderNickname`. 最后一条消息发送者展示名（列表用）
+  /// wire: `lastSenderNickname`. 旧字段：最后一条消息发送者在身份缓存里的资料名（是真名字时），否则为本地已存的名字或空串， 永不为 id。列表读 `last_sender`。
   final String lastSenderNickname;
   /// wire: `maxSeq`. 
   final int maxSeq;
@@ -73,7 +73,7 @@ final class Conversation {
   /// wire: `role`. 
   final String? role;
   /// wire: `title`. 列表与聊天头显示的会话标题：备注、单聊对端人名、业务名、无名群的成员名拼接， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的会话都带它。
-  final DisplayName? title;
+  final DisplayName title;
   /// wire: `unreadCount`. 
   final int unreadCount;
   /// wire: `updatedAt`. 
@@ -119,7 +119,7 @@ final class Conversation {
     this.peerReadSeq = 0,
     this.remark,
     this.role,
-    this.title,
+    required this.title,
     this.unreadCount = 0,
     this.updatedAt = 0,
     this.updatedAtTs,

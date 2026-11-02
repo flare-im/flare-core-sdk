@@ -85,6 +85,7 @@ function completeMessage(overrides: Record<string, unknown> = {}): Record<string
     senderName: "User Two",
     senderAvatar: "https://example.com/u2.png",
     senderDisplayName: "User Two",
+    sender: { kind: "named", text: "User Two", source: "snapshot" },
     status: 2,
     isRead: false,
     isRecalled: false,
@@ -291,6 +292,10 @@ describe("wireCodec message timeline contract", () => {
     expect(() =>
       messageFromJson(completeMessage({ senderDisplayName: undefined })),
     ).toThrow("Message.senderDisplayName is required");
+
+    expect(() =>
+      messageFromJson(completeMessage({ sender: undefined })),
+    ).toThrow("Message.sender is required");
 
     expect(() =>
       messageFromJson(completeMessage({ reactions: undefined })),

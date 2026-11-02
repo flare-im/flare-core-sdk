@@ -16,6 +16,7 @@ final class ForwardRequestWireTests: XCTestCase {
         let source = Message(
             clientMsgId: "c-1",
             conversationId: "conv-1",
+            sender: DisplayName(kind: .unnamed, entity: .person, idTail: "u-1"),
             senderId: "u-1",
             serverId: "s-1"
         )

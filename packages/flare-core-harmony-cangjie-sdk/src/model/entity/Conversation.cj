@@ -48,7 +48,7 @@ public class Conversation {
     public let lastSenderAvatarUrl: String
     // wire: `lastSenderId`. Optional. 
     public let lastSenderId: ?String
-    // wire: `lastSenderNickname`. 最后一条消息发送者展示名（列表用）
+    // wire: `lastSenderNickname`. 旧字段：最后一条消息发送者在身份缓存里的资料名（是真名字时），否则为本地已存的名字或空串， 永不为 id。列表读 `last_sender`。
     public let lastSenderNickname: String
     // wire: `maxSeq`. 
     public let maxSeq: UInt64
@@ -70,8 +70,8 @@ public class Conversation {
     public let remark: ?String
     // wire: `role`. Optional. 
     public let role: ?String
-    // wire: `title`. Optional. 列表与聊天头显示的会话标题：备注、单聊对端人名、业务名、无名群的成员名拼接， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的会话都带它。
-    public let title: ?DisplayName
+    // wire: `title`. 列表与聊天头显示的会话标题：备注、单聊对端人名、业务名、无名群的成员名拼接， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的会话都带它。
+    public let title: DisplayName
     // wire: `unreadCount`. 
     public let unreadCount: UInt32
     // wire: `updatedAt`. 
@@ -83,7 +83,7 @@ public class Conversation {
     // wire: `visibleAfterSeq`. 当前用户的历史可见边界；seq <= visible_after_seq 的消息不可见，不参与冷启动回灌。
     public let visibleAfterSeq: UInt64
 
-    public init(avatarUrl!: String, badge!: ?String, businessType!: String, channelId!: String, conversationId!: String, conversationType!: ConversationType, createdAt!: UInt64, description!: ?String, displayName!: String, draft!: ?String, ext!: String, isArchived!: Bool, isMuted!: Bool, isPinned!: Bool, lastMessage!: ?MessagePreview, lastMessageAt!: ?UInt64, lastMessageId!: ?String, lastMessagePreview!: ?String, lastReadSeq!: UInt64, lastSender!: ?DisplayName, lastSenderAvatarUrl!: String, lastSenderId!: ?String, lastSenderNickname!: String, maxSeq!: UInt64, memberPreview!: String, membersCount!: UInt32, mentionCount!: UInt32, mentionMe!: Bool, participantVersion!: UInt64, participants!: String, peerReadSeq!: UInt64, remark!: ?String, role!: ?String, title!: ?DisplayName, unreadCount!: UInt32, updatedAt!: UInt64, updatedAtTs!: ?UInt64, version!: UInt64, visibleAfterSeq!: UInt64) {
+    public init(avatarUrl!: String, badge!: ?String, businessType!: String, channelId!: String, conversationId!: String, conversationType!: ConversationType, createdAt!: UInt64, description!: ?String, displayName!: String, draft!: ?String, ext!: String, isArchived!: Bool, isMuted!: Bool, isPinned!: Bool, lastMessage!: ?MessagePreview, lastMessageAt!: ?UInt64, lastMessageId!: ?String, lastMessagePreview!: ?String, lastReadSeq!: UInt64, lastSender!: ?DisplayName, lastSenderAvatarUrl!: String, lastSenderId!: ?String, lastSenderNickname!: String, maxSeq!: UInt64, memberPreview!: String, membersCount!: UInt32, mentionCount!: UInt32, mentionMe!: Bool, participantVersion!: UInt64, participants!: String, peerReadSeq!: UInt64, remark!: ?String, role!: ?String, title!: DisplayName, unreadCount!: UInt32, updatedAt!: UInt64, updatedAtTs!: ?UInt64, version!: UInt64, visibleAfterSeq!: UInt64) {
         this.avatarUrl = avatarUrl
         this.badge = badge
         this.businessType = businessType

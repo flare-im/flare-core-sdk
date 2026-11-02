@@ -49,7 +49,7 @@ data class Conversation(
     val lastSenderAvatarUrl: String = "",
     /** wire: `lastSenderId`.  */
     val lastSenderId: String? = null,
-    /** wire: `lastSenderNickname`. 最后一条消息发送者展示名（列表用） */
+    /** wire: `lastSenderNickname`. 旧字段：最后一条消息发送者在身份缓存里的资料名（是真名字时），否则为本地已存的名字或空串， 永不为 id。列表读 `last_sender`。 */
     val lastSenderNickname: String = "",
     /** wire: `maxSeq`.  */
     val maxSeq: Long = 0L,
@@ -72,7 +72,7 @@ data class Conversation(
     /** wire: `role`.  */
     val role: String? = null,
     /** wire: `title`. 列表与聊天头显示的会话标题：备注、单聊对端人名、业务名、无名群的成员名拼接， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的会话都带它。 */
-    val title: DisplayName? = null,
+    val title: DisplayName,
     /** wire: `unreadCount`.  */
     val unreadCount: Int = 0,
     /** wire: `updatedAt`.  */

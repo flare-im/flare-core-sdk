@@ -10,7 +10,7 @@ final class ConversationParticipant {
   /// wire: `muted`. 
   final bool muted;
   /// wire: `name`. 成员在这个会话里显示成什么（成员列表、@ 选择用）：别名、会话内昵称、资料名， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的成员都带它。
-  final DisplayName? name;
+  final DisplayName name;
   /// wire: `nickname`. 
   final String nickname;
   /// wire: `pinned`. 
@@ -24,7 +24,7 @@ final class ConversationParticipant {
     this.attributes = const {},
     this.joinedAt = 0,
     this.muted = false,
-    this.name,
+    required this.name,
     this.nickname = '',
     this.pinned = false,
     this.roles = const [],

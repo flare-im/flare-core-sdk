@@ -5,7 +5,7 @@ import { MessageReceiptStatus } from "../src/model";
 const wire = {
   serverId: "s1", clientMsgId: "c1", conversationId: "g1", conversationType: 2, channelId: "g1", senderId: "me",
   source: 1, conversationSeq: 5, createdAt: 1, clientCreatedAt: 1, messageType: 1, senderName: "", senderAvatar: "",
-  senderDisplayName: "", status: 3, isRead: false, isRecalled: false, isEdited: false, mentionUsers: [], mentionAll: false,
+  senderDisplayName: "", sender: { kind: "unnamed", entity: "person", idTail: "me" }, status: 3, isRead: false, isRecalled: false, isEdited: false, mentionUsers: [], mentionAll: false,
   attributes: {}, extensions: {}, reactions: [], textPreview: "hi", version: 1, updatedAt: 1, timelineKey: "k", timelineSortTs: 5,
 };
 

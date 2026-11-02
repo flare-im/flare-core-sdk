@@ -307,14 +307,14 @@
           "wireName": "senderDisplayName",
           "type": "String",
           "required": true,
-          "description": "SDK-computed display name."
+          "description": "Legacy: the sender's cached profile name when it is a real name, else empty; never an id. Read the sender's name from sender."
         },
         {
           "name": "sender",
           "wireName": "sender",
           "type": "DisplayName",
-          "required": false,
-          "description": "Sender name projected when read: alias, member nickname in groups, profile name, the senderName snapshot, else unnamed; present on every value the SDK returns (optional on the wire while hosts move to it)."
+          "required": true,
+          "description": "Sender name projected when read: alias, member nickname in groups, profile name, the senderName snapshot, else unnamed; present on every value the SDK returns."
         },
         {
           "name": "replyTo",

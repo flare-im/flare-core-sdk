@@ -7,6 +7,7 @@
       "channelId": "group-1",
       "membersCount": 3,
       "displayName": "Group One",
+      "title": {"kind": "named", "text": "Group One", "source": "name"},
       "avatarUrl": "https://example.com/group-1.png",
       "lastSenderNickname": "Alice",
       "lastSenderAvatarUrl": "https://example.com/alice.png",
@@ -30,7 +31,8 @@
           "pinned": false,
           "attributes": {},
           "joinedAt": 900,
-          "nickname": "Alice"
+          "nickname": "Alice",
+          "name": {"kind": "named", "text": "Alice", "source": "memberNickname"}
         }
       ],
       "participants": [],

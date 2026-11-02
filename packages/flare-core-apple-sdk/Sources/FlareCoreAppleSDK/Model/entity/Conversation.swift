@@ -47,7 +47,7 @@ public struct Conversation: Codable, Sendable {
     public let lastSenderAvatarUrl: String
     /// wire: `lastSenderId`. 
     public let lastSenderId: String?
-    /// wire: `lastSenderNickname`. 最后一条消息发送者展示名（列表用）
+    /// wire: `lastSenderNickname`. 旧字段：最后一条消息发送者在身份缓存里的资料名（是真名字时），否则为本地已存的名字或空串， 永不为 id。列表读 `last_sender`。
     public let lastSenderNickname: String
     /// wire: `maxSeq`. 
     public let maxSeq: UInt64
@@ -70,7 +70,7 @@ public struct Conversation: Codable, Sendable {
     /// wire: `role`. 
     public let role: String?
     /// wire: `title`. 列表与聊天头显示的会话标题：备注、单聊对端人名、业务名、无名群的成员名拼接， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的会话都带它。
-    public let title: DisplayName?
+    public let title: DisplayName
     /// wire: `unreadCount`. 
     public let unreadCount: UInt32
     /// wire: `updatedAt`. 
@@ -82,7 +82,7 @@ public struct Conversation: Codable, Sendable {
     /// wire: `visibleAfterSeq`. 当前用户的历史可见边界；seq <= visible_after_seq 的消息不可见，不参与冷启动回灌。
     public let visibleAfterSeq: UInt64
 
-    public init(avatarUrl: String = "", badge: String? = nil, businessType: String = "", channelId: String = "", conversationId: String = "", conversationType: ConversationType, createdAt: UInt64 = 0, description: String? = nil, displayName: String = "", draft: String? = nil, ext: [String: String] = [:], isArchived: Bool = false, isMuted: Bool = false, isPinned: Bool = false, lastMessage: MessagePreview? = nil, lastMessageAt: UInt64? = nil, lastMessageId: String? = nil, lastMessagePreview: String? = nil, lastReadSeq: UInt64 = 0, lastSender: DisplayName? = nil, lastSenderAvatarUrl: String = "", lastSenderId: String? = nil, lastSenderNickname: String = "", maxSeq: UInt64 = 0, memberPreview: [ConversationParticipant] = [], membersCount: UInt32 = 0, mentionCount: UInt32 = 0, mentionMe: Bool = false, participantVersion: UInt64 = 0, participants: [ConversationParticipant] = [], peerReadSeq: UInt64 = 0, remark: String? = nil, role: String? = nil, title: DisplayName? = nil, unreadCount: UInt32 = 0, updatedAt: UInt64 = 0, updatedAtTs: UInt64? = nil, version: UInt64 = 0, visibleAfterSeq: UInt64 = 0) {
+    public init(avatarUrl: String = "", badge: String? = nil, businessType: String = "", channelId: String = "", conversationId: String = "", conversationType: ConversationType, createdAt: UInt64 = 0, description: String? = nil, displayName: String = "", draft: String? = nil, ext: [String: String] = [:], isArchived: Bool = false, isMuted: Bool = false, isPinned: Bool = false, lastMessage: MessagePreview? = nil, lastMessageAt: UInt64? = nil, lastMessageId: String? = nil, lastMessagePreview: String? = nil, lastReadSeq: UInt64 = 0, lastSender: DisplayName? = nil, lastSenderAvatarUrl: String = "", lastSenderId: String? = nil, lastSenderNickname: String = "", maxSeq: UInt64 = 0, memberPreview: [ConversationParticipant] = [], membersCount: UInt32 = 0, mentionCount: UInt32 = 0, mentionMe: Bool = false, participantVersion: UInt64 = 0, participants: [ConversationParticipant] = [], peerReadSeq: UInt64 = 0, remark: String? = nil, role: String? = nil, title: DisplayName, unreadCount: UInt32 = 0, updatedAt: UInt64 = 0, updatedAtTs: UInt64? = nil, version: UInt64 = 0, visibleAfterSeq: UInt64 = 0) {
         self.avatarUrl = avatarUrl
         self.badge = badge
         self.businessType = businessType

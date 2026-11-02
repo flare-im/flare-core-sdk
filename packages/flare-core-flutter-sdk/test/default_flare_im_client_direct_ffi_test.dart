@@ -151,6 +151,11 @@ void main() {
               contentType: MessageContentType.text,
               data: {'text': 'hello'},
             ),
+            sender: DisplayName(
+              kind: DisplayNameKind.unnamed,
+              entity: NameEntity.person,
+              idTail: 'u1',
+            ),
           ),
         ),
       );
@@ -166,6 +171,8 @@ void main() {
       expect(message.containsKey('created_at'), isFalse);
       expect(message.containsKey('client_created_at'), isFalse);
       expect(message.containsKey('extra'), isFalse);
+      expect(message.containsKey('sender'), isFalse,
+          reason: 'the sender name is projected when read, never sent back');
       expect(message['content'], {
         'contentType': 'text',
         'text': 'hello',
@@ -1130,6 +1137,7 @@ Map<String, Object?> _messageResponse() {
     'senderName': 'User One',
     'senderAvatar': 'https://example.com/u1.png',
     'senderDisplayName': 'User One',
+    'sender': {'kind': 'named', 'text': 'User One', 'source': 'snapshot'},
     'status': 2,
     'isRead': false,
     'isRecalled': false,

@@ -20,30 +20,32 @@ final class DisplayNameWireTests: XCTestCase {
             conversationJson["memberPreview"] = [participant("u2", name: expected)]
             conversationJson["participants"] = [participant("u3", name: expected)]
             let conversation = try conversationFromJson(conversationJson)
-            XCTAssertTrue(wireEquals(conversation.title.map(displayNameToMap), expected), name)
+            XCTAssertTrue(wireEquals(displayNameToMap(conversation.title), expected), name)
             XCTAssertTrue(wireEquals(conversation.lastSender.map(displayNameToMap), expected), name)
-            XCTAssertTrue(wireEquals(conversation.memberPreview.first?.name.map(displayNameToMap), expected), name)
-            XCTAssertTrue(wireEquals(conversation.participants.first?.name.map(displayNameToMap), expected), name)
+            XCTAssertTrue(wireEquals(conversation.memberPreview.first.map { displayNameToMap($0.name) }, expected), name)
+            XCTAssertTrue(wireEquals(conversation.participants.first.map { displayNameToMap($0.name) }, expected), name)
 
             var messageJson = try golden("responses/build_thread_reply_message.json")
             messageJson["sender"] = expected
             let message = try messageFromJson(messageJson)
-            XCTAssertTrue(wireEquals(message.sender.map(displayNameToMap), expected), name)
+            XCTAssertTrue(wireEquals(displayNameToMap(message.sender), expected), name)
         }
     }
 
-    func testNamesStayAbsentOnValuesFromACoreThatDoesNotProjectThem() throws {
+    func testTheNamesEveryValueCarriesAreRequiredAndLastSenderStaysOutWithoutALatestMessage() throws {
+        var untitled = try golden("responses/conversation_get_one.json")
+        untitled.removeValue(forKey: "title")
+        assertRequired("Conversation.title") { _ = try conversationFromJson(untitled) }
         let conversation = try conversationFromJson(try golden("responses/conversation_get_one.json"))
-        XCTAssertNil(conversation.title)
+        XCTAssertEqual(conversation.title.kind, .named)
+        XCTAssertEqual(conversation.title.text, "User Two")
         XCTAssertNil(conversation.lastSender)
-        XCTAssertEqual(conversation.displayName, "User Two")
-        XCTAssertEqual(conversation.lastSenderNickname, "User Two")
 
-        let message = try messageFromJson(try golden("responses/build_thread_reply_message.json"))
-        XCTAssertNil(message.sender)
-        XCTAssertEqual(message.senderDisplayName, "User One")
+        var unsent = try golden("responses/build_thread_reply_message.json")
+        unsent.removeValue(forKey: "sender")
+        assertRequired("Message.sender") { _ = try messageFromJson(unsent) }
 
-        XCTAssertNil(try conversationParticipantFromJson(participant("u2")).name)
+        assertRequired("ConversationParticipant.name") { _ = try conversationParticipantFromJson(participant("u2")) }
         XCTAssertNil(displayNameFromJson(nil))
         XCTAssertNil(displayNameFromJson(NSNull()))
     }
@@ -65,7 +67,7 @@ final class DisplayNameWireTests: XCTestCase {
 
         var messageJson = try golden("responses/build_thread_reply_message.json")
         messageJson["sender"] = ["kind": "unnamed", "entity": "bot", "idTail": "0401"]
-        let sender = try XCTUnwrap(try messageFromJson(messageJson).sender)
+        let sender = try messageFromJson(messageJson).sender
         XCTAssertEqual(sender.entity, .person)
         XCTAssertEqual(sender.idTail, "0401")
     }
@@ -147,6 +149,17 @@ final class DisplayNameWireTests: XCTestCase {
         _ = try await events.subscribeEvents([:])
         bridge.emit(eventType: EventCode.messageSendFailed, payload: payload)
         return box
+    }
+}
+
+private func assertRequired(
+    _ field: String,
+    file: StaticString = #filePath,
+    line: UInt = #line,
+    _ decode: () throws -> Void
+) {
+    XCTAssertThrowsError(try decode(), file: file, line: line) { error in
+        XCTAssertEqual((error as? FlareSdkException)?.message, "\(field) is required", file: file, line: line)
     }
 }
 

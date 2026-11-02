@@ -13,6 +13,7 @@
           "channelId": "group-100",
           "membersCount": 100,
           "displayName": "Scale Test Group",
+          "title": {"kind": "named", "text": "Scale Test Group", "source": "name"},
           "avatarUrl": "https://example.com/group-100.png",
           "lastMessageId": "server-msg-101",
           "lastSenderId": "user-b",
@@ -53,7 +54,8 @@
                 "displayName": "User A"
               },
               "joinedAt": 1782795500000,
-              "nickname": "User A"
+              "nickname": "User A",
+              "name": {"kind": "named", "text": "User A", "source": "memberNickname"}
             },
             {
               "userId": "user-b",
@@ -66,7 +68,8 @@
                 "displayName": "User B"
               },
               "joinedAt": 1782795501000,
-              "nickname": "User B"
+              "nickname": "User B",
+              "name": {"kind": "named", "text": "User B", "source": "memberNickname"}
             }
           ],
           "participants": [],

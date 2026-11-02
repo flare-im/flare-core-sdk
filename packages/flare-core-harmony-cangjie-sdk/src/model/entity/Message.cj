@@ -44,11 +44,11 @@ public class Message {
     public let reactions: String
     // wire: `replyTo`. Optional. 
     public let replyTo: ?String
-    // wire: `sender`. Optional. 发送者名：别名、群会话里的会话内昵称、资料名、发送时快照（`sender_name`），都没有时为 结构化的「无名」。读取时由核心投影，不落库；SDK 交出的消息都带它。
-    public let sender: ?DisplayName
+    // wire: `sender`. 发送者名：别名、群会话里的会话内昵称、资料名、发送时快照（`sender_name`），都没有时为 结构化的「无名」。读取时由核心投影，不落库；SDK 交出的消息都带它。
+    public let sender: DisplayName
     // wire: `senderAvatar`. 
     public let senderAvatar: String
-    // wire: `senderDisplayName`. SDK计算展示名
+    // wire: `senderDisplayName`. 旧字段：身份缓存里发送者的资料名（是真名字时），否则为空，永不为 id。读发送者名用 `sender`。
     public let senderDisplayName: String
     // wire: `senderId`. 发送者
     public let senderId: String
@@ -75,7 +75,7 @@ public class Message {
     // wire: `receipt`. Optional. Core-computed receipt projection (status and, on the viewer's own group messages, the read summary); always present on messages the SDK returns.
     public let receipt: ?MessageReceiptView
 
-    public init(attributes!: String, channelId!: String, clientCreatedAt!: UInt64, clientMsgId!: String, content!: ?MessageContent, conversationId!: String, conversationSeq!: UInt64, conversationType!: Int32, createdAt!: UInt64, extensions!: String, isEdited!: Bool, isRead!: Bool, isRecalled!: Bool, localState!: ?MessageLocalState, mentionAll!: Bool, mentionUsers!: String, messageType!: Int32, quotePreview!: ?String, reactions!: String, replyTo!: ?String, sender!: ?DisplayName, senderAvatar!: String, senderDisplayName!: String, senderId!: String, senderName!: String, serverId!: String, source!: Int32, status!: Int32, textPreview!: String, threadId!: ?String, updatedAt!: UInt64, version!: UInt64, timelineKey!: String, timelineSortTs!: UInt64, receipt!: ?MessageReceiptView) {
+    public init(attributes!: String, channelId!: String, clientCreatedAt!: UInt64, clientMsgId!: String, content!: ?MessageContent, conversationId!: String, conversationSeq!: UInt64, conversationType!: Int32, createdAt!: UInt64, extensions!: String, isEdited!: Bool, isRead!: Bool, isRecalled!: Bool, localState!: ?MessageLocalState, mentionAll!: Bool, mentionUsers!: String, messageType!: Int32, quotePreview!: ?String, reactions!: String, replyTo!: ?String, sender!: DisplayName, senderAvatar!: String, senderDisplayName!: String, senderId!: String, senderName!: String, serverId!: String, source!: Int32, status!: Int32, textPreview!: String, threadId!: ?String, updatedAt!: UInt64, version!: UInt64, timelineKey!: String, timelineSortTs!: UInt64, receipt!: ?MessageReceiptView) {
         this.attributes = attributes
         this.channelId = channelId
         this.clientCreatedAt = clientCreatedAt

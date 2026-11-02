@@ -175,8 +175,8 @@
           "name": "name",
           "wireName": "name",
           "type": "DisplayName",
-          "required": false,
-          "description": "What the member is called in this conversation (alias, member nickname, profile name, else unnamed); projected when read; present on every value the SDK returns (optional on the wire while hosts move to it)."
+          "required": true,
+          "description": "What the member is called in this conversation (alias, member nickname, profile name, else unnamed); projected when read; present on every value the SDK returns."
         }
       ]
     },
@@ -271,8 +271,8 @@
           "name": "title",
           "wireName": "title",
           "type": "DisplayName",
-          "required": false,
-          "description": "Conversation title projected when read: remark, the single chat peer's name, the business name, an unnamed group's member names, else unnamed; present on every value the SDK returns (optional on the wire while hosts move to it)."
+          "required": true,
+          "description": "Conversation title projected when read: remark, the single chat peer's name, the business name, an unnamed group's member names, else unnamed; present on every value the SDK returns."
         },
         {
           "name": "avatarUrl",
@@ -335,7 +335,7 @@
           "wireName": "lastSenderNickname",
           "type": "String",
           "required": true,
-          "description": "Latest sender display name."
+          "description": "Legacy: the latest sender's cached profile name when it is a real name, else the name stored locally or empty; never an id. Lists read lastSender."
         },
         {
           "name": "lastSender",

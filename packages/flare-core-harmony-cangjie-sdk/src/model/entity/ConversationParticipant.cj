@@ -10,8 +10,8 @@ public class ConversationParticipant {
     public let joinedAt: UInt64
     // wire: `muted`. 
     public let muted: Bool
-    // wire: `name`. Optional. 成员在这个会话里显示成什么（成员列表、@ 选择用）：别名、会话内昵称、资料名， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的成员都带它。
-    public let name: ?DisplayName
+    // wire: `name`. 成员在这个会话里显示成什么（成员列表、@ 选择用）：别名、会话内昵称、资料名， 都没有时为结构化的「无名」。读取时由核心投影，不落库；SDK 交出的成员都带它。
+    public let name: DisplayName
     // wire: `nickname`. 
     public let nickname: String
     // wire: `pinned`. 
@@ -21,7 +21,7 @@ public class ConversationParticipant {
     // wire: `userId`. 
     public let userId: String
 
-    public init(attributes!: String, joinedAt!: UInt64, muted!: Bool, name!: ?DisplayName, nickname!: String, pinned!: Bool, roles!: String, userId!: String) {
+    public init(attributes!: String, joinedAt!: UInt64, muted!: Bool, name!: DisplayName, nickname!: String, pinned!: Bool, roles!: String, userId!: String) {
         this.attributes = attributes
         this.joinedAt = joinedAt
         this.muted = muted

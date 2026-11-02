@@ -48,10 +48,10 @@ export interface Message {
   /** wire: `replyTo`.  */
   replyTo?: string;
   /** wire: `sender`. 发送者名：别名、群会话里的会话内昵称、资料名、发送时快照（`sender_name`），都没有时为 结构化的「无名」。读取时由核心投影，不落库；SDK 交出的消息都带它。 */
-  sender?: DisplayName;
+  sender: DisplayName;
   /** wire: `senderAvatar`.  */
   senderAvatar: string;
-  /** wire: `senderDisplayName`. SDK计算展示名 */
+  /** wire: `senderDisplayName`. 旧字段：身份缓存里发送者的资料名（是真名字时），否则为空，永不为 id。读发送者名用 `sender`。 */
   senderDisplayName: string;
   /** wire: `senderId`. 发送者 */
   senderId: string;

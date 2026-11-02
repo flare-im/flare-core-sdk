@@ -5,6 +5,7 @@
   "channelId": "u2",
   "membersCount": 2,
   "displayName": "User Two",
+  "title": {"kind": "named", "text": "User Two", "source": "profile"},
   "avatarUrl": "https://example.com/u2.png",
   "lastSenderNickname": "User Two",
   "lastSenderAvatarUrl": "https://example.com/u2.png",

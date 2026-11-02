@@ -48,10 +48,10 @@ final class Message {
   /// wire: `replyTo`. 
   final String? replyTo;
   /// wire: `sender`. 发送者名：别名、群会话里的会话内昵称、资料名、发送时快照（`sender_name`），都没有时为 结构化的「无名」。读取时由核心投影，不落库；SDK 交出的消息都带它。
-  final DisplayName? sender;
+  final DisplayName sender;
   /// wire: `senderAvatar`. 
   final String senderAvatar;
-  /// wire: `senderDisplayName`. SDK计算展示名
+  /// wire: `senderDisplayName`. 旧字段：身份缓存里发送者的资料名（是真名字时），否则为空，永不为 id。读发送者名用 `sender`。
   final String senderDisplayName;
   /// wire: `senderId`. 发送者
   final String senderId;
@@ -99,7 +99,7 @@ final class Message {
     this.quotePreview,
     this.reactions = const [],
     this.replyTo,
-    this.sender,
+    required this.sender,
     this.senderAvatar = '',
     this.senderDisplayName = '',
     this.senderId = '',

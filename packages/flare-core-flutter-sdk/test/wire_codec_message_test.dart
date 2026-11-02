@@ -171,6 +171,19 @@ void main() {
       expect(message.textPreview, isEmpty);
     });
 
+    test('requires the projected sender name', () {
+      expect(
+        () => messageFromJson(_completeMessage()..remove('sender')),
+        throwsA(
+          isA<ArgumentError>().having(
+            (error) => error.message,
+            'message',
+            'Message.sender is required',
+          ),
+        ),
+      );
+    });
+
     test('requires reaction arrays from core', () {
       expect(
         () => messageFromJson(_completeMessage()..remove('reactions')),
@@ -551,6 +564,7 @@ Map<String, Object?> _completeMessage(
     'senderName': 'User Two',
     'senderAvatar': 'https://example.com/u2.png',
     'senderDisplayName': 'User Two',
+    'sender': {'kind': 'named', 'text': 'User Two', 'source': 'snapshot'},
     'status': 2,
     'isRead': false,
     'isRecalled': false,
