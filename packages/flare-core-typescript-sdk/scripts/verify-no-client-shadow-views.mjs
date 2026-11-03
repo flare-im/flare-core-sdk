@@ -1,24 +1,25 @@
 import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const sdkRoot = resolve(scriptDir, "../../..");
 const repoRoot = resolve(sdkRoot, "..");
+const examplesRoot = join(repoRoot, "flare-core-examples");
 
 const scanRoots = [
   "examples/shared/vue-reference",
   "packages/flare-core-apple-sdk/Sources/FlareCoreAppleSDK/Bridge",
   "packages/flare-core-flutter-sdk/lib/src/bridge",
-  "examples/flare-core-web-app/src",
-  "examples/flare-core-tauri-app/src",
+  "../flare-core-examples/apps/flare-core-web-app/src",
+  "../flare-core-examples/apps/flare-core-tauri-app/src",
   "examples/flare-core-electron-app/src",
   "examples/flare-core-uni-app/src",
-  "examples/flare-core-flutter-app/lib/application",
-  "examples/flare-core-flutter-app/lib/interface",
+  "../flare-core-examples/apps/flare-core-flutter-app/lib/application",
+  "../flare-core-examples/apps/flare-core-flutter-app/lib/interface",
   "examples/flare-core-rn-app/src",
-  "examples/flare-core-ios-app/Sources",
+  "../flare-core-examples/apps/flare-core-ios-app/Sources",
 ];
 
 // 扫描根写死一串相对路径，而仓库拆分后其中若干已经不在本仓（vue-im-ui 迁去
@@ -160,17 +161,17 @@ const forbiddenPatterns = [
   {
     name: "flutter provider conversation resort",
     pattern: /\bstate\s*=\s*[\s\S]{0,500}\.sort\s*\(/,
-    pathIncludes: "examples/flare-core-flutter-app/lib/application/providers/conversation_state_provider.dart",
+    pathIncludes: "../flare-core-examples/apps/flare-core-flutter-app/lib/application/providers/conversation_state_provider.dart",
   },
   {
     name: "flutter provider timeline resort",
     pattern: /(\bstate\s*=\s*[\s\S]{0,500}\.sort\s*\(|\breturn\s+\w+\s*\.\.sort\s*\()/,
-    pathIncludes: "examples/flare-core-flutter-app/lib/application/providers/message_state_provider.dart",
+    pathIncludes: "../flare-core-examples/apps/flare-core-flutter-app/lib/application/providers/message_state_provider.dart",
   },
   {
     name: "flutter conversation preview projection",
     pattern: /\blastMessagePreview\s*:\s*message\.content\.previewText\b/,
-    pathIncludes: "examples/flare-core-flutter-app/lib/application/providers/conversation_state_provider.dart",
+    pathIncludes: "../flare-core-examples/apps/flare-core-flutter-app/lib/application/providers/conversation_state_provider.dart",
   },
   {
     name: "capability operation switch",
@@ -180,8 +181,8 @@ const forbiddenPatterns = [
 ];
 
 const runtimeSeedScanRoots = [
-  { base: sdkRoot, rel: "examples/flare-core-flutter-app/lib/interface" },
-  { base: sdkRoot, rel: "examples/flare-core-tauri-app/src" },
+  { base: sdkRoot, rel: "../flare-core-examples/apps/flare-core-flutter-app/lib/interface" },
+  { base: sdkRoot, rel: "../flare-core-examples/apps/flare-core-tauri-app/src" },
   { base: sdkRoot, rel: "examples/flare-core-electron-app/src" },
   { base: sdkRoot, rel: "examples/flare-core-uni-app/src" },
   { base: sdkRoot, rel: "examples/flare-core-rn-app/src" },
@@ -230,7 +231,7 @@ const sharedAssetSources = new Map([
     "app_defaults.json",
     new Set([
       "examples/shared/assets/config/app_defaults.json",
-      "examples/flare-core-flutter-app/assets/config/app_defaults.json",
+      "../flare-core-examples/apps/flare-core-flutter-app/assets/config/app_defaults.json",
     ]),
   ],
 ]);
@@ -368,6 +369,8 @@ async function walkNamedFiles(directory, names) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) {
       if (SKIPPED_DIRECTORIES.has(entry.name)) continue;
+      if (directory === join(sdkRoot, "examples")
+          && /^flare-core-(web|tauri|flutter|android|ios)-app$/.test(entry.name)) continue;
       files.push(...await walkNamedFiles(path, names));
       continue;
     }
@@ -409,7 +412,7 @@ for (const root of presentScanRoots) {
         violations.push(`${file.replace(`${sdkRoot}/`, "")}: ${identifier}`);
       }
     }
-    const relFile = file.replace(`${sdkRoot}/`, "");
+    const relFile = relative(sdkRoot, file);
     const normalizedRelFile = relFile.toLowerCase();
     for (const { name, pattern, pathIncludes } of forbiddenPatterns) {
       if (pathIncludes && !normalizedRelFile.includes(pathIncludes)) {
@@ -444,8 +447,11 @@ for (const { base, rel } of runtimeSeedScanRoots.filter(({ base, rel }) => exist
   }
 }
 
-for (const file of await walkNamedFiles(sdkRoot, new Set(sharedAssetSources.keys()))) {
-  const relFile = file.replace(`${sdkRoot}/`, "");
+const assetNames = new Set(sharedAssetSources.keys());
+const assetFiles = await walkNamedFiles(sdkRoot, assetNames);
+if (existsSync(examplesRoot)) assetFiles.push(...await walkNamedFiles(examplesRoot, assetNames));
+for (const file of assetFiles) {
+  const relFile = relative(sdkRoot, file);
   const allowed = sharedAssetSources.get(relFile.split("/").at(-1));
   if (allowed && !allowed.has(relFile)) {
     violations.push(`${relFile}: shared data asset must use the canonical source`);

@@ -69,7 +69,7 @@ async function loadCompilerSfc() {
   }
   throw new Error(
     "Could not resolve @vue/compiler-sfc from any example app or the repo root. " +
-      "Run `npm install` in examples/flare-core-web-app first.",
+      "Run `npm install` in ../flare-core-examples/apps/flare-core-web-app first.",
   );
 }
 
