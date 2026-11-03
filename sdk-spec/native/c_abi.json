@@ -1,6 +1,6 @@
 {
   "contract": "flare-im-ffi/v1",
-  "source": "../../flare-im-core-sdk/bindings/c",
+  "source": "../../flare-core-sdk-engine/bindings/c",
   "defaults": {
     "callback": "FlareResultCallback",
     "asyncReturn": "i32 immediate_submit_code",

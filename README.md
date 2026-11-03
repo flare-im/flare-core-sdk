@@ -14,7 +14,7 @@ English · [中文](README.zh-CN.md)
 > - **`HttpHookTokenValidator`** —— 把 token POST 到你自己的接口，
 >   **这是接入自有用户体系的入口**。
 >
-> 业务规则同理：`flare-im-core/crates/flare-im-hooks` 提供 9 个扩展点
+> 业务规则同理：`flare-core-server/crates/flare-im-hooks` 提供 9 个扩展点
 > （PreSend / PostSend / Delivery / Recall / MessageRead / MessageReaction /
 > ConversationLifecycle / ConversationMember / GetConversationParticipants）。
 >
@@ -35,8 +35,8 @@ The Rust core remains the only place for IM behavior. This workspace owns platfo
 App
   -> L3 typed platform facade
   -> L2 runtime adapter
-  -> L1 C ABI: ../flare-im-core-sdk/bindings/c
-  -> L0 Rust core: ../flare-im-core-sdk
+  -> L1 C ABI: ../flare-core-sdk-engine/bindings/c
+  -> L0 Rust core: ../flare-core-sdk-engine
 ```
 
 ## Directory Map
@@ -91,7 +91,7 @@ Common `make` targets:
 
 | 想做什么 | 去哪里 |
 |---|---|
-| **五分钟跑起来** | [QUICKSTART](https://github.com/flare-im/flare-im-core-server/blob/main/QUICKSTART.md) —— 起服务、手签 token、调通接口，**不需要自建用户体系** |
+| **五分钟跑起来** | [QUICKSTART](https://github.com/flare-im/flare-core-server/blob/main/QUICKSTART.md) —— 起服务、手签 token、调通接口，**不需要自建用户体系** |
 | 接入自己的用户系统 | 实现 `TokenValidator`（`CoreJwtTokenValidator` 本地验签 / `HttpHookTokenValidator` 调你的接口） |
 | 加自己的业务规则 | `flare-im-hooks` 的 9 个扩展点：PreSend / PostSend / Delivery / Recall / MessageRead / MessageReaction / ConversationLifecycle / ConversationMember / GetConversationParticipants |
 | 做界面 | [`@flare-im/vue-ui`](https://www.npmjs.com/package/@flare-im/vue-ui) —— 107 个组件，四端一致的契约 |
@@ -106,5 +106,5 @@ Common `make` targets:
 
 咨询：`flare1522@163.com`
 
-> 边界划分与不变承诺见 [GOVERNANCE](https://github.com/flare-im/flare-im-core-server/blob/main/GOVERNANCE.md)。
+> 边界划分与不变承诺见 [GOVERNANCE](https://github.com/flare-im/flare-core-server/blob/main/GOVERNANCE.md)。
 > 简言之：**已开源的不会被收回，鉴权与 hooks 契约永远开源、不会为逼迫付费而阉割。**

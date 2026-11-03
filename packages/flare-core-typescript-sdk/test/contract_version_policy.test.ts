@@ -96,13 +96,13 @@ describe("contract version policy", () => {
   // 只有在多仓开发布局下才成立；单仓 checkout（CI 默认）里它们不存在，
   // 此时应显式跳过而不是失败——失败会把「环境缺件」误报成「契约不一致」。
   const protocolCratesPresent =
-    fs.existsSync(path.join(flareRoot, "flare-proto/Cargo.toml")) &&
-    fs.existsSync(path.join(flareRoot, "flare-grpc-proto/Cargo.toml"));
+    fs.existsSync(path.join(flareRoot, "flare-protocol/Cargo.toml")) &&
+    fs.existsSync(path.join(flareRoot, "flare-protocol-grpc/Cargo.toml"));
 
   it.skipIf(!protocolCratesPresent)("documents current protocol crate version sources used by release notes", () => {
     const policy = readText(path.join(clientSdkRoot, "sdk-spec/contract-version-policy.md"));
-    const flareProtoCargo = readText(path.join(flareRoot, "flare-proto/Cargo.toml"));
-    const flareGrpcProtoCargo = readText(path.join(flareRoot, "flare-grpc-proto/Cargo.toml"));
+    const flareProtoCargo = readText(path.join(flareRoot, "flare-protocol/Cargo.toml"));
+    const flareGrpcProtoCargo = readText(path.join(flareRoot, "flare-protocol-grpc/Cargo.toml"));
     const flareProtoVersion = capture(flareProtoCargo, /^version\s*=\s*"([^"]+)"/m, "flare-proto version");
     const flareGrpcProtoVersion = capture(flareGrpcProtoCargo, /^version\s*=\s*"([^"]+)"/m, "flare-grpc-proto version");
 

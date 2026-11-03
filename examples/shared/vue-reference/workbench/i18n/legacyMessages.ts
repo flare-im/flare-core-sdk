@@ -769,7 +769,7 @@ export const flareMessages: Record<FlareLocale, FlareMessageTree> = {
       disconnected: "已断开",
       failed: "登录失败",
       runtimeUnavailable: "WASM 运行时不可用",
-      runtimeUnavailableHint: "请先构建 flare-im-core-sdk/bindings/wasm，并确认浏览器可访问 WASM 资源。IM 网关默认使用 ws://127.0.0.1:60051。",
+      runtimeUnavailableHint: "请先构建 flare-core-sdk-engine/bindings/wasm，并确认浏览器可访问 WASM 资源。IM 网关默认使用 ws://127.0.0.1:60051。",
     },
     profileEditor: {
       nickname: "昵称",
@@ -1923,7 +1923,7 @@ export const flareMessages: Record<FlareLocale, FlareMessageTree> = {
       disconnected: "Disconnected",
       failed: "Sign in failed",
       runtimeUnavailable: "WASM runtime unavailable",
-      runtimeUnavailableHint: "Build flare-im-core-sdk/bindings/wasm first and ensure the browser can load the WASM asset. The default IM gateway is ws://127.0.0.1:60051.",
+      runtimeUnavailableHint: "Build flare-core-sdk-engine/bindings/wasm first and ensure the browser can load the WASM asset. The default IM gateway is ws://127.0.0.1:60051.",
     },
     profileEditor: {
       nickname: "Nickname",

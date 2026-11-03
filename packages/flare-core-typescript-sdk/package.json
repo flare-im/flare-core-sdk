@@ -74,7 +74,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/flare-im/flare-im-core-client-sdk.git",
+    "url": "https://github.com/flare-im/flare-core-sdk.git",
     "directory": "packages/flare-core-typescript-sdk"
   },
   "publishConfig": {

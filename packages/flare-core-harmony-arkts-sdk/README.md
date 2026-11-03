@@ -1,6 +1,6 @@
 # Flare Core HarmonyOS ArkTS SDK
 
-This package is a typed adapter over `flare-im-core-sdk/bindings/c`.
+This package is a typed adapter over `flare-core-sdk-engine/bindings/c`.
 
 - Status: `contract-synced`
 - Async model: Promise + typed event emitter

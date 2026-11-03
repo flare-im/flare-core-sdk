@@ -417,7 +417,7 @@ Runtime health snapshot including metrics and event drop counters.
 
 ## Conversations
 
-Conversation models mirrored from flare-im-core-sdk/src/model/conversation.rs.
+Conversation models mirrored from flare-core-sdk-engine/src/model/conversation.rs.
 
 ### Enums
 
@@ -654,7 +654,7 @@ Result of direct local-store historical backfill for one conversation.
 
 ## Messages
 
-Message models mirrored from flare-im-core-sdk/src/model/message.rs and message_elem.rs.
+Message models mirrored from flare-core-sdk-engine/src/model/message.rs and message_elem.rs.
 
 ### Enums
 

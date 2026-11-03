@@ -287,7 +287,7 @@
     }
   ],
   "ffiContractVersion": "flare-im-ffi/v1",
-  "ffiEntry": "../flare-im-core-sdk/bindings/c",
+  "ffiEntry": "../flare-core-sdk-engine/bindings/c",
   "generated": true,
   "include": {
     "errors": "shared/errors.json",
@@ -890,7 +890,7 @@
         "summary": "Build with content message"
       }
     ],
-    "source": "../flare-im-core-sdk/bindings/contract/apis.json#message_builder"
+    "source": "../flare-core-sdk-engine/bindings/contract/apis.json#message_builder"
   },
   "modelGroups": [
     {
@@ -1526,7 +1526,7 @@
           }
         }
       ],
-      "source": "../flare-im-core-sdk/bindings/contract/generated/model_schemas"
+      "source": "../flare-core-sdk-engine/bindings/contract/generated/model_schemas"
     },
     {
       "description": "Core-owned message DTOs derived from Rust JsonSchema.",
@@ -1964,7 +1964,7 @@
           }
         }
       ],
-      "source": "../flare-im-core-sdk/bindings/contract/generated/model_schemas"
+      "source": "../flare-core-sdk-engine/bindings/contract/generated/model_schemas"
     },
     {
       "description": "Core-owned DTOs derived from Rust JsonSchema.",
@@ -2086,7 +2086,7 @@
           }
         }
       ],
-      "source": "../flare-im-core-sdk/bindings/contract/generated/model_schemas"
+      "source": "../flare-core-sdk-engine/bindings/contract/generated/model_schemas"
     },
     {
       "description": "Core-owned sync DTOs derived from Rust JsonSchema.",
@@ -2254,7 +2254,7 @@
           }
         }
       ],
-      "source": "../flare-im-core-sdk/bindings/contract/generated/model_schemas"
+      "source": "../flare-core-sdk-engine/bindings/contract/generated/model_schemas"
     },
     {
       "description": "Session utility request and response models.",
@@ -2474,7 +2474,7 @@
       ]
     },
     {
-      "description": "Conversation models mirrored from flare-im-core-sdk/src/model/conversation.rs.",
+      "description": "Conversation models mirrored from flare-core-sdk-engine/src/model/conversation.rs.",
       "enums": [
         {
           "description": "Shape of a projected DisplayName.",
@@ -3146,7 +3146,7 @@
       ]
     },
     {
-      "description": "Message models mirrored from flare-im-core-sdk/src/model/message.rs and message_elem.rs.",
+      "description": "Message models mirrored from flare-core-sdk-engine/src/model/message.rs and message_elem.rs.",
       "enums": [
         {
           "description": "Decoded message content discriminator.",
@@ -9139,7 +9139,7 @@
         "returnMode": "sync"
       }
     },
-    "source": "../../flare-im-core-sdk/bindings/c",
+    "source": "../../flare-core-sdk-engine/bindings/c",
     "transports": {
       "capability-dispatch-json": {
         "description": "Call flare_capability_dispatch_json with a stable capability operation id and JSON parameters.",
@@ -9264,6 +9264,6 @@
     "stable semantics use typed fields, not metadata",
     "platform APIs keep canonical method names"
   ],
-  "source": "../flare-im-core-sdk/bindings/contract/events.json",
-  "sourceOfTruth": "../flare-im-core-sdk"
+  "source": "../flare-core-sdk-engine/bindings/contract/events.json",
+  "sourceOfTruth": "../flare-core-sdk-engine"
 }

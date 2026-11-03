@@ -10,7 +10,7 @@ benchmark surfaces and coverage stay present.
 Run the transport/core baseline:
 
 ```bash
-cargo bench --manifest-path ../flare-core/Cargo.toml --bench perf_baseline --features server,compression-gzip
+cargo bench --manifest-path ../flare-transport/Cargo.toml --bench perf_baseline --features server,compression-gzip
 ```
 
 Covered scenarios:
@@ -28,7 +28,7 @@ without scraping human-formatted output.
 Run the SDK baseline:
 
 ```bash
-cargo bench --manifest-path ../flare-im-core-sdk/Cargo.toml --bench perf_baseline
+cargo bench --manifest-path ../flare-core-sdk-engine/Cargo.toml --bench perf_baseline
 ```
 
 Covered scenarios:
@@ -59,12 +59,12 @@ coverage anchors are removed.
 
 These examples require local Flare IM Core services and the signaling gateway to
 be running. By default they connect to `ws://localhost:60051` and read the local
-dev token secret from `../flare-im-core/logs/.dev-token-secret`.
+dev token secret from `../flare-core-server/logs/.dev-token-secret`.
 
 Two-user receive convergence:
 
 ```bash
-cd ../flare-im-core-sdk
+cd ../flare-core-sdk-engine
 FLARE_E2E_TOTAL=20 \
 FLARE_E2E_IN_FLIGHT=8 \
 FLARE_E2E_RECEIVE_TIMEOUT_MS=30000 \
@@ -74,7 +74,7 @@ rtk cargo run --example two_user_latency_throughput --features lifecycle-sqlite
 Large-group correctness baseline:
 
 ```bash
-cd ../flare-im-core-sdk
+cd ../flare-core-sdk-engine
 FLARE_GROUP_E2E_USERS="$(seq -s, 1000 1099)" \
 FLARE_GROUP_E2E_PER_USER=1 \
 FLARE_GROUP_E2E_IN_FLIGHT=64 \
@@ -87,7 +87,7 @@ rtk cargo run --example group_latency_throughput --features lifecycle-sqlite
 Multi-message group convergence:
 
 ```bash
-cd ../flare-im-core-sdk
+cd ../flare-core-sdk-engine
 FLARE_GROUP_E2E_USERS="$(seq -s, 2000 2019)" \
 FLARE_GROUP_E2E_PER_USER=5 \
 FLARE_GROUP_E2E_IN_FLIGHT=64 \
@@ -100,7 +100,7 @@ rtk cargo run --example group_latency_throughput --features lifecycle-sqlite
 Collaboration-state convergence:
 
 ```bash
-cd ../flare-im-core-sdk
+cd ../flare-core-sdk-engine
 rtk cargo run --example typing_relay_e2e --features lifecycle-sqlite
 rtk cargo run --example read_receipt_e2e --features lifecycle-sqlite
 ```

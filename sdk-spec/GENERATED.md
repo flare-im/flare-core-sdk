@@ -4,7 +4,7 @@
 
 - API version: `1.0.0`
 - FFI contract: `flare-im-ffi/v1`
-- Core source: `../flare-im-core-sdk`
+- Core source: `../flare-core-sdk-engine`
 
 ## Modules
 

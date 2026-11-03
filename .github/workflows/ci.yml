@@ -108,7 +108,7 @@ jobs:
           # 同级仓：uni 的 parity 测试读 flare-im-design 的组合式源码，
           # tauri 的测试读 flare-im-core-sdk 的 bindings/tauri/Cargo.toml（验 QUIC feature 链）。
           clone https://github.com/flare-im/flare-im-design.git "../flare-im-design"
-          clone https://github.com/flare-im/flare-im-core-sdk.git "../flare-im-core-sdk"
+          clone https://github.com/flare-im/flare-core-sdk-engine.git "../flare-core-sdk-engine"
 
       - name: 跑各示例应用的测试套件
         run: |

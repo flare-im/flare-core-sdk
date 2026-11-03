@@ -9,7 +9,7 @@
 - Package: `packages/@flare-im/sdk`
 - Adapter: `src/adapters/react-native`
 - Native bridge: `globalThis.__FLARE_IM_CORE_NATIVE__` 或 RN native module `FlareImCoreSdk.invoke`
-- Core ABI: `flare-im-core-sdk/bindings/c`
+- Core ABI: `flare-core-sdk-engine/bindings/c`
 
 页面启动不会隐式创建 SDK client；点击「初始化 SDK Client」时才会创建 `FlareCoreSdk.createClient()`，没有 native bridge 会直接显示 bridge 诊断。
 
@@ -72,7 +72,7 @@ npm run android
 ```
 
 原生工程当前负责启动 RN app 和打包 Ant Design icon 字体。要让「初始化 SDK Client」连接真实核心能力，
-需要继续实现 RN native module `FlareImCoreSdk.invoke`，并在其中链接 `flare-im-core-sdk/bindings/c`。
+需要继续实现 RN native module `FlareImCoreSdk.invoke`，并在其中链接 `flare-core-sdk-engine/bindings/c`。
 
 Android 本机调试默认只构建 `arm64-v8a,x86_64`，覆盖常见 Apple Silicon/现代模拟器和真机路径；完整 ABI
 发布验证可用 `-PreactNativeArchitectures=armeabi-v7a,arm64-v8a,x86,x86_64` 覆盖。

@@ -52,7 +52,7 @@ const runtimeCards = computed(() => {
     {
       label: "Native Binding",
       value: String(wasmBinding.status ?? sdk.sdkRuntimeStatus.value),
-      detail: String(wasmBinding.source ?? "flare-im-core-sdk/bindings/wasm"),
+      detail: String(wasmBinding.source ?? "flare-core-sdk-engine/bindings/wasm"),
     },
     {
       label: "Runtime Health",

@@ -123,5 +123,5 @@
     }
   ],
   "generated": true,
-  "source": "../flare-im-core-sdk/bindings/contract/events.json"
+  "source": "../flare-core-sdk-engine/bindings/contract/events.json"
 }

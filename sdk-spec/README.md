@@ -3,7 +3,7 @@
 `manifest.json` is the lightweight entry point for client SDK contracts.
 
 Long-term, this directory should be a platform SDK overlay over
-`../flare-im-core-sdk/bindings/contract`, not a second declaration of the same
+`../flare-core-sdk-engine/bindings/contract`, not a second declaration of the same
 native contract. The core bindings contract owns L1/native operation ids, C/Tauri
 routes, event ids, stable error codes, and Rust DTO JSON schemas. `sdk-spec`
 should keep only the L3 platform API decisions that are not knowable from L1:
@@ -37,15 +37,15 @@ Today it still owns:
 - native request/response encoding, callback and handle policy metadata
 - generated docs and platform constants
 
-The spec does not own IM behavior. Behavior belongs in `../flare-im-core-sdk`.
+The spec does not own IM behavior. Behavior belongs in `../flare-core-sdk-engine`.
 
 Target ownership:
 
 | Concern | Source |
 |---------|--------|
-| Native API ids, C symbols, Tauri commands, direct invoke routes | `../flare-im-core-sdk/bindings/contract/*.json` |
-| Native event ids and error codes | `../flare-im-core-sdk/bindings/contract/events.json` and `errors.json` |
-| Rust DTO wire schemas | `../flare-im-core-sdk/bindings/contract/generated/model_schemas/*.schema.json` |
+| Native API ids, C symbols, Tauri commands, direct invoke routes | `../flare-core-sdk-engine/bindings/contract/*.json` |
+| Native event ids and error codes | `../flare-core-sdk-engine/bindings/contract/events.json` and `errors.json` |
+| Rust DTO wire schemas | `../flare-core-sdk-engine/bindings/contract/generated/model_schemas/*.schema.json` |
 | Platform facade names and method names | `sdk-spec/modules/*.json` overlay |
 | Platform DTO aliases and DTOs not exported by core schemas yet | `sdk-spec/models/*.json` overlay |
 | Message build catalog presentation | derived from L1 `apis.json#message_builder`, with SDK display metadata overlay |
@@ -86,7 +86,7 @@ await client.messages.sendMessage({ message: draft });
 
 ## Native binding metadata
 
-`native/c_abi.json` currently lifts C boundary semantics from `../flare-im-core-sdk/bindings/c` into the SDK spec:
+`native/c_abi.json` currently lifts C boundary semantics from `../flare-core-sdk-engine/bindings/c` into the SDK spec:
 
 - `transport` kind (`ffi-symbol`, `dispatch-json`, `message-dispatch-json`, `capability-dispatch-json`, `catalog-static`)
 - request/response encoding (`typed-ffi`, `json`, `unit`, `handle`, `subscription`, ...)
@@ -146,7 +146,7 @@ make codegen
 
 ## Change rule
 
-1. Update `../flare-im-core-sdk/bindings/contract` first when the native operation, event, error, or Rust DTO shape changes.
+1. Update `../flare-core-sdk-engine/bindings/contract` first when the native operation, event, error, or Rust DTO shape changes.
 2. Update **`sdk-spec`** only for platform facade names, ergonomic method names, DTO aliases not yet derivable from core schemas, listener ergonomics, docs, or platform support metadata.
 3. Run `make sync-spec` when the change is already derivable from L1, then `make codegen`.
 4. Adjust **runtime adapters** only to call the new typed APIs; never hand-edit `GENERATED` files.

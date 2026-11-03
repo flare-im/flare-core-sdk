@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 
 const require = createRequire(new URL("../examples/flare-core-web-app/package.json", import.meta.url));
 const { chromium } = require("@playwright/test");
-const pkg = new URL("../../flare-im-core-sdk/bindings/wasm/pkg/", import.meta.url);
+const pkg = new URL("../../flare-core-sdk-engine/bindings/wasm/pkg/", import.meta.url);
 let server;
 let base = process.argv[2];
 if (!base) {

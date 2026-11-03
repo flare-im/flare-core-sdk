@@ -51,7 +51,7 @@ cargo xtask build wasm
 Install and run the Electron app:
 
 ```bash
-cd flare-im-core-client-sdk/examples/flare-core-electron-app
+cd flare-core-sdk/examples/flare-core-electron-app
 npm install
 npm run dev
 ```

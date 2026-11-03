@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 
 const require = createRequire(new URL("../examples/flare-core-web-app/package.json", import.meta.url));
 const { chromium } = require("@playwright/test");
-const pkg = new URL("../../flare-im-core-sdk/bindings/wasm/pkg/", import.meta.url);
+const pkg = new URL("../../flare-core-sdk-engine/bindings/wasm/pkg/", import.meta.url);
 const server = createServer(async (req, res) => {
   const filename = req.url === "/runtime.js" ? "flare_im_core_sdk.js"
     : req.url === "/flare_im_core_sdk_bg.wasm" ? "flare_im_core_sdk_bg.wasm" : null;

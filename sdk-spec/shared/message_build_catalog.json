@@ -252,5 +252,5 @@
       "summary": "Build with content message"
     }
   ],
-  "source": "../flare-im-core-sdk/bindings/contract/apis.json#message_builder"
+  "source": "../flare-core-sdk-engine/bindings/contract/apis.json#message_builder"
 }

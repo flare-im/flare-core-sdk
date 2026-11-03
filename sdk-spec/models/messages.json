@@ -1,6 +1,6 @@
 {
   "group": "messages",
-  "description": "Message models mirrored from flare-im-core-sdk/src/model/message.rs and message_elem.rs.",
+  "description": "Message models mirrored from flare-core-sdk-engine/src/model/message.rs and message_elem.rs.",
   "enums": [
     {
       "name": "MessageContentType",

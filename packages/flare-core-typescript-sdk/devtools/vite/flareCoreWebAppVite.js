@@ -216,7 +216,7 @@ function nodeModuleChunk(id) {
 function createFlareCoreWebAppViteConfig(options) {
   const appDir = options.appDir;
   const repoRoot = path.resolve(appDir, "../../..");
-  const wasmBindingRoot = path.resolve(repoRoot, "flare-im-core-sdk/bindings/wasm/pkg");
+  const wasmBindingRoot = path.resolve(repoRoot, "flare-core-sdk-engine/bindings/wasm/pkg");
   const typeScriptSdkRoot = path.resolve(appDir, "../../packages/flare-core-typescript-sdk/src");
   const vueImUiRoot = path.resolve(repoRoot, "flare-im-design/packages/vue-im-ui/src");
   // Emoji/sticker resources are centralized at the flare-im-design top level
@@ -346,7 +346,7 @@ function createFlareCoreWebAppViteConfig(options) {
               if (
                 normalizedId.includes("@flare-im/sdk") ||
                 normalizedId.includes("/flare-core-typescript-sdk/") ||
-                normalizedId.includes("flare-im-core-sdk/bindings")
+                normalizedId.includes("flare-core-sdk-engine/bindings")
               ) {
                 return "flare-sdk";
               }

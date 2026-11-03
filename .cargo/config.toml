@@ -1,2 +1,2 @@
 [alias]
-xtask = "run -q --manifest-path ../flare-im-core-sdk/Cargo.toml -p xtask --"
+xtask = "run -q --manifest-path ../flare-core-sdk-engine/Cargo.toml -p xtask --"

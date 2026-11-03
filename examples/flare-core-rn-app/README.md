@@ -9,7 +9,7 @@ The **React Native** IM application entry point for `@flare-im/sdk`, using React
 - Package: `packages/@flare-im/sdk`
 - Adapter: `src/adapters/react-native`
 - Native bridge: `globalThis.__FLARE_IM_CORE_NATIVE__` or the RN native module `FlareImCoreSdk.invoke`
-- Core ABI: `flare-im-core-sdk/bindings/c`
+- Core ABI: `flare-core-sdk-engine/bindings/c`
 
 Launching the page does not implicitly create an SDK client; `FlareCoreSdk.createClient()` is only created when you tap "Initialize SDK Client", and without a native bridge it directly shows the bridge diagnostics.
 
@@ -72,7 +72,7 @@ npm run android
 ```
 
 The native projects are currently responsible for launching the RN app and bundling the Ant Design icon fonts. To make "Initialize SDK Client" connect to real core capabilities,
-you need to continue implementing the RN native module `FlareImCoreSdk.invoke` and link `flare-im-core-sdk/bindings/c` within it.
+you need to continue implementing the RN native module `FlareImCoreSdk.invoke` and link `flare-core-sdk-engine/bindings/c` within it.
 
 Android local debugging builds only `arm64-v8a,x86_64` by default, covering the common Apple Silicon/modern-emulator and real-device paths; full-ABI
 release verification can use `-PreactNativeArchitectures=armeabi-v7a,arm64-v8a,x86,x86_64` for coverage.

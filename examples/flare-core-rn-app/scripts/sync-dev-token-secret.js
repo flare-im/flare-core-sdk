@@ -6,7 +6,7 @@ const path = require('node:path');
 const appRoot = path.resolve(__dirname, '..');
 const generatedDir = path.join(appRoot, '.generated');
 const generatedFile = path.join(generatedDir, 'dev-token-secret.json');
-const defaultSecretFile = path.resolve(appRoot, '../../../flare-im-core/logs/.dev-token-secret');
+const defaultSecretFile = path.resolve(appRoot, '../../../flare-core-server/logs/.dev-token-secret');
 const secretFile = process.env.FLARE_RN_DEV_TOKEN_SECRET_FILE || defaultSecretFile;
 
 function readSecret() {

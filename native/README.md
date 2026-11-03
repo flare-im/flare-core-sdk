@@ -3,7 +3,7 @@
 The only native boundary is:
 
 ```text
-../flare-im-core-sdk/bindings/c
+../flare-core-sdk-engine/bindings/c
 ```
 
 This workspace does not maintain a second native implementation.

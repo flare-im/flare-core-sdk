@@ -54,7 +54,7 @@ Message compliance is pluggable through hooks:
 - `recall` can record recall policy decisions, for example `recall-audit`.
 
 Hooks carry tenant selectors and transport declarations in
-`flare-im-core/config/hooks.example.toml`. Core does not embed business-specific
+`flare-core-server/config/hooks.example.toml`. Core does not embed business-specific
 moderation or legal-retention rules.
 
 ## Remaining Enterprise Scope

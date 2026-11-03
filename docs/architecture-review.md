@@ -2,7 +2,7 @@
 
 ## Architectural Direction
 
-`flare-im-core-client-sdk` should remain a contract-first multi-platform adapter workspace. It must not own IM business rules. Its job is to expose a stable, typed, low-cognitive-load API over `flare-im-core-sdk/bindings/c`.
+`flare-im-core-client-sdk` should remain a contract-first multi-platform adapter workspace. It must not own IM business rules. Its job is to expose a stable, typed, low-cognitive-load API over `flare-core-sdk-engine/bindings/c`.
 
 The current direction is sound:
 

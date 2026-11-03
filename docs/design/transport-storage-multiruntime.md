@@ -196,7 +196,7 @@ invoke 汇聚到唯一 core。禁止每窗口一个 core、禁止两进程开同
 - 风险:Electron 原生 addon per-arch 打包(mac arm64/x64、win、linux)→ electron-builder `extraResources` 带 cdylib + koffi,WASM 回退兜底。
 - 风险:契约版本漂移 → 两类桥已断言 `flareBindingContractVersion` / `diagnostics.ffi_contract_version`;Electron 桥须在主进程做一次同样校验。
 - 风险:多窗口 SQLite → 强制单 core-in-main,文档化。
-- **开放问题(计划第一步须核实)**:`flare-im-core-sdk/bindings/c` 是否已为 mac/win/linux 产出桌面 cdylib,还是仅移动端静态库?
+- **开放问题(计划第一步须核实)**:`flare-core-sdk-engine/bindings/c` 是否已为 mac/win/linux 产出桌面 cdylib,还是仅移动端静态库?
   这决定 koffi-vs-N-API 以及打包脚本。
 
 ## 9. 实施计划骨架(交由 planning-with-files 展开)

@@ -2,8 +2,8 @@
   "name": "flare-im-core-client-sdk",
   "apiVersion": "1.0.0",
   "ffiContractVersion": "flare-im-ffi/v1",
-  "sourceOfTruth": "../flare-im-core-sdk",
-  "ffiEntry": "../flare-im-core-sdk/bindings/c",
+  "sourceOfTruth": "../flare-core-sdk-engine",
+  "ffiEntry": "../flare-core-sdk-engine/bindings/c",
   "principles": [
     "flare-im-core-sdk owns IM behavior",
     "bindings/c is the only native boundary",

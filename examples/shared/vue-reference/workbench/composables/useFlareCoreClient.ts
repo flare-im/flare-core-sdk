@@ -2821,10 +2821,10 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
         sdkVersion: {
           ...appDiagnostics.sdkVersion,
           coreSdk: "flare-im-core-sdk",
-          adapterBoundary: "TypeScript SDK -> flare-im-core-sdk/bindings/wasm (real IMClient)",
+          adapterBoundary: "TypeScript SDK -> flare-core-sdk-engine/bindings/wasm (real IMClient)",
           wasmBinding: {
             status: sdkRuntimeStatus.value,
-            source: "flare-im-core-sdk/bindings/wasm",
+            source: "flare-core-sdk-engine/bindings/wasm",
           },
         },
         ffi: appDiagnostics.ffiContract,

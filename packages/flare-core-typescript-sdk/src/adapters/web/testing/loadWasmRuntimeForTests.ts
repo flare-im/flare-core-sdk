@@ -6,7 +6,7 @@ import type { FlareWasmRuntime } from "../../../bridge/wasmNativeBridge";
 
 const WASM_DIR = path.resolve(
   fileURLToPath(new URL(".", import.meta.url)),
-  "../../../../../../../flare-im-core-sdk/bindings/wasm/pkg",
+  "../../../../../../../flare-core-sdk-engine/bindings/wasm/pkg",
 );
 
 /**

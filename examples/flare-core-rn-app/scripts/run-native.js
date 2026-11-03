@@ -39,7 +39,7 @@ function printMissingNativeProject(platformName, checks) {
   console.error('');
   console.error('To run on a simulator or device, add a React Native 0.86 native');
   console.error('project and link the Flare native bridge from:');
-  console.error('  ../../../flare-im-core-sdk/bindings/c');
+  console.error('  ../../../flare-core-sdk-engine/bindings/c');
   console.error('');
   console.error('Missing checks:');
   checks.forEach((check) => console.error(`  - ${check}`));

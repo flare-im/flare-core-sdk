@@ -1,7 +1,7 @@
 CARGO ?= cargo
 # The sibling core repo. `.cargo/config.toml` forwards `cargo xtask` to the same
 # path; change both together if the checkout layout ever changes.
-CORE_DIR ?= $(CURDIR)/../flare-im-core-sdk
+CORE_DIR ?= $(CURDIR)/../flare-core-sdk-engine
 # Single source of truth for built native artifacts: the core repo's dist/ folder.
 # Populate it from the core repo with:  cd $(CORE_DIR) && make dist
 CORE_DIST ?= $(CORE_DIR)/dist
@@ -28,7 +28,7 @@ help:
 	@printf '  %-20s %s\n' 'make sync-android' 'dist/android/<abi>/*.so -> app + SDK + flutter jniLibs'
 	@printf '  %-20s %s\n' 'make sync-ios' 'dist/{host,ios} -> examples/flare-core-ios-app/FFI'
 	@printf '  %-20s %s\n' 'make sync-flutter' 'dist/{host,ios} -> flutter macOS dylib + iOS universal .a'
-	@printf '%s\n' '(tauri/web wasm: the bundler resolves it from flare-im-core-sdk/bindings/wasm/pkg; no copy needed)'
+	@printf '%s\n' '(tauri/web wasm: the bundler resolves it from flare-core-sdk-engine/bindings/wasm/pkg; no copy needed)'
 
 .PHONY: sync
 sync: sync-android sync-ios sync-flutter ## Distribute core dist/ into all native platform locations

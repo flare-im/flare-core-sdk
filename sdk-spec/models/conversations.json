@@ -1,6 +1,6 @@
 {
   "group": "conversations",
-  "description": "Conversation models mirrored from flare-im-core-sdk/src/model/conversation.rs.",
+  "description": "Conversation models mirrored from flare-core-sdk-engine/src/model/conversation.rs.",
   "enums": [
     {
       "name": "ConversationType",

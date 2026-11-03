@@ -6,13 +6,13 @@ Flare IM enforces one canonical SDK JSON shape across native bindings and client
 
 | Layer | JSON key style | Responsibility |
 | --- | --- | --- |
-| `flare-im-core-sdk/bindings/**` | **camelCase SDK JSON** | Wire truth generated from Rust DTO schemas and binding contracts |
-| `flare-im-core-client-sdk/packages/**` (App/public API) | **camelCase** | Platform-idiomatic typed models without compatibility aliases |
+| `flare-core-sdk-engine/bindings/**` | **camelCase SDK JSON** | Wire truth generated from Rust DTO schemas and binding contracts |
+| `flare-core-sdk/packages/**` (App/public API) | **camelCase** | Platform-idiomatic typed models without compatibility aliases |
 
 ## Bridge boundary
 
 No generic snake/camel conversion is performed. Platform adapters encode typed
-models into the same camelCase keys consumed by `flare-im-core-sdk/bindings/**`,
+models into the same camelCase keys consumed by `flare-core-sdk-engine/bindings/**`,
 and decode bridge responses as camelCase.
 
 ```
@@ -38,7 +38,7 @@ own documented string formats. That does not create alternate JSON field names.
 
 ## Codegen
 
-Shared wire boundary templates are Rust-owned in `flare-im-core-sdk/xtask/src/main.rs`. Regenerate through Rust tooling:
+Shared wire boundary templates are Rust-owned in `flare-core-sdk-engine/xtask/src/main.rs`. Regenerate through Rust tooling:
 
 ```bash
 cargo xtask codegen

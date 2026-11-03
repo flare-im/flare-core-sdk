@@ -175,5 +175,5 @@
       "typed": "SdkErrorCode union from generated errorCodes"
     }
   },
-  "source": "../flare-im-core-sdk/bindings/contract/errors.json"
+  "source": "../flare-core-sdk-engine/bindings/contract/errors.json"
 }

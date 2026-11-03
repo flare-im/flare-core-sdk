@@ -55,7 +55,7 @@ test('React Native app exposes FlareImCoreSdk native module on Android and iOS',
 
 test('TypeScript native host passes the generated descriptor to React Native modules', () => {
   const sdkBridge = read('../../packages/flare-core-typescript-sdk/src/bridge/ffiNativeBridge.ts');
-  const sdkBridgeTemplate = read('../../../flare-im-core-sdk/xtask/templates/bridge/typescript/bridge/ffiNativeBridge.ts');
+  const sdkBridgeTemplate = read('../../../flare-core-sdk-engine/xtask/templates/bridge/typescript/bridge/ffiNativeBridge.ts');
 
   for (const source of [sdkBridge, sdkBridgeTemplate]) {
     assert.match(source, /invoke\(operation: string, requestJson: string, descriptorJson\?: string\)/);

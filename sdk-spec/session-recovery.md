@@ -1,7 +1,7 @@
 # Session recovery
 
 The authoritative behavior is documented in
-[`flare-im-core-sdk/bindings/contract/session-recovery.md`](../../flare-im-core-sdk/bindings/contract/session-recovery.md).
+[`flare-core-sdk-engine/bindings/contract/session-recovery.md`](../../flare-core-sdk-engine/bindings/contract/session-recovery.md).
 
 Platform adapters must preserve the core's local session identity across transport
 disconnects. They must not silently replace a runtime on an invocation timeout,
