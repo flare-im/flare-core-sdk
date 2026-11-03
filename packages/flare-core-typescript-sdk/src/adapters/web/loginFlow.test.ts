@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import path from "node:path";
 
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -10,14 +9,14 @@ import { WasmNativeBridge } from "../../bridge/wasmNativeBridge";
 import { ffiContractVersion } from "../../contract/sdk_contract";
 import { LifecycleEventName } from "../../model";
 
-const requestGoldenDir = path.resolve(
-  process.cwd(),
-  "../../sdk-spec/golden/requests",
+const requestGoldenDir = new URL(
+  "../../../../../sdk-spec/golden/requests/",
+  import.meta.url,
 );
 
 function readRequestGolden(name: string): Record<string, unknown> {
   return JSON.parse(
-    fs.readFileSync(path.join(requestGoldenDir, name), "utf8"),
+    fs.readFileSync(new URL(name, requestGoldenDir), "utf8"),
   ) as Record<string, unknown>;
 }
 
