@@ -10,7 +10,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
-const require = createRequire(new URL('../examples/flare-core-web-app/package.json', import.meta.url));
+const require = createRequire(new URL('../../flare-core-examples/apps/flare-core-web-app/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
 const { FLARE_LIVE_BASE_URL: site, FLARE_LIVE_USER: user, FLARE_LIVE_PEER: peerUser } = process.env;
 assert.equal(process.env.FLARE_ALLOW_LIVE_SEND, '1', 'Live send requires FLARE_ALLOW_LIVE_SEND=1');

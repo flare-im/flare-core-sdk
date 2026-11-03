@@ -1,35 +1,36 @@
 {
-  "$comment": "Reference apps that live in their own repositories. They are excluded from this repository by .gitignore (not submodules); bootstrap-external-apps.sh clones them into examples/<dir>. Keep this list in sync with .gitignore and the table in README.md.",
+  "$comment": "The five external reference apps are maintained in the sibling flare-core-examples checkout.",
   "apps": [
     {
       "dir": "flare-core-web-app",
-      "repo": "https://github.com/flare-im/flare-core-web-demo.git",
       "platform": "Web (Vue 3, WASM)",
-      "sdk": "packages/flare-core-typescript-sdk (web target)"
+      "sdk": "packages/flare-core-typescript-sdk (web target)",
+      "path": "apps/flare-core-web-app"
     },
     {
       "dir": "flare-core-tauri-app",
-      "repo": "https://github.com/flare-im/flare-core-tauri-demo.git",
       "platform": "Tauri 2 (Vue 3)",
-      "sdk": "packages/flare-core-typescript-sdk (tauri target)"
+      "sdk": "packages/flare-core-typescript-sdk (tauri target)",
+      "path": "apps/flare-core-tauri-app"
     },
     {
       "dir": "flare-core-flutter-app",
-      "repo": "https://github.com/flare-im/flare-core-flutter-demo.git",
       "platform": "Flutter",
-      "sdk": "packages/flare-core-flutter-sdk"
+      "sdk": "packages/flare-core-flutter-sdk",
+      "path": "apps/flare-core-flutter-app"
     },
     {
       "dir": "flare-core-ios-app",
-      "repo": "https://github.com/flare-im/flare-core-ios-demo.git",
       "platform": "iOS (SwiftUI)",
-      "sdk": "packages/flare-core-apple-sdk"
+      "sdk": "packages/flare-core-apple-sdk",
+      "path": "apps/flare-core-ios-app"
     },
     {
       "dir": "flare-core-android-app",
-      "repo": "https://github.com/flare-im/flare-core-android-demo.git",
       "platform": "Android (Jetpack Compose)",
-      "sdk": "packages/flare-core-android-sdk"
+      "sdk": "packages/flare-core-android-sdk",
+      "path": "apps/flare-core-android-app"
     }
-  ]
+  ],
+  "repository": "https://github.com/flare-im/flare-core-examples.git"
 }

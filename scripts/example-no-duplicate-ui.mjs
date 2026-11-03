@@ -6,16 +6,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const failures = [];
 
 const removedUiIslands = [
-  "examples/flare-core-web-app/src/views",
-  "examples/flare-core-web-app/src/workbench/app/message-enhancements/components/MessageBatchToolbar.vue",
-  "examples/flare-core-tauri-app/src/views",
-  "examples/flare-core-flutter-app/lib/interface/widgets/message/message_bubble.dart",
-  "examples/flare-core-flutter-app/lib/interface/widgets/message/content_view.dart",
-  "examples/flare-core-flutter-app/lib/interface/widgets/message/message_style.dart",
-  "examples/flare-core-flutter-app/lib/interface/widgets/message/views",
-  "examples/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/MessageRow/MessageBubbleViews.swift",
-  "examples/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/MessageRow/MessageMediaViews.swift",
-  "examples/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/MessageRow/MessageRichViews.swift",
+  "../flare-core-examples/apps/flare-core-web-app/src/views",
+  "../flare-core-examples/apps/flare-core-web-app/src/workbench/app/message-enhancements/components/MessageBatchToolbar.vue",
+  "../flare-core-examples/apps/flare-core-tauri-app/src/views",
+  "../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/message/message_bubble.dart",
+  "../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/message/content_view.dart",
+  "../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/message/message_style.dart",
+  "../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/message/views",
+  "../flare-core-examples/apps/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/MessageRow/MessageBubbleViews.swift",
+  "../flare-core-examples/apps/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/MessageRow/MessageMediaViews.swift",
+  "../flare-core-examples/apps/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/MessageRow/MessageRichViews.swift",
 ];
 
 for (const relative of removedUiIslands) {
@@ -33,20 +33,20 @@ const publicDelegates = [
   ["examples/shared/vue-reference/workbench/app/components/FlareWorkbenchLayout.vue", ["WorkbenchShell", "FlareComposerActionPanel", "MessagePreviewModal"]],
   ["examples/shared/vue-reference/workbench/app/components/MessagePreviewModal.vue", ["FlareMessageContentView", "FlareMarkdownPreview"]],
   ["examples/shared/vue-reference/workbench/app/components/ConversationListPanel.vue", ["FlareConversationListContainer", "FlareConversationList", "FlareConversationRow", "FlareScreenHeader"]],
-  ["examples/flare-core-flutter-app/lib/interface/shell/workbench_shell.dart", ["FlareIMAppKit"]],
-  ["examples/flare-core-flutter-app/lib/interface/widgets/conversation_item/conversation_item.dart", ["FlareConversationRow"]],
-  ["examples/flare-core-flutter-app/lib/interface/widgets/composer/message_composer.dart", ["FlareComposer"]],
-  ["examples/flare-core-flutter-app/lib/interface/widgets/message/sdk_message_bubble_adapter.dart", ["FlareMessageBubble", "FlareReactionSummary"]],
-  ["examples/flare-core-flutter-app/lib/interface/widgets/message/message_long_press_menu.dart", ["FlareMessageActionSheet", "FlareDialog"]],
-  ["examples/flare-core-flutter-app/lib/interface/widgets/media_viewer/image_preview_modal.dart", ["FlareImagePreview"]],
-  ["examples/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/shell/FlareApp.kt", ["IMAppKit"]],
-  ["examples/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/messaging/messagerow/MessageRowView.kt", ["MessageBubble", "com.flare.im.ui.MessageActionSheet", "FlareMessageActionAvailability"]],
-  ["examples/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/messaging/composer/ComposerView.kt", ["com.flare.im.ui.Composer"]],
-  ["examples/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/messaging/messagerow/MessageContentPrimitives.kt", ["ImagePreview"]],
-  ["examples/flare-core-ios-app/Sources/FlareImApp/Features/Shell/RootWorkbenchView.swift", ["IMAppKitView"]],
-  ["examples/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/MessageRow/MessageRowViews.swift", ["MessageBubbleView", "MessageActionSheetView", "FlareMessageActionAvailability", "ReactionSummaryView"]],
-  ["examples/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/Composer/ComposerView.swift", ["FlareIMUI.ComposerView"]],
-  ["examples/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/Media/MediaPreviewSheet.swift", ["ImagePreviewView"]],
+  ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/shell/workbench_shell.dart", ["FlareIMAppKit"]],
+  ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/conversation_item/conversation_item.dart", ["FlareConversationRow"]],
+  ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/composer/message_composer.dart", ["FlareComposer"]],
+  ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/message/sdk_message_bubble_adapter.dart", ["FlareMessageBubble", "FlareReactionSummary"]],
+  ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/message/message_long_press_menu.dart", ["FlareMessageActionSheet", "FlareDialog"]],
+  ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/media_viewer/image_preview_modal.dart", ["FlareImagePreview"]],
+  ["../flare-core-examples/apps/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/shell/FlareApp.kt", ["IMAppKit"]],
+  ["../flare-core-examples/apps/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/messaging/messagerow/MessageRowView.kt", ["MessageBubble", "com.flare.im.ui.MessageActionSheet", "FlareMessageActionAvailability"]],
+  ["../flare-core-examples/apps/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/messaging/composer/ComposerView.kt", ["com.flare.im.ui.Composer"]],
+  ["../flare-core-examples/apps/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/messaging/messagerow/MessageContentPrimitives.kt", ["ImagePreview"]],
+  ["../flare-core-examples/apps/flare-core-ios-app/Sources/FlareImApp/Features/Shell/RootWorkbenchView.swift", ["IMAppKitView"]],
+  ["../flare-core-examples/apps/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/MessageRow/MessageRowViews.swift", ["MessageBubbleView", "MessageActionSheetView", "FlareMessageActionAvailability", "ReactionSummaryView"]],
+  ["../flare-core-examples/apps/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/Composer/ComposerView.swift", ["FlareIMUI.ComposerView"]],
+  ["../flare-core-examples/apps/flare-core-ios-app/Sources/FlareImApp/Features/Messaging/Media/MediaPreviewSheet.swift", ["ImagePreviewView"]],
 ];
 
 for (const [relative, symbols] of publicDelegates) {
@@ -66,17 +66,17 @@ for (const [relative, symbols] of publicDelegates) {
 // this guards against.
 const forbiddenExampleSources = [
   [
-    "examples/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/messaging/messagerow",
+    "../flare-core-examples/apps/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/messaging/messagerow",
     /^import androidx\.compose\.material3\.DropdownMenu\b/m,
     "message actions render through the kit MessageActionSheet, not a Material DropdownMenu",
   ],
   [
-    "examples/flare-core-ios-app/Sources/FlareImApp/Features/Messaging",
+    "../flare-core-examples/apps/flare-core-ios-app/Sources/FlareImApp/Features/Messaging",
     /\bstruct\s+MessageActionSheet\s*:\s*View\b/,
     "message actions render through the kit MessageActionSheetView, not an app-drawn sheet",
   ],
   [
-    "examples/flare-core-ios-app/Sources/FlareImApp",
+    "../flare-core-examples/apps/flare-core-ios-app/Sources/FlareImApp",
     /\bstruct\s+MessageActionAvailability\b|\bstatic\s+func\s+availability\s*\(/,
     "message action availability is the core's answer, not an app-side copy of the rules",
   ],

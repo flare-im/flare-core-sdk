@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { mkdir, writeFile } from "node:fs/promises";
-const require = createRequire(new URL("../examples/flare-core-web-app/package.json", import.meta.url));
+const require = createRequire(new URL("../../flare-core-examples/apps/flare-core-web-app/package.json", import.meta.url));
 const { chromium } = require("@playwright/test");
 const [site, gateway, userId, outputDir] = process.argv.slice(2);
 assert(site && gateway && userId && outputDir, "Provide site, gateway, existing userId, screenshot directory");

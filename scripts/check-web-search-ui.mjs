@@ -3,7 +3,7 @@
 // node scripts/check-web-search-ui.mjs <site> <userId> <conversationTitle> <keyword>
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-const require = createRequire(new URL("../examples/flare-core-web-app/package.json", import.meta.url));
+const require = createRequire(new URL("../../flare-core-examples/apps/flare-core-web-app/package.json", import.meta.url));
 const { chromium } = require("@playwright/test");
 const [site, userId, conversation, keyword] = process.argv.slice(2);
 assert(site && userId && conversation && keyword, "Provide site, userId, conversation title and keyword");

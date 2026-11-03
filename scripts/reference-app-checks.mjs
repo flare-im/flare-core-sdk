@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const require = createRequire(path.join(root, 'examples/flare-core-web-app/package.json'));
+const require = createRequire(path.join(root, '../flare-core-examples/apps/flare-core-web-app/package.json'));
 const ts = require('typescript');
 const { parse } = require('@vue/compiler-sfc');
 const postcss = require('postcss');
@@ -12,10 +12,10 @@ const uiPackage = JSON.parse(fs.readFileSync(path.join(root, '../flare-im-design
 const exports = new Set(Object.keys(uiPackage.exports).map(key => key === '.' ? '@flare-im/vue-ui' : `@flare-im/vue-ui/${key.slice(2)}`));
 const roots = [
   'examples/shared/vue-reference',
-  ...['web', 'tauri'].map(platform => `examples/flare-core-${platform}-app/src`),
-  'examples/flare-core-flutter-app/lib',
-  'examples/flare-core-android-app/app/src/main',
-  'examples/flare-core-ios-app/Sources',
+  ...['web', 'tauri'].map(platform => `../flare-core-examples/apps/flare-core-${platform}-app/src`),
+  '../flare-core-examples/apps/flare-core-flutter-app/lib',
+  '../flare-core-examples/apps/flare-core-android-app/app/src/main',
+  '../flare-core-examples/apps/flare-core-ios-app/Sources',
 ];
 const extensions = new Set(['.ts', '.vue', '.css', '.scss', '.dart', '.kt', '.swift']);
 const excluded = new Set(['node_modules', '.git', 'build', '.build', 'dist', '.dart_tool']);

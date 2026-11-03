@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 
-const require = createRequire(new URL("../examples/flare-core-web-app/package.json", import.meta.url));
+const require = createRequire(new URL("../../flare-core-examples/apps/flare-core-web-app/package.json", import.meta.url));
 const { chromium } = require("@playwright/test");
 const pkg = new URL("../../flare-core-sdk-engine/bindings/wasm/pkg/", import.meta.url);
 let server;

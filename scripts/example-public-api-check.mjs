@@ -6,11 +6,11 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const failures = [];
 const sourceRoots = [
   "examples/shared/vue-reference",
-  "examples/flare-core-web-app/src",
-  "examples/flare-core-tauri-app/src",
-  "examples/flare-core-flutter-app/lib",
-  "examples/flare-core-android-app/app/src/main",
-  "examples/flare-core-ios-app/Sources",
+  "../flare-core-examples/apps/flare-core-web-app/src",
+  "../flare-core-examples/apps/flare-core-tauri-app/src",
+  "../flare-core-examples/apps/flare-core-flutter-app/lib",
+  "../flare-core-examples/apps/flare-core-android-app/app/src/main",
+  "../flare-core-examples/apps/flare-core-ios-app/Sources",
 ];
 const sourceExtensions = new Set([".ts", ".vue", ".dart", ".kt", ".swift"]);
 const forbidden = [
@@ -36,8 +36,8 @@ function walk(directory) {
 
 for (const relative of sourceRoots) walk(path.join(root, relative));
 
-const web = JSON.parse(fs.readFileSync(path.join(root, "examples/flare-core-web-app/package.json"), "utf8"));
-const tauri = JSON.parse(fs.readFileSync(path.join(root, "examples/flare-core-tauri-app/package.json"), "utf8"));
+const web = JSON.parse(fs.readFileSync(path.join(root, "../flare-core-examples/apps/flare-core-web-app/package.json"), "utf8"));
+const tauri = JSON.parse(fs.readFileSync(path.join(root, "../flare-core-examples/apps/flare-core-tauri-app/package.json"), "utf8"));
 for (const [name, manifest] of [["web", web], ["tauri", tauri]]) {
   if (manifest.dependencies?.["@flare-im/vue-ui"] !== "file:../../../flare-im-design/packages/vue-im-ui") {
     failures.push(`${name}: @flare-im/vue-ui must use the latest workspace package`);
@@ -47,15 +47,15 @@ for (const [name, manifest] of [["web", web], ["tauri", tauri]]) {
   }
 }
 
-const flutter = fs.readFileSync(path.join(root, "examples/flare-core-flutter-app/pubspec.yaml"), "utf8");
+const flutter = fs.readFileSync(path.join(root, "../flare-core-examples/apps/flare-core-flutter-app/pubspec.yaml"), "utf8");
 if (!/flare_im_ui:\s*\n\s+path: \.\.\/\.\.\/\.\.\/flare-im-design\/packages\/flutter-im-ui/.test(flutter)) {
   failures.push("flutter: flare_im_ui must use the latest workspace package");
 }
-const android = fs.readFileSync(path.join(root, "examples/flare-core-android-app/app/build.gradle.kts"), "utf8");
+const android = fs.readFileSync(path.join(root, "../flare-core-examples/apps/flare-core-android-app/app/build.gradle.kts"), "utf8");
 if (!android.includes('com.flare.im:im-ui-compose:2.0.0-rc.1')) {
   failures.push("android: im-ui-compose must target 2.0.0-rc.1");
 }
-const ios = fs.readFileSync(path.join(root, "examples/flare-core-ios-app/Package.swift"), "utf8");
+const ios = fs.readFileSync(path.join(root, "../flare-core-examples/apps/flare-core-ios-app/Package.swift"), "utf8");
 if (!ios.includes('.package(path: "../../../flare-im-design/packages/ios-im-ui")')) {
   failures.push("ios: FlareIMUI must use the latest workspace package");
 }

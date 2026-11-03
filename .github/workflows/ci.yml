@@ -115,6 +115,9 @@ jobs:
           fail=0
           for app in flare-core-tauri-app flare-core-electron-app flare-core-uni-app; do
             dir="examples/$app"
+            if [ "$app" = flare-core-tauri-app ]; then
+              dir="../flare-core-examples/apps/$app"
+            fi
             # 点了名却没有 tests 目录 → **判红**，不是 notice 跳过。
             # 「没验到」和「验过没问题」必须是两种结果：上面那个 tauri 就是被
             # 一行 notice 悄悄放过的，而 job 照样在跑别的 app、看起来一切正常。
