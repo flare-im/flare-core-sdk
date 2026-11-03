@@ -37,7 +37,7 @@ const publicDelegates = [
   ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/conversation_item/conversation_item.dart", ["FlareConversationRow"]],
   ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/composer/message_composer.dart", ["FlareComposer"]],
   ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/message/sdk_message_bubble_adapter.dart", ["FlareMessageBubble", "FlareReactionSummary"]],
-  ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/message/message_long_press_menu.dart", ["FlareMessageActionSheet", "FlareDialog"]],
+  ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/message/message_long_press_menu.dart", ["FlareMessageActionSheet", "FlareModal"]],
   ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/media_viewer/image_preview_modal.dart", ["FlareImagePreview"]],
   ["../flare-core-examples/apps/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/shell/FlareApp.kt", ["IMAppKit"]],
   ["../flare-core-examples/apps/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/messaging/messagerow/MessageRowView.kt", ["MessageBubble", "com.flare.im.ui.MessageActionSheet", "FlareMessageActionAvailability"]],
