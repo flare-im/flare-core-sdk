@@ -13,13 +13,15 @@ The verifier rejects any catalog entry whose `distribution` is not exactly
 
 ## Catalog Contract
 
-The catalog lives at:
+The composition-time SDK catalog lives at:
 
 ```text
-../flare-sdk-plugin/catalog/plugins.json
+../flare-plugins-commercial/sdk/catalog/plugins.json
 ```
 
-Each catalog entry must match its `plugin.json` manifest:
+The public discovery catalog is maintained in [flare-plugin-catalog](https://github.com/flare-im/flare-plugin-catalog).
+
+Each composition-time catalog entry must match its `plugin.json` manifest:
 
 - `id`
 - `version`
@@ -61,7 +63,7 @@ Run:
 cargo xtask plugin-codegen
 ```
 
-The generator emits platform stubs under `../flare-sdk-plugin/generated`. Each
+The generator emits platform stubs under `../flare-plugins-commercial/sdk/generated`. Each
 stub delegates to the generated SDK capability API:
 
 ```ts
