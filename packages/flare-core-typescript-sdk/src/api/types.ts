@@ -14,10 +14,16 @@ export interface SdkConfig {
   ackMaxInFlight?: number;
   ackMaxRetries?: number;
   ackTimeoutSecs?: number;
+  /** Monotonic integer build number reported on CONNECT; servers compare versions by it. */
+  appBuild?: number;
+  /** Host app version name reported on CONNECT. Web hosts inject it at build time. */
+  appVersion?: string;
   capabilityUrl?: string;
   connectTimeoutSecs?: number;
   dataUrl?: string;
   defaultTransport?: TransportKind;
+  /** Distribution channel reported on CONNECT (`web` when unset in the browser, `tauri` under Tauri). */
+  distribution?: string;
   enableMetrics?: boolean;
   eventBusCapacity?: number;
   eventDedupeCapacity?: number;
