@@ -3,7 +3,7 @@
 These are the five official reference consumers of flare-im-design and the real
 Flare SDK. Canonical UI migration is **incomplete**: the ownership model below is
 the target, not a claim that all existing screens already meet it. See the
-[current migration report](./CANONICAL_UI_MIGRATION_REPORT.md) for evidence and
+[Core reference apps](https://github.com/flare-im/flare-core-examples) for evidence and
 remaining P1/P2 work.
 
 SDK/session/data state belongs in each app; reusable navigation, workspaces,
