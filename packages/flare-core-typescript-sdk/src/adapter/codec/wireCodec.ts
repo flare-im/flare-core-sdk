@@ -1,6 +1,23 @@
 // GENERATED. Do not edit by hand.
 import { FlareSdkException } from '../../bridge/flareSdkException';
 import {
+  AccessChangedEvent,
+  AccessChanges,
+  AccessConnectAck,
+  AccessEndpoint,
+  AccessEventName,
+  AccessImportRecoveryRequest,
+  AccessPin,
+  AccessPinRequest,
+  AccessPointInfo,
+  AccessRecoveringStatus,
+  AccessRecoveryImport,
+  AccessRefreshAttempt,
+  AccessRefreshReport,
+  AccessRefreshStatus,
+  AccessStatus,
+  AccessSwitchedEvent,
+  AppState,
   AudioContentPayload,
   BootstrapHomeTimelineRequest,
   BuildAnnouncementMessageRequest,
@@ -32,8 +49,12 @@ import {
   ClearPushTokenRequest,
   CloseViewRequest,
   CloseViewResponse,
-  ConnectionEvent,
+  CompleteConnectTokenRefreshRequest,
   ConnectionEventName,
+  ConnectionPhase,
+  ConnectionQuality,
+  ConnectionStatus,
+  ConnectionSyncStateEvent,
   Conversation,
   ConversationEvent,
   ConversationEventName,
@@ -52,7 +73,6 @@ import {
   FileContentPayload,
   ForwardContentPayload,
   ForwardSourceMessage,
-  HeartbeatAppState,
   HeartbeatEffectiveIntervalResponse,
   HomeTimelineSnapshot,
   ImageContentPayload,
@@ -89,7 +109,6 @@ import {
   NameEntity,
   NameSource,
   NetworkChangeRequest,
-  NetworkChangeResponse,
   NetworkInterfaceKind,
   NormalizeRichDocFromDocJsonRequest,
   NormalizeRichDocFromHtmlRequest,
@@ -112,14 +131,14 @@ import {
   ReadReceiptEvent,
   RichDocV2Normalized,
   RuntimeHealthResponse,
-  SdkConnectionState,
   SdkErrorPayload,
   SdkEventEnvelope,
   SdkEventKind,
   SendMessageRequest,
   SendMessageResponse,
   ServerClockResponse,
-  SetHeartbeatAppStateRequest,
+  SetAppStateRequest,
+  SetConnectTokenRefresherRequest,
   SetHeartbeatNatTimeoutRequest,
   SetPushPermissionRequest,
   StartupHomeSyncRequest,
@@ -137,7 +156,24 @@ import {
   TimelineViewSnapshot,
   TypingAggregateEvent,
   TypingEvent,
+  UpdateCheckRequest,
   UpdateConversationDraftRequest,
+  UpdateCurrentApp,
+  UpdateDownloadRequest,
+  UpdateErrorInfo,
+  UpdateEventName,
+  UpdateGetResourcesRequest,
+  UpdateGetStateRequest,
+  UpdateInstallPlan,
+  UpdateMarkPromptedRequest,
+  UpdateProgress,
+  UpdateReleaseSummary,
+  UpdateReportInstallRequest,
+  UpdateResourcePack,
+  UpdateResources,
+  UpdateSetLocaleRequest,
+  UpdateSkipRequest,
+  UpdateStatus,
   VideoContentPayload,
   ViewDelta,
   ViewDeltaOp,
@@ -201,6 +237,7 @@ export function conversationToMap(request: Conversation): Record<string, unknown
   ...(request.draft !== undefined ? { draft: request.draft } : {}),
   ext: request.ext,
   isArchived: request.isArchived,
+  isMentionOnly: request.isMentionOnly,
   isMuted: request.isMuted,
   isPinned: request.isPinned,
   ...(request.lastMessage !== undefined ? { lastMessage: messagePreviewToMap(request.lastMessage) } : {}),
@@ -378,12 +415,6 @@ export function startupHomeSyncResponseToMap(request: StartupHomeSyncResponse): 
   };
 }
 
-export function setHeartbeatAppStateRequestToMap(request: SetHeartbeatAppStateRequest): Record<string, unknown> {
-  return {
-  appState: request.appState,
-  };
-}
-
 export function setHeartbeatNatTimeoutRequestToMap(request: SetHeartbeatNatTimeoutRequest): Record<string, unknown> {
   return {
   ...(request.natTimeoutSecs !== undefined ? { natTimeoutSecs: request.natTimeoutSecs } : {}),
@@ -398,6 +429,19 @@ export function heartbeatEffectiveIntervalResponseToMap(request: HeartbeatEffect
   };
 }
 
+export function setConnectTokenRefresherRequestToMap(request: SetConnectTokenRefresherRequest): Record<string, unknown> {
+  return {
+  enabled: request.enabled,
+  };
+}
+
+export function completeConnectTokenRefreshRequestToMap(request: CompleteConnectTokenRefreshRequest): Record<string, unknown> {
+  return {
+  requestId: request.requestId,
+  ...(request.token !== undefined ? { token: request.token } : {}),
+  };
+}
+
 export function networkChangeRequestToMap(request: NetworkChangeRequest): Record<string, unknown> {
   return {
   available: request.available,
@@ -405,12 +449,23 @@ export function networkChangeRequestToMap(request: NetworkChangeRequest): Record
   expensive: request.expensive,
   metered: request.metered,
   ...(request.reason !== undefined ? { reason: request.reason } : {}),
+  ...(request.fingerprintHint !== undefined ? { fingerprintHint: request.fingerprintHint } : {}),
   };
 }
 
-export function networkChangeResponseToMap(request: NetworkChangeResponse): Record<string, unknown> {
+export function connectionStatusToMap(request: ConnectionStatus): Record<string, unknown> {
   return {
-  reconnected: request.reconnected,
+  phase: request.phase,
+  ...(request.quality !== undefined ? { quality: request.quality } : {}),
+  ...(request.accessPointId !== undefined ? { accessPointId: request.accessPointId } : {}),
+  ...(request.cellId !== undefined ? { cellId: request.cellId } : {}),
+  ...(request.regionId !== undefined ? { regionId: request.regionId } : {}),
+  ...(request.protocol !== undefined ? { protocol: request.protocol } : {}),
+  ...(request.rttMs !== undefined ? { rttMs: request.rttMs } : {}),
+  attempt: request.attempt,
+  ...(request.nextRetryAt !== undefined ? { nextRetryAt: request.nextRetryAt } : {}),
+  ...(request.reason !== undefined ? { reason: request.reason } : {}),
+  developmentMode: request.developmentMode,
   };
 }
 
@@ -418,6 +473,293 @@ export function serverClockResponseToMap(request: ServerClockResponse): Record<s
   return {
   offsetMs: request.offsetMs,
   estimated: request.estimated,
+  };
+}
+
+export function accessPinToMap(request: AccessPin): Record<string, unknown> {
+  return {
+  accessPointId: request.accessPointId,
+  expiresAtMs: request.expiresAtMs,
+  };
+}
+
+export function accessPinRequestToMap(request: AccessPinRequest): Record<string, unknown> {
+  return {
+  accessPointId: request.accessPointId,
+  };
+}
+
+export function accessConnectAckToMap(request: AccessConnectAck): Record<string, unknown> {
+  return {
+  ...(request.gatewayId !== undefined ? { gatewayId: request.gatewayId } : {}),
+  ...(request.accessPointId !== undefined ? { accessPointId: request.accessPointId } : {}),
+  ...(request.accessSerial !== undefined ? { accessSerial: request.accessSerial } : {}),
+  ...(request.heartbeatIntervalHintSec !== undefined ? { heartbeatIntervalHintSec: request.heartbeatIntervalHintSec } : {}),
+  accessPointMismatch: request.accessPointMismatch,
+  };
+}
+
+export function accessStatusToMap(request: AccessStatus): Record<string, unknown> {
+  return {
+  loaded: request.loaded,
+  serial: request.serial,
+  ...(request.source !== undefined ? { source: request.source } : {}),
+  stale: request.stale,
+  developmentMode: request.developmentMode,
+  ...(request.issuedAtMs !== undefined ? { issuedAtMs: request.issuedAtMs } : {}),
+  ...(request.expiresAtMs !== undefined ? { expiresAtMs: request.expiresAtMs } : {}),
+  ...(request.fetchedAtMs !== undefined ? { fetchedAtMs: request.fetchedAtMs } : {}),
+  ...(request.regionId !== undefined ? { regionId: request.regionId } : {}),
+  ...(request.cellId !== undefined ? { cellId: request.cellId } : {}),
+  ...(request.keystateSerial !== undefined ? { keystateSerial: request.keystateSerial } : {}),
+  ...(request.accessPointId !== undefined ? { accessPointId: request.accessPointId } : {}),
+  ...(request.protocol !== undefined ? { protocol: request.protocol } : {}),
+  ...(request.pinned !== undefined ? { pinned: accessPinToMap(request.pinned) } : {}),
+  ...(request.connectAck !== undefined ? { connectAck: accessConnectAckToMap(request.connectAck) } : {}),
+  ...(request.refresh !== undefined ? { refresh: accessRefreshStatusToMap(request.refresh) } : {}),
+  ...(request.recovering !== undefined ? { recovering: accessRecoveringStatusToMap(request.recovering) } : {}),
+  };
+}
+
+export function accessRefreshStatusToMap(request: AccessRefreshStatus): Record<string, unknown> {
+  return {
+  ...(request.lastAttemptAtMs !== undefined ? { lastAttemptAtMs: request.lastAttemptAtMs } : {}),
+  ...(request.lastSuccessAtMs !== undefined ? { lastSuccessAtMs: request.lastSuccessAtMs } : {}),
+  ...(request.lastOutcome !== undefined ? { lastOutcome: request.lastOutcome } : {}),
+  ...(request.nextAtMs !== undefined ? { nextAtMs: request.nextAtMs } : {}),
+  };
+}
+
+export function accessRecoveringStatusToMap(request: AccessRecoveringStatus): Record<string, unknown> {
+  return {
+  sinceMs: request.sinceMs,
+  rounds: request.rounds,
+  ...(request.nextRoundAtMs !== undefined ? { nextRoundAtMs: request.nextRoundAtMs } : {}),
+  };
+}
+
+export function accessRefreshAttemptToMap(request: AccessRefreshAttempt): Record<string, unknown> {
+  return {
+  source: request.source,
+  tier: request.tier,
+  document: request.document,
+  result: request.result,
+  ...(request.code !== undefined ? { code: request.code } : {}),
+  ...(request.serial !== undefined ? { serial: request.serial } : {}),
+  };
+}
+
+export function accessRefreshReportToMap(request: AccessRefreshReport): Record<string, unknown> {
+  return {
+  outcome: request.outcome,
+  mode: request.mode,
+  serial: request.serial,
+  ...(request.source !== undefined ? { source: request.source } : {}),
+  ...(request.keystateSerial !== undefined ? { keystateSerial: request.keystateSerial } : {}),
+  attempts: request.attempts.map((item) => accessRefreshAttemptToMap(item)),
+  };
+}
+
+export function accessImportRecoveryRequestToMap(request: AccessImportRecoveryRequest): Record<string, unknown> {
+  return {
+  link: request.link,
+  };
+}
+
+export function accessRecoveryImportToMap(request: AccessRecoveryImport): Record<string, unknown> {
+  return {
+  outcome: request.outcome,
+  ...(request.code !== undefined ? { code: request.code } : {}),
+  serial: request.serial,
+  };
+}
+
+export function accessPointInfoToMap(request: AccessPointInfo): Record<string, unknown> {
+  return {
+  accessPointId: request.accessPointId,
+  regionId: request.regionId,
+  host: request.host,
+  status: request.status,
+  ...(request.rttMs !== undefined ? { rttMs: request.rttMs } : {}),
+  breaker: request.breaker,
+  ...(request.protocolWinner !== undefined ? { protocolWinner: request.protocolWinner } : {}),
+  pinned: request.pinned,
+  current: request.current,
+  };
+}
+
+export function accessEndpointToMap(request: AccessEndpoint): Record<string, unknown> {
+  return {
+  ap: request.ap,
+  protocol: request.protocol,
+  };
+}
+
+export function accessSwitchedEventToMap(request: AccessSwitchedEvent): Record<string, unknown> {
+  return {
+  from: accessEndpointToMap(request.from),
+  to: accessEndpointToMap(request.to),
+  reason: request.reason,
+  };
+}
+
+export function accessChangesToMap(request: AccessChanges): Record<string, unknown> {
+  return {
+  accessPointsAdded: request.accessPointsAdded,
+  accessPointsRemoved: request.accessPointsRemoved,
+  policyChanged: request.policyChanged,
+  };
+}
+
+export function accessChangedEventToMap(request: AccessChangedEvent): Record<string, unknown> {
+  return {
+  serial: request.serial,
+  source: request.source,
+  stale: request.stale,
+  developmentMode: request.developmentMode,
+  changes: accessChangesToMap(request.changes),
+  };
+}
+
+export function setAppStateRequestToMap(request: SetAppStateRequest): Record<string, unknown> {
+  return {
+  appState: request.appState,
+  };
+}
+
+export function updateGetStateRequestToMap(request: UpdateGetStateRequest): Record<string, unknown> {
+  return {
+  foreground: request.foreground,
+  };
+}
+
+export function updateCheckRequestToMap(request: UpdateCheckRequest): Record<string, unknown> {
+  return {
+  manual: request.manual,
+  };
+}
+
+export function updateDownloadRequestToMap(request: UpdateDownloadRequest): Record<string, unknown> {
+  return {
+  allowMetered: request.allowMetered,
+  };
+}
+
+export function updateReportInstallRequestToMap(request: UpdateReportInstallRequest): Record<string, unknown> {
+  return {
+  outcome: request.outcome,
+  ...(request.code !== undefined ? { code: request.code } : {}),
+  };
+}
+
+export function updateSkipRequestToMap(request: UpdateSkipRequest): Record<string, unknown> {
+  return {
+  build: request.build,
+  };
+}
+
+export function updateMarkPromptedRequestToMap(request: UpdateMarkPromptedRequest): Record<string, unknown> {
+  return {
+  ...(request.build !== undefined ? { build: request.build } : {}),
+  form: request.form,
+  };
+}
+
+export function updateSetLocaleRequestToMap(request: UpdateSetLocaleRequest): Record<string, unknown> {
+  return {
+  locale: request.locale,
+  };
+}
+
+export function updateGetResourcesRequestToMap(request: UpdateGetResourcesRequest): Record<string, unknown> { return {}; }
+
+export function updateResourcePackToMap(request: UpdateResourcePack): Record<string, unknown> {
+  return {
+  id: request.id,
+  kind: request.kind,
+  packVersion: request.packVersion,
+  contentJson: request.contentJson,
+  };
+}
+
+export function updateResourcesToMap(request: UpdateResources): Record<string, unknown> {
+  return {
+  packs: request.packs.map((item) => updateResourcePackToMap(item)),
+  };
+}
+
+export function updateCurrentAppToMap(request: UpdateCurrentApp): Record<string, unknown> {
+  return {
+  ...(request.version !== undefined ? { version: request.version } : {}),
+  ...(request.build !== undefined ? { build: request.build } : {}),
+  channel: request.channel,
+  ...(request.distribution !== undefined ? { distribution: request.distribution } : {}),
+  };
+}
+
+export function updateReleaseSummaryToMap(request: UpdateReleaseSummary): Record<string, unknown> {
+  return {
+  releaseId: request.releaseId,
+  version: request.version,
+  build: request.build,
+  notes: request.notes,
+  ...(request.sizeBytes !== undefined ? { sizeBytes: request.sizeBytes } : {}),
+  mandatory: request.mandatory,
+  recommended: request.recommended,
+  kind: request.kind,
+  };
+}
+
+export function updateProgressToMap(request: UpdateProgress): Record<string, unknown> {
+  return {
+  received: request.received,
+  total: request.total,
+  };
+}
+
+export function updateErrorInfoToMap(request: UpdateErrorInfo): Record<string, unknown> {
+  return {
+  code: request.code,
+  retryable: request.retryable,
+  ...(request.fallbackUrl !== undefined ? { fallbackUrl: request.fallbackUrl } : {}),
+  };
+}
+
+export function updateStatusToMap(request: UpdateStatus): Record<string, unknown> {
+  return {
+  state: request.state,
+  current: updateCurrentAppToMap(request.current),
+  ...(request.release !== undefined ? { release: updateReleaseSummaryToMap(request.release) } : {}),
+  ...(request.progress !== undefined ? { progress: updateProgressToMap(request.progress) } : {}),
+  prompt: request.prompt,
+  blockUi: request.blockUi,
+  readOnly: request.readOnly,
+  ...(request.lastCheckedAt !== undefined ? { lastCheckedAt: request.lastCheckedAt } : {}),
+  ...(request.error !== undefined ? { error: updateErrorInfoToMap(request.error) } : {}),
+  ...(request.blockReason !== undefined ? { blockReason: request.blockReason } : {}),
+  };
+}
+
+export function updateInstallPlanToMap(request: UpdateInstallPlan): Record<string, unknown> {
+  return {
+  kind: request.kind,
+  ...(request.store !== undefined ? { store: request.store } : {}),
+  ...(request.url !== undefined ? { url: request.url } : {}),
+  ...(request.packageName !== undefined ? { packageName: request.packageName } : {}),
+  ...(request.appId !== undefined ? { appId: request.appId } : {}),
+  immediate: request.immediate,
+  ...(request.path !== undefined ? { path: request.path } : {}),
+  ...(request.sha256 !== undefined ? { sha256: request.sha256 } : {}),
+  ...(request.signingCertSha256 !== undefined ? { signingCertSha256: request.signingCertSha256 } : {}),
+  ...(request.build !== undefined ? { build: request.build } : {}),
+  ...(request.sizeBytes !== undefined ? { sizeBytes: request.sizeBytes } : {}),
+  ...(request.buildId !== undefined ? { buildId: request.buildId } : {}),
+  ...(request.assetManifestUrls !== undefined ? { assetManifestUrls: request.assetManifestUrls } : {}),
+  ...(request.assetManifestSha256 !== undefined ? { assetManifestSha256: request.assetManifestSha256 } : {}),
+  mandatory: request.mandatory,
+  blockUi: request.blockUi,
+  ...(request.version !== undefined ? { version: request.version } : {}),
+  ...(request.target !== undefined ? { target: request.target } : {}),
   };
 }
 
@@ -1093,13 +1435,9 @@ export function lifecycleEventToMap(request: LifecycleEvent): Record<string, unk
   };
 }
 
-export function connectionEventToMap(request: ConnectionEvent): Record<string, unknown> {
+export function connectionSyncStateEventToMap(request: ConnectionSyncStateEvent): Record<string, unknown> {
   return {
-  name: request.name,
   state: request.state,
-  ...(request.reason !== undefined ? { reason: request.reason } : {}),
-  ...(request.attempt !== undefined ? { attempt: request.attempt } : {}),
-  ...(request.error !== undefined ? { error: sdkErrorPayloadToMap(request.error) } : {}),
   };
 }
 

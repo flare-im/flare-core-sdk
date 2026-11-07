@@ -10,7 +10,8 @@ public protocol SessionApiProtocol: AnyObject {
     func prepare(_ request: [String: AnySendable]) async throws -> Void
     func connect(_ request: [String: AnySendable]) async throws -> Void
     func updateAccessToken(_ request: [String: AnySendable]) async throws -> Void
-    func setHeartbeatAppState(_ request: SetHeartbeatAppStateRequest) async throws -> Void
+    /// Installs (or, with null, removes) the host-managed connect token refresher: an async function returning the new connect token, or null when none can be obtained. The core calls it once after the gateway rejects a connection on authentication and waits at most 20 seconds. Not needed with SDK-managed tokens (an auth block in the init config, even an empty one).
+    func setConnectTokenRefresher(_ refresher: ConnectTokenRefresher?) async throws
     func setHeartbeatNatTimeout(_ request: SetHeartbeatNatTimeoutRequest) async throws -> Void
     func heartbeatEffectiveInterval() async throws -> HeartbeatEffectiveIntervalResponse
     func logout() async throws -> Void

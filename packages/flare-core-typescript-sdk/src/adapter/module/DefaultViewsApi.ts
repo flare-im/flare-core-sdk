@@ -2,7 +2,7 @@
 import { NativeBridge, NativeCallMap } from '../../contract/bridge_contract';
 import type { ViewsApi } from '../../api/modules/views';
 import { CloseViewRequest, CloseViewResponse, LoadNewerTimelineViewRequest, LoadOlderTimelineViewRequest, OpenConversationListViewRequest, OpenTimelineViewRequest, TimelineViewPageResponse, TimelineViewRequest, ViewOpenResponse } from '../../model';
-import { invokeBool, invokeConnectionState, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError } from '../codec/nativeInvoke';
+import { invokeBool, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeList, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError, withoutNullFields } from '../codec/nativeInvoke';
 import { closeViewRequestToMap, closeViewResponseFromJson, conversationFromJson, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, loadNewerTimelineViewRequestToMap, loadOlderTimelineViewRequestToMap, messageFromJson, openConversationListViewRequestToMap, openTimelineViewRequestToMap, sendAckFromJson, sendMessageRequestToMap, timelineViewPageResponseFromJson, timelineViewRequestToMap, viewOpenResponseFromJson } from '../codec/wireCodec';
 
 export class DefaultViewsApi implements ViewsApi {

@@ -62,7 +62,7 @@ onMounted(() => {
       </FlareEmptyState>
       <FlareStatusBanner
         :tone="statusType"
-        :text="`${t('workbench.conversationsLabel')}: ${sdk.conversations.value.length} · ${t('workbench.unreadLabel')}: ${sdk.totalUnread.value} · ${t('workbench.connectionState')}: ${sdk.connectionState.value}`"
+        :text="`${t('workbench.conversationsLabel')}: ${sdk.conversations.value.length} · ${t('workbench.unreadLabel')}: ${sdk.totalUnread.value} · ${t('workbench.connectionState')}: ${sdk.connectionPhase.value}`"
       />
     </FlareScreen>
   </main>

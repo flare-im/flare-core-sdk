@@ -1,7 +1,7 @@
-import type { FlareImClient, FlareImEventListener } from "@flare-im/sdk/web";
+import type { ConnectionStatus, FlareImClient, FlareImEventListener } from "@flare-im/sdk/web";
 import type { Message } from "@flare-im/sdk/web";
 import type { ViewUpdate } from "@flare-im/sdk/web";
-import type { Ref } from "vue";
+import type { Ref, ShallowRef } from "vue";
 
 export type RuntimeEventLogItem = {
   id: number;
@@ -43,9 +43,9 @@ type SessionEventListener = FlareImEventListener & {
 export type SessionBridgeOptions = {
   appClient: FlareImClient;
   events: Ref<RuntimeEventLogItem[]>;
-  connectionState: Ref<string>;
+  /** Replaced whole by every `connection://status`; the app shell hands it to the kit's connection notice. */
+  connectionStatus: ShallowRef<ConnectionStatus | null>;
   loggedIn: Ref<boolean>;
-  onSessionEnded?: () => void;
   /** 收到 core 消息事件后更新本地可见投影 */
   onIncomingMessage?: (hint: IncomingMessageHint) => void;
   /** 收到在线状态推送后刷新本地 presence 状态 */
@@ -62,23 +62,18 @@ function pushEvent(events: Ref<RuntimeEventLogItem[]>, label: string, detail = "
   events.value = [{ id: nextEventId++, label, detail, at: Date.now() }, ...events.value].slice(0, 48);
 }
 
-function isLiveConnectionState(state: string): boolean {
-  return state === "ready" || state === "connected";
-}
-
-function applySnapshotConnectionState(currentState: string, snapshotState: string): string {
-  if (isLiveConnectionState(currentState) && snapshotState === "disconnected") {
-    return currentState;
-  }
-  return snapshotState;
-}
-
 function conversationIdFromPayload(payload: unknown): string | undefined {
   const event = payload as ConversationScopedPayload;
   const direct = event.conversationId;
   if (direct?.trim()) return direct.trim();
   const ids = event.conversationIds;
   return ids?.find((id) => id.trim())?.trim();
+}
+
+/** The event without the `type` / `event` routing keys the SDK decoder adds: what the typed listeners hand over. */
+function eventPayload(payload: unknown): Record<string, unknown> {
+  const { type: _type, event: _event, ...rest } = (payload ?? {}) as Record<string, unknown>;
+  return rest;
 }
 
 function dispatchMappedEvent(listener: SessionEventListener, payload: unknown): void {
@@ -114,13 +109,12 @@ function dispatchMappedEvent(listener: SessionEventListener, payload: unknown): 
     return;
   }
   if (type === "connection") {
-    const state = String(event.state ?? name);
-    if (name === "token_expired") listener.onUserTokenExpired?.(payload as never);
-    else if (name === "kicked_off") listener.onKickedOffline?.(payload as never);
-    else if (state === "ready") listener.onConnectReady?.(payload as never);
-    else if (state === "connected") listener.onConnectSuccess?.(payload as never);
-    else if (state === "disconnected") listener.onDisconnected?.(payload as never);
-    else if (state === "reconnecting") listener.onReconnecting?.(payload as never);
+    if (kind === "status") listener.onConnectionStatusChanged?.(eventPayload(payload) as unknown as ConnectionStatus);
+    return;
+  }
+  if (type === "access") {
+    if (kind === "switched") listener.onAccessSwitched?.(eventPayload(payload) as never);
+    else if (kind === "changed") listener.onAccessChanged?.(eventPayload(payload) as never);
     return;
   }
   if (type === "presence" && kind === "changed") {
@@ -139,38 +133,17 @@ function dispatchMappedEvent(listener: SessionEventListener, payload: unknown): 
 
 export function bindFlareSessionEvents(options: SessionBridgeOptions): () => void {
   const listener: SessionEventListener = {
-    onConnecting: () => {
-      options.connectionState.value = "connecting";
-      pushEvent(options.events, "connecting", "");
+    // The one connection signal. Kicked, expired, an update required or a suspended tenant arrive as
+    // `actionRequired`: the session stays (readable locally) and the kit's notice offers the way out.
+    onConnectionStatusChanged: (status) => {
+      options.connectionStatus.value = status;
+      pushEvent(options.events, "connection_status", [status.phase, status.reason, status.accessPointId, status.protocol].filter(Boolean).join(" "));
     },
-    onConnectReady: () => {
-      options.connectionState.value = "ready";
-      pushEvent(options.events, "connect_ready", "connected");
+    onAccessSwitched: (event) => {
+      pushEvent(options.events, "access_switched", `${event.from.ap} → ${event.to.ap} (${event.reason})`);
     },
-    onConnectSuccess: () => {
-      options.connectionState.value = "connected";
-      pushEvent(options.events, "connect_success", "");
-    },
-    onDisconnected: (payload) => {
-      options.connectionState.value = "disconnected";
-      pushEvent(options.events, "offline", String((payload as { reason?: string }).reason ?? ""));
-    },
-    onReconnecting: () => {
-      options.connectionState.value = "reconnecting";
-      pushEvent(options.events, "reconnecting", "");
-    },
-    onReconnectFailed: (payload) => {
-      pushEvent(options.events, "reconnect_failed", String((payload as { reason?: string }).reason ?? ""));
-    },
-    onUserTokenExpired: () => {
-      options.loggedIn.value = false;
-      pushEvent(options.events, "token_expired", "");
-      options.onSessionEnded?.();
-    },
-    onKickedOffline: (payload) => {
-      options.loggedIn.value = false;
-      pushEvent(options.events, "kicked_off", String((payload as { reason?: string }).reason ?? ""));
-      options.onSessionEnded?.();
+    onAccessChanged: (event) => {
+      pushEvent(options.events, "access_changed", `serial ${event.serial} ${event.source}${event.stale ? " stale" : ""}`);
     },
     onLoggedOut: () => {
       options.loggedIn.value = false;
@@ -320,8 +293,8 @@ export function bindFlareSessionEvents(options: SessionBridgeOptions): () => voi
 }
 
 export const flareSessionBridgeTesting = {
-  applySnapshotConnectionState,
   conversationIdFromPayload,
+  dispatchMappedEvent,
 };
 
 export function mapSdkError(error: unknown, operation: string): Record<string, unknown> {

@@ -29,6 +29,8 @@ data class Conversation(
     val ext: Map<String, String> = emptyMap(),
     /** wire: `isArchived`.  */
     val isArchived: Boolean = false,
+    /** wire: `isMentionOnly`. Notification preference. None means the sync source did not supply it. */
+    val isMentionOnly: Boolean? = null,
     /** wire: `isMuted`.  */
     val isMuted: Boolean = false,
     /** wire: `isPinned`.  */

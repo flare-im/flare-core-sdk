@@ -112,15 +112,6 @@
   margin: 12px 0;
 }
 
-.lab-switch-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  align-items: center;
-  color: var(--im-text-secondary);
-  font-size: 12px;
-}
-
 .drawer-json {
   max-height: 360px;
   margin: 12px 0 0;

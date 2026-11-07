@@ -2,7 +2,7 @@ package com.flare.im.contract
 
 /** GENERATED. Do not edit by hand. */
 object SdkContract {
-    const val FFI_CONTRACT_VERSION: String = "flare-im-ffi/v1"
+    const val FFI_CONTRACT_VERSION: String = "flare-im-ffi/v2"
 }
 
 object SdkOperations {
@@ -13,7 +13,8 @@ object SdkOperations {
     const val SDK_PREPARE: String = "sdk.prepare"
     const val SDK_CONNECT: String = "sdk.connect"
     const val SDK_UPDATE_ACCESS_TOKEN: String = "sdk.update_access_token"
-    const val SDK_SET_HEARTBEAT_APP_STATE: String = "sdk.set_heartbeat_app_state"
+    const val SDK_SET_CONNECT_TOKEN_REFRESHER: String = "sdk.set_connect_token_refresher"
+    const val SDK_COMPLETE_CONNECT_TOKEN_REFRESH: String = "sdk.complete_connect_token_refresh"
     const val SDK_SET_HEARTBEAT_NAT_TIMEOUT: String = "sdk.set_heartbeat_nat_timeout"
     const val SDK_HEARTBEAT_EFFECTIVE_INTERVAL: String = "sdk.heartbeat_effective_interval"
     const val SDK_LOGOUT: String = "sdk.logout"
@@ -22,7 +23,26 @@ object SdkOperations {
     const val SDK_CURRENT_USER_ID: String = "sdk.current_user_id"
     const val SDK_IS_CONNECTED: String = "sdk.is_connected"
     const val SDK_SESSION_ACTIVE: String = "sdk.session_active"
-    const val CONNECTION_GET_STATE: String = "connection.get_state"
+    const val CONNECTION_GET_STATUS: String = "connection.get_status"
+    const val CONNECTION_RECONNECT_NOW: String = "connection.reconnect_now"
+    const val ACCESS_GET_STATUS: String = "access.get_status"
+    const val ACCESS_LIST_ACCESS_POINTS: String = "access.list_access_points"
+    const val ACCESS_PIN: String = "access.pin"
+    const val ACCESS_UNPIN: String = "access.unpin"
+    const val ACCESS_REFRESH: String = "access.refresh"
+    const val ACCESS_IMPORT_RECOVERY: String = "access.import_recovery"
+    const val ACCESS_EXPORT_DIAGNOSTICS: String = "access.export_diagnostics"
+    const val UPDATE_GET_STATE: String = "update.get_state"
+    const val UPDATE_CHECK: String = "update.check"
+    const val UPDATE_DOWNLOAD: String = "update.download"
+    const val UPDATE_INSTALL: String = "update.install"
+    const val UPDATE_REPORT_INSTALL: String = "update.report_install"
+    const val UPDATE_DEFER: String = "update.defer"
+    const val UPDATE_SKIP: String = "update.skip"
+    const val UPDATE_MARK_PROMPTED: String = "update.mark_prompted"
+    const val UPDATE_SET_LOCALE: String = "update.set_locale"
+    const val UPDATE_GET_RESOURCES: String = "update.get_resources"
+    const val LIFECYCLE_SET_APP_STATE: String = "lifecycle.set_app_state"
     const val CONNECTION_DISCONNECT: String = "connection.disconnect"
     const val CONVERSATION_LIST: String = "conversation.list"
     const val CONVERSATION_LIST_BY_QUERY: String = "conversation.list_by_query"
@@ -152,5 +172,8 @@ object SdkErrorCodes {
     const val STORAGEUNAVAILABLE: String = "storageUnavailable"
     const val OPERATIONCANCELLED: String = "operationCancelled"
     const val CAPABILITYUNAVAILABLE: String = "capabilityUnavailable"
+    const val OVERLOADED: String = "overloaded"
+    const val UPGRADEREQUIRED: String = "upgradeRequired"
+    const val NETWORKUNCERTAIN: String = "networkUncertain"
     const val INTERNAL: String = "internal"
 }

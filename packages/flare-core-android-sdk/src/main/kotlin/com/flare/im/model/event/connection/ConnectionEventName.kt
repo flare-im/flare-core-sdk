@@ -1,5 +1,5 @@
 package com.flare.im.model.event.connection
 
 /** GENERATED. Do not edit by hand. */
-/** Connection event notification name. */
-enum class ConnectionEventName { CONNECTING, CONNECTED, READY, DISCONNECTED, RECONNECTING, RECONNECT_FAILED, STATE_CHANGED, SYNC_STATE_CHANGED, SERVER_ERROR, KICKED_OFF, TOKEN_EXPIRED }
+/** Connection event name: the one status event, and the coarse sync state hint. */
+enum class ConnectionEventName { STATUS, SYNC_STATE_CHANGED }

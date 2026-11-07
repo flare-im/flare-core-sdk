@@ -1,16 +1,20 @@
 // GENERATED. Do not edit by hand.
 import { NativeBridge, NativeCallMap } from '../../contract/BridgeContract';
 import type { ConnectionApi } from '../../api/modules/connection';
-import type { ConnectionState } from '../../api/client';
-import type { NetworkChangeRequest, NetworkChangeResponse, ServerClockResponse } from '../../model';
-import { invokeConnectionState, invokeMap, invokeVoid } from '../codec/NativeInvoke';
-import { networkChangeRequestToMap, networkChangeResponseFromJson, serverClockResponseFromJson } from '../codec/WireCodec';
+import type { ConnectionStatus, NetworkChangeRequest, ServerClockResponse } from '../../model';
+import { invokeMap, invokeVoid } from '../codec/NativeInvoke';
+import { connectionStatusFromJson, networkChangeRequestToMap, serverClockResponseFromJson } from '../codec/WireCodec';
 
 export class DefaultConnectionApi implements ConnectionApi {
   constructor(private readonly bridge: NativeBridge) {}
 
-  async getConnectionState(): Promise<ConnectionState> {
-    return await invokeConnectionState(this.bridge, NativeCallMap.connectionGetState);
+  async getStatus(): Promise<ConnectionStatus> {
+    const raw = await invokeMap(this.bridge, NativeCallMap.connectionGetStatus);
+    return connectionStatusFromJson(raw);
+  }
+
+  async reconnectNow(): Promise<void> {
+    await invokeVoid(this.bridge, NativeCallMap.connectionReconnectNow);
   }
 
   async disconnect(): Promise<void> {
@@ -22,8 +26,7 @@ export class DefaultConnectionApi implements ConnectionApi {
     return serverClockResponseFromJson(raw);
   }
 
-  async notifyNetworkChange(request: NetworkChangeRequest): Promise<NetworkChangeResponse> {
-    const raw = await invokeMap(this.bridge, NativeCallMap.connectionNotifyNetworkChange, networkChangeRequestToMap(request));
-    return networkChangeResponseFromJson(raw);
+  async notifyNetworkChange(request: NetworkChangeRequest): Promise<void> {
+    await invokeVoid(this.bridge, NativeCallMap.connectionNotifyNetworkChange, networkChangeRequestToMap(request));
   }
 }

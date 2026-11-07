@@ -59,6 +59,13 @@ describe("ConversationListPanel (reference workbench)", () => {
     expect(wrapper.emitted("select")).toEqual([["regular"]]);
   });
 
+  it("puts the red dot on the More button only when asked", () => {
+    expect(mountPanel().find(".flare-icon-button__dot").exists()).toBe(false);
+
+    const more = mountPanel({ moreDot: true }).get("[aria-label='More actions, New']");
+    expect(more.find(".flare-icon-button__dot").exists()).toBe(true);
+  });
+
   it("uses the shared empty state for search results", () => {
     const wrapper = mountPanel({ items: [], searchQuery: "missing" });
     expect(wrapper.find(".flare-empty").text()).toContain("No matches");

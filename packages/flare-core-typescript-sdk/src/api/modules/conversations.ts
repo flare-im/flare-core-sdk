@@ -48,4 +48,6 @@ export interface ConversationsApi {
   updateConversationDraft(request: UpdateConversationDraftRequest): Promise<void>;
   /** clearLocalChatHistory maps to `flare_sdk_invoke_json`. Operation: `conversation.clear_local_chat_history`. */
   clearLocalChatHistory(request: ClearLocalChatHistoryRequest): Promise<void>;
+  /** clearChatHistoryForSelf maps to `flare_sdk_invoke_json`. Operation: `conversation.clear_chat_history_for_self`. */
+  clearChatHistoryForSelf(request: ClearLocalChatHistoryRequest): Promise<void>;
 }

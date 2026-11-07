@@ -1,7 +1,7 @@
 {
   "name": "flare-im-core-client-sdk",
-  "apiVersion": "1.0.0",
-  "ffiContractVersion": "flare-im-ffi/v1",
+  "apiVersion": "2.0.0",
+  "ffiContractVersion": "flare-im-ffi/v2",
   "sourceOfTruth": "../flare-core-sdk-engine",
   "ffiEntry": "../flare-core-sdk-engine/bindings/c",
   "principles": [
@@ -14,13 +14,15 @@
   "include": {
     "platforms": "platforms/targets.json",
     "errors": "shared/errors.json",
-    "states": "shared/states.json",
     "events": "shared/events.json",
     "listeners": "shared/listeners.json",
     "native": "native/c_abi.json",
     "models": [
       "models/session.json",
       "models/connection.json",
+      "models/access.json",
+      "models/lifecycle.json",
+      "models/update.json",
       "models/diagnostics.json",
       "models/conversations.json",
       "models/views.json",
@@ -35,6 +37,9 @@
     "modules": [
       "modules/session.json",
       "modules/connection.json",
+      "modules/access.json",
+      "modules/lifecycle.json",
+      "modules/update.json",
       "modules/conversations.json",
       "modules/message_builder.json",
       "modules/messages.json",

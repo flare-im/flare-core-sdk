@@ -8,6 +8,8 @@
       "values": [
         "lifecycle",
         "connection",
+        "access",
+        "update",
         "message",
         "notification",
         "conversation",
@@ -34,31 +36,26 @@
       ]
     },
     {
-      "name": "SdkConnectionState",
-      "description": "Connection state exposed by event payloads.",
+      "name": "ConnectionEventName",
+      "description": "Connection event name: the one status event, and the coarse sync state hint.",
       "values": [
-        "disconnected",
-        "connecting",
-        "connected",
-        "ready",
-        "reconnecting"
+        "status",
+        "sync_state_changed"
       ]
     },
     {
-      "name": "ConnectionEventName",
-      "description": "Connection event notification name.",
+      "name": "AccessEventName",
+      "description": "Access event name.",
       "values": [
-        "connecting",
-        "connected",
-        "ready",
-        "disconnected",
-        "reconnecting",
-        "reconnect_failed",
-        "state_changed",
-        "sync_state_changed",
-        "server_error",
-        "kicked_off",
-        "token_expired"
+        "switched",
+        "changed"
+      ]
+    },
+    {
+      "name": "UpdateEventName",
+      "description": "Update event name.",
+      "values": [
+        "state"
       ]
     },
     {
@@ -274,43 +271,15 @@
       ]
     },
     {
-      "name": "ConnectionEvent",
-      "description": "Connection notification payload.",
+      "name": "ConnectionSyncStateEvent",
+      "description": "Payload of the coarse sync state hint (connection.sync_state_changed). Connection status itself arrives as ConnectionStatus.",
       "fields": [
-        {
-          "name": "name",
-          "wireName": "name",
-          "type": "ConnectionEventName",
-          "required": true,
-          "description": "Connection event name."
-        },
         {
           "name": "state",
           "wireName": "state",
-          "type": "SdkConnectionState",
-          "required": true,
-          "description": "Connection state after this event."
-        },
-        {
-          "name": "reason",
-          "wireName": "reason",
           "type": "String",
-          "required": false,
-          "description": "Disconnect, kicked-off, or token-expired reason."
-        },
-        {
-          "name": "attempt",
-          "wireName": "attempt",
-          "type": "UInt32",
-          "required": false,
-          "description": "Reconnect attempt number."
-        },
-        {
-          "name": "error",
-          "wireName": "error",
-          "type": "SdkErrorPayload",
-          "required": false,
-          "description": "Server or reconnect failure details."
+          "required": true,
+          "description": "The core sync state name."
         }
       ]
     },

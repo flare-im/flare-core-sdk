@@ -3,7 +3,7 @@ import { NativeBridge, NativeCallMap } from '../../contract/bridge_contract';
 import type { MediaApi } from '../../api/modules/media';
 import { FlareSdkException } from '../../bridge/flareSdkException';
 import { pickDisplayUrlFromResolved } from '../media/mediaAccess';
-import { invokeBool, invokeConnectionState, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError } from '../codec/nativeInvoke';
+import { invokeBool, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeList, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError, withoutNullFields } from '../codec/nativeInvoke';
 import { conversationFromJson, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, sendAckFromJson, sendMessageRequestToMap } from '../codec/wireCodec';
 
 export class DefaultMediaApi implements MediaApi {

@@ -2,14 +2,11 @@ package com.flare.im.model.event
 
 /** GENERATED. Do not edit by hand. */
 object EventCode {
-    const val CONNECTION_CONNECTED: Int = 1001
-    const val CONNECTION_DISCONNECTED: Int = 1002
-    const val CONNECTION_RECONNECTING: Int = 1003
-    const val CONNECTION_STATE_CHANGED: Int = 1004
     const val CONNECTION_SYNC_STATE_CHANGED: Int = 1005
-    const val CONNECTION_SERVER_ERROR: Int = 1006
-    const val CONNECTION_KICKED_OFF: Int = 1007
-    const val CONNECTION_TOKEN_EXPIRED: Int = 1008
+    const val CONNECTION_STATUS: Int = 1010
+    const val ACCESS_SWITCHED: Int = 1011
+    const val ACCESS_CHANGED: Int = 1012
+    const val UPDATE_STATE: Int = 1013
     const val MESSAGE_RECEIVED: Int = 2001
     const val MESSAGE_RECEIVED_BATCH: Int = 2002
     const val MESSAGE_SEND_ACK: Int = 2003
@@ -38,6 +35,7 @@ object EventCode {
     const val CONVERSATION_UNREAD_COUNT_CHANGED: Int = 3004
     const val CONVERSATION_DELETED: Int = 3005
     const val NOTIFICATION_RECEIVED: Int = 3501
+    const val NOTIFICATION_MESSAGE_SOUND: Int = 3502
     const val SYNC_STARTED: Int = 4001
     const val SYNC_FINISHED: Int = 4002
     const val SYNC_FAILED: Int = 4003

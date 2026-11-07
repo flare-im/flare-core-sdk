@@ -128,8 +128,8 @@ export function useRnWorkbenchController() {
       setSdkDiagnostics(snapshot.diagnostics);
       setCurrentUserId(snapshot.currentUserId);
       setMessageBuildCatalog(snapshot.messageBuildCatalog);
-      setSdkStatus(statusFromConnectionState(snapshot.connectionState));
-      setSdkMessage(`SDK 会话已建立 · ${transportLabel(loginForm.transportMode)}`);
+      setSdkStatus(statusFromConnectionPhase(snapshot.connectionStatus.phase));
+      setSdkMessage(`SDK 会话已建立 · ${snapshot.connectionStatus.phase}`);
       setLoggedIn(true);
       setHomeSyncReady(false);
       setMode('sync');
@@ -482,11 +482,11 @@ export function useRnWorkbenchController() {
     }
   }
 
-  async function runConnectionOperation(op: RnConnectionOperation = 'state') {
+  async function runConnectionOperation(op: RnConnectionOperation = 'status') {
     const service = sdkServiceRef.current;
     if (!service) return;
     try {
-      const result = await service.runConnectionOperation(op, sdkLabInputs);
+      const result = await service.runConnectionOperation(op);
       setSdkLabResult(result);
     } catch (error) {
       setSdkLabResult(error instanceof Error ? error.message : String(error));
@@ -627,17 +627,12 @@ function upsertConversation(items: ConversationItem[], conversation: Conversatio
   return items.map((item) => (item.id === conversation.id ? conversation : item));
 }
 
-function statusFromConnectionState(state: string): SdkStatus {
-  if (state === 'ready' || state === 'connected') return 'ready';
-  if (state === 'connecting' || state === 'reconnecting') return 'connecting';
-  if (state === 'disconnected') return 'disconnected';
-  return 'idle';
-}
-
-function transportLabel(mode: LoginFormState['transportMode']): string {
-  if (mode === 'quic') return 'QUIC';
-  if (mode === 'race') return '竞速';
-  return 'WebSocket';
+/** The workbench's coarse status from the core's connection phase (`connection://status`). */
+function statusFromConnectionPhase(phase: string): SdkStatus {
+  if (phase === 'online') return 'ready';
+  if (phase === 'idle') return 'idle';
+  if (phase === 'actionRequired') return 'disconnected';
+  return 'connecting';
 }
 
 function resolveComposerBuildOp(text: string, contentType: TimelineMessage['contentType'], richMode: boolean): MessageBuildOp {

@@ -64,24 +64,28 @@ test('TypeScript native host passes the generated descriptor to React Native mod
   }
 });
 
-test('React Native login defaults to WebSocket and exposes native protocol selection', () => {
+test('React Native connects where the bundle\'s access configuration says, with no server settings on sign-in', () => {
   const service = read('src/application/sdk/rnWorkbenchSdkService.ts');
   const loginScreen = read('src/components/auth/LoginScreen.tsx');
   const types = read('src/types.ts');
   const packageJson = read('package.json');
+  const indexJs = read('index.js');
 
-  assert.match(types, /export type LoginTransportMode = 'websocket' \| 'quic' \| 'race'/);
-  assert.match(service, /transportMode:\s*'websocket'/);
   assert.match(service, /userId:\s*'11'/);
-  assert.match(service, /buildNativeTransportConfig\(form\)/);
-  assert.match(service, /generateCoreLoginToken/);
-  assert.match(service, /generateCoreToken/);
-  assert.match(service, /transportPolicy:\s*'websocket_only'/);
-  assert.match(service, /protocolRaceOrder:\s*\['quic', 'websocket'\]/);
-  assert.match(loginScreen, /transportOptions/);
-  assert.match(loginScreen, /loginSelectRow/);
+  assert.match(service, /access:\s*buildAccessConfig\(\)/);
+  assert.match(service, /client\.connection\.getStatus\(\)/);
+  // The forbidden names are spelled from parts, so this test does not trip the repository grep gate it mirrors.
+  const addressField = new RegExp(`\\b(${['ws', 'quic', 'http', 'gateway'].map((prefix) => `${prefix}Url`).join('|')})\\b`);
+  for (const source of [service, loginScreen, types]) {
+    assert.doesNotMatch(source, addressField);
+    assert.doesNotMatch(source, /transportMode|transportPolicy|protocolRaceOrder|tlsCaCertPath/);
+  }
+  assert.doesNotMatch(service, new RegExp(['notify' + 'NetworkChange', 'setHeartbeat' + 'AppState', 'getConnection' + 'State'].join('|')));
   assert.match(loginScreen, /Token 将根据用户 ID 自动生成/);
   assert.doesNotMatch(loginScreen, /粘贴 dev token|Token\s*</);
   assert.match(packageJson, /sync:dev-token-secret/);
   assert.match(packageJson, /scripts\/sync-dev-token-secret\.js/);
+  assert.match(packageJson, /"sync:access-config":\s*"node scripts\/sync-access-config\.js"/);
+  assert.match(indexJs, /__FLARE_ACCESS_JSON__ = require\('\.\/\.generated\/flare-access\.json'\)\.json/);
 });
+

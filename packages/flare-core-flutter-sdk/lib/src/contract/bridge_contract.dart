@@ -31,8 +31,21 @@ final class NativeCallDescriptor {
 }
 
 /// Platform runtimes implement this bridge using FFI, JNI, N-API, WASM or host IPC.
+/// Host-managed connect token refresh: resolves the new connect token, or null when none
+/// can be obtained. Called on a background isolate task; the core waits at most 20 seconds.
+typedef ConnectTokenRefresher = Future<String?> Function();
+
 abstract interface class NativeBridge {
   Future<T> invoke<T>(NativeCallDescriptor descriptor, [Object? request]);
+}
+
+/// Implemented by bridges that can call back for a connect token (the FFI bridge); the client
+/// reports capabilityUnavailable for a bridge without it.
+abstract interface class ConnectTokenRefresherBridge {
+  /// Installs (or, with null, removes) the connect token refresher: registers the native
+  /// trampoline with flare_sdk_set_connect_token_refresher and answers every request with
+  /// flare_sdk_complete_connect_token_refresh.
+  Future<void> setConnectTokenRefresher(ConnectTokenRefresher? refresher);
 }
 
 abstract final class NativeCallMap {
@@ -128,18 +141,30 @@ abstract final class NativeCallMap {
       handlePolicy: "client-handle",
       callback: "FlareResultCallback");
 
-  /// setHeartbeatAppState maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.set_heartbeat_app_state`.
-  static const sdkSetHeartbeatAppState = NativeCallDescriptor(
+  /// setConnectTokenRefresher maps to `flare_sdk_set_connect_token_refresher` via `ffi-symbol`. Operation: `sdk.set_connect_token_refresher`.
+  static const sdkSetConnectTokenRefresher = NativeCallDescriptor(
       module: "session",
-      method: "setHeartbeatAppState",
-      operation: "sdk.set_heartbeat_app_state",
-      transport: "contract-invoke-json",
-      cApi: "flare_sdk_invoke_json",
-      requestEncoding: "json",
+      method: "setConnectTokenRefresher",
+      operation: "sdk.set_connect_token_refresher",
+      transport: "ffi-symbol",
+      cApi: "flare_sdk_set_connect_token_refresher",
+      requestEncoding: "host-callback",
       responseEncoding: "unit",
       returnMode: "callback",
       handlePolicy: "client-handle",
-      callback: "FlareResultCallback");
+      callback: "FlareTokenRefreshCallback");
+
+  /// completeConnectTokenRefresh maps to `flare_sdk_complete_connect_token_refresh` via `ffi-symbol`. Operation: `sdk.complete_connect_token_refresh`.
+  static const sdkCompleteConnectTokenRefresh = NativeCallDescriptor(
+      module: "session",
+      method: "completeConnectTokenRefresh",
+      operation: "sdk.complete_connect_token_refresh",
+      transport: "ffi-symbol",
+      cApi: "flare_sdk_complete_connect_token_refresh",
+      requestEncoding: "typed-ffi",
+      responseEncoding: "boolean",
+      returnMode: "sync",
+      handlePolicy: "client-handle");
 
   /// setHeartbeatNatTimeout maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.set_heartbeat_nat_timeout`.
   static const sdkSetHeartbeatNatTimeout = NativeCallDescriptor(
@@ -306,17 +331,31 @@ abstract final class NativeCallMap {
       handlePolicy: "client-handle",
       callback: "FlareResultCallback");
 
-  /// getConnectionState maps to `flare_sdk_state` via `ffi-symbol`. Operation: `connection.get_state`.
-  static const connectionGetState = NativeCallDescriptor(
+  /// getStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.get_status`.
+  static const connectionGetStatus = NativeCallDescriptor(
       module: "connection",
-      method: "getConnectionState",
-      operation: "connection.get_state",
-      transport: "ffi-symbol",
-      cApi: "flare_sdk_state",
-      requestEncoding: "typed-ffi",
-      responseEncoding: "enum",
-      returnMode: "sync",
-      handlePolicy: "client-handle");
+      method: "getStatus",
+      operation: "connection.get_status",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// reconnectNow maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.reconnect_now`.
+  static const connectionReconnectNow = NativeCallDescriptor(
+      module: "connection",
+      method: "reconnectNow",
+      operation: "connection.reconnect_now",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
 
   /// disconnect maps to `flare_sdk_disconnect` via `ffi-symbol`. Operation: `connection.disconnect`.
   static const connectionDisconnect = NativeCallDescriptor(
@@ -349,6 +388,240 @@ abstract final class NativeCallMap {
       module: "connection",
       method: "notifyNetworkChange",
       operation: "connection.notify_network_change",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// getStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.get_status`.
+  static const accessGetStatus = NativeCallDescriptor(
+      module: "access",
+      method: "getStatus",
+      operation: "access.get_status",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// listAccessPoints maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.list_access_points`.
+  static const accessListAccessPoints = NativeCallDescriptor(
+      module: "access",
+      method: "listAccessPoints",
+      operation: "access.list_access_points",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// pin maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.pin`.
+  static const accessPin = NativeCallDescriptor(
+      module: "access",
+      method: "pin",
+      operation: "access.pin",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// unpin maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.unpin`.
+  static const accessUnpin = NativeCallDescriptor(
+      module: "access",
+      method: "unpin",
+      operation: "access.unpin",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// refresh maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.refresh`.
+  static const accessRefresh = NativeCallDescriptor(
+      module: "access",
+      method: "refresh",
+      operation: "access.refresh",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// importRecovery maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.import_recovery`.
+  static const accessImportRecovery = NativeCallDescriptor(
+      module: "access",
+      method: "importRecovery",
+      operation: "access.import_recovery",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// exportDiagnostics maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.export_diagnostics`.
+  static const accessExportDiagnostics = NativeCallDescriptor(
+      module: "access",
+      method: "exportDiagnostics",
+      operation: "access.export_diagnostics",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// setAppState maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `lifecycle.set_app_state`.
+  static const lifecycleSetAppState = NativeCallDescriptor(
+      module: "lifecycle",
+      method: "setAppState",
+      operation: "lifecycle.set_app_state",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// getState maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.get_state`.
+  static const updateGetState = NativeCallDescriptor(
+      module: "update",
+      method: "getState",
+      operation: "update.get_state",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// check maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.check`.
+  static const updateCheck = NativeCallDescriptor(
+      module: "update",
+      method: "check",
+      operation: "update.check",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// download maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.download`.
+  static const updateDownload = NativeCallDescriptor(
+      module: "update",
+      method: "download",
+      operation: "update.download",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// install maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.install`.
+  static const updateInstall = NativeCallDescriptor(
+      module: "update",
+      method: "install",
+      operation: "update.install",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// reportInstall maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.report_install`.
+  static const updateReportInstall = NativeCallDescriptor(
+      module: "update",
+      method: "reportInstall",
+      operation: "update.report_install",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// defer maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.defer`.
+  static const updateDefer = NativeCallDescriptor(
+      module: "update",
+      method: "defer",
+      operation: "update.defer",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// skip maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.skip`.
+  static const updateSkip = NativeCallDescriptor(
+      module: "update",
+      method: "skip",
+      operation: "update.skip",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// markPrompted maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.mark_prompted`.
+  static const updateMarkPrompted = NativeCallDescriptor(
+      module: "update",
+      method: "markPrompted",
+      operation: "update.mark_prompted",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// setLocale maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.set_locale`.
+  static const updateSetLocale = NativeCallDescriptor(
+      module: "update",
+      method: "setLocale",
+      operation: "update.set_locale",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// getResources maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.get_resources`.
+  static const updateGetResources = NativeCallDescriptor(
+      module: "update",
+      method: "getResources",
+      operation: "update.get_resources",
       transport: "contract-invoke-json",
       cApi: "flare_sdk_invoke_json",
       requestEncoding: "json",
@@ -609,6 +882,19 @@ abstract final class NativeCallMap {
       module: "conversations",
       method: "clearLocalChatHistory",
       operation: "conversation.clear_local_chat_history",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// clearChatHistoryForSelf maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.clear_chat_history_for_self`.
+  static const conversationClearChatHistoryForSelf = NativeCallDescriptor(
+      module: "conversations",
+      method: "clearChatHistoryForSelf",
+      operation: "conversation.clear_chat_history_for_self",
       transport: "contract-invoke-json",
       cApi: "flare_sdk_invoke_json",
       requestEncoding: "json",

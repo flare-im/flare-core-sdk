@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { ConnectionEvent, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, ViewUpdate } from '../../model';
+import { AccessChangedEvent, AccessSwitchedEvent, ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
 import { EventCallback, EventSubscription, FlareImEventListener, MessageSendCallback } from '../../listener';
 
 /** Typed SDK event stream. */
@@ -17,15 +17,10 @@ export interface EventsApi {
   onLoginFailed(listener: EventCallback<LifecycleEvent>): EventSubscription;
   onLoggedOut(listener: EventCallback<LifecycleEvent>): EventSubscription;
   onDisposed(listener: EventCallback<LifecycleEvent>): EventSubscription;
-  onConnecting(listener: EventCallback<ConnectionEvent>): EventSubscription;
-  onConnectSuccess(listener: EventCallback<ConnectionEvent>): EventSubscription;
-  onConnectReady(listener: EventCallback<ConnectionEvent>): EventSubscription;
-  onConnectFailed(listener: EventCallback<ConnectionEvent>): EventSubscription;
-  onDisconnected(listener: EventCallback<ConnectionEvent>): EventSubscription;
-  onReconnecting(listener: EventCallback<ConnectionEvent>): EventSubscription;
-  onReconnectFailed(listener: EventCallback<ConnectionEvent>): EventSubscription;
-  onKickedOffline(listener: EventCallback<ConnectionEvent>): EventSubscription;
-  onUserTokenExpired(listener: EventCallback<ConnectionEvent>): EventSubscription;
+  onConnectionStatusChanged(listener: EventCallback<ConnectionStatus>): EventSubscription;
+  onAccessSwitched(listener: EventCallback<AccessSwitchedEvent>): EventSubscription;
+  onAccessChanged(listener: EventCallback<AccessChangedEvent>): EventSubscription;
+  onUpdateState(listener: EventCallback<UpdateStatus>): EventSubscription;
   onMessageReceived(listener: EventCallback<MessageReceivedEvent>): EventSubscription;
   onMessageReceivedBatch(listener: EventCallback<MessageReceivedBatchEvent>): EventSubscription;
   onMessageSendAck(listener: EventCallback<MessageSendAckEvent>): EventSubscription;

@@ -1,6 +1,6 @@
 // GENERATED. Do not edit by hand.
-import { NativeBridge, NativeCallDescriptor } from '../contract/BridgeContract';
-import type { ConnectionState } from '../api/client';
+import { NativeBridge, NativeCallDescriptor } from '../../contract/BridgeContract';
+import { FlareSdkException } from '../../bridge/FlareSdkException';
 import {
   Conversation,
   LifecycleEventName,
@@ -9,7 +9,7 @@ import {
   Message,
   SdkErrorPayload,
   SendMessageResponse,
-} from '../model';
+} from '../../model';
 import {
   conversationFromJson,
   listConversationsResponseFromJson,
@@ -45,14 +45,6 @@ export async function invokeBool(
   request?: Object,
 ): Promise<boolean> {
   return await bridge.invoke<boolean>(descriptor, request);
-}
-
-export async function invokeConnectionState(
-  bridge: NativeBridge,
-  descriptor: NativeCallDescriptor,
-  request?: Object,
-): Promise<ConnectionState> {
-  return await bridge.invoke<ConnectionState>(descriptor, request);
 }
 
 export async function invokeMessage(
@@ -102,6 +94,19 @@ export async function invokeConversation(
 }
 
 export function sdkErrorPayloadFromError(error: Object, operation: string): SdkErrorPayload {
+  if (error instanceof FlareSdkException) {
+    const typed: SdkErrorPayload = {
+      code: error.code,
+      message: error.message,
+      operation: error.operation ?? operation,
+      retryable: error.retryable,
+      details: error.details ?? {},
+    };
+    if (error.machineReason !== undefined) {
+      typed.machineReason = error.machineReason;
+    }
+    return typed;
+  }
   const maybeError = error as Error;
   const message = maybeError?.message ?? `${error}`;
   return {

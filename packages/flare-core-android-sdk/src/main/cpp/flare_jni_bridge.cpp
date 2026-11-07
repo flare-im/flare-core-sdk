@@ -14,6 +14,7 @@ JavaVM *g_vm = nullptr;
 jclass g_bridge_class = nullptr;
 jmethodID g_complete_result = nullptr;
 jmethodID g_emit_event = nullptr;
+jmethodID g_request_connect_token = nullptr;
 
 std::string to_std_string(JNIEnv *env, jstring value) {
     if (value == nullptr) {
@@ -125,6 +126,30 @@ void event_callback(void *context, int32_t event_type, FlareString event_json) {
     detach_env(did_attach);
 }
 
+// FlareTokenRefreshCallback: runs on an SDK thread. Hands the request to Kotlin, which answers later
+// through flare_sdk_complete_connect_token_refresh; returns at once. The context is the handle.
+void token_refresh_callback(void *context, uint64_t request_id) {
+    if (g_bridge_class == nullptr || g_request_connect_token == nullptr) {
+        return;
+    }
+    bool did_attach = false;
+    JNIEnv *env = attached_env(&did_attach);
+    if (env == nullptr) {
+        return;
+    }
+    env->CallStaticVoidMethod(
+        g_bridge_class,
+        g_request_connect_token,
+        static_cast<jlong>(reinterpret_cast<intptr_t>(context)),
+        static_cast<jlong>(request_id)
+    );
+    // Never let a Java exception travel back into the SDK thread.
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+    }
+    detach_env(did_attach);
+}
+
 void event_batch_callback(void * /*context*/, size_t /*event_count*/, FlareString events_json) {
     flare_string_free(events_json);
 }
@@ -157,7 +182,12 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void * /*reserved*/) {
         "emitEvent",
         "(JILjava/lang/String;)V"
     );
-    if (g_complete_result == nullptr || g_emit_event == nullptr) {
+    g_request_connect_token = env->GetStaticMethodID(
+        g_bridge_class,
+        "requestConnectToken",
+        "(JJ)V"
+    );
+    if (g_complete_result == nullptr || g_emit_event == nullptr || g_request_connect_token == nullptr) {
         return JNI_ERR;
     }
     return JNI_VERSION_1_6;
@@ -176,11 +206,6 @@ Java_com_flare_im_bridge_JniNativeBridge_nativeRelease(JNIEnv * /*env*/, jobject
 extern "C" JNIEXPORT void JNICALL
 Java_com_flare_im_bridge_JniNativeBridge_nativeHardReset(JNIEnv * /*env*/, jobject /*self*/) {
     flare_sdk_hard_reset();
-}
-
-extern "C" JNIEXPORT jint JNICALL
-Java_com_flare_im_bridge_JniNativeBridge_nativeConnectionState(JNIEnv * /*env*/, jobject /*self*/, jlong handle) {
-    return static_cast<jint>(flare_sdk_state(static_cast<FlareHandle>(handle)));
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
@@ -405,6 +430,49 @@ Java_com_flare_im_bridge_JniNativeBridge_nativeSdkDisconnect(JNIEnv * /*env*/, j
 extern "C" JNIEXPORT jint JNICALL
 Java_com_flare_im_bridge_JniNativeBridge_nativeSdkDataRoot(JNIEnv * /*env*/, jobject /*self*/, jlong handle, jlong context_id) {
     return flare_sdk_data_root(static_cast<FlareHandle>(handle), context_from_id(context_id), result_callback);
+}
+
+// Installs (enabled) or removes the connect token refresher. The core forgets it on release and
+// hard reset; Kotlin keeps the refresher keyed by handle, so no Java object is held here.
+extern "C" JNIEXPORT jint JNICALL
+Java_com_flare_im_bridge_JniNativeBridge_nativeSetConnectTokenRefresher(
+    JNIEnv * /*env*/,
+    jobject /*self*/,
+    jlong handle,
+    jboolean enabled,
+    jlong context_id
+) {
+    return flare_sdk_set_connect_token_refresher(
+        static_cast<FlareHandle>(handle),
+        context_from_id(handle),
+        enabled ? token_refresh_callback : nullptr,
+        context_from_id(context_id),
+        result_callback
+    );
+}
+
+// A null token means none was obtained.
+extern "C" JNIEXPORT jint JNICALL
+Java_com_flare_im_bridge_JniNativeBridge_nativeCompleteConnectTokenRefresh(
+    JNIEnv *env,
+    jobject /*self*/,
+    jlong handle,
+    jlong request_id,
+    jstring token
+) {
+    if (token == nullptr) {
+        return flare_sdk_complete_connect_token_refresh(
+            static_cast<FlareHandle>(handle),
+            static_cast<uint64_t>(request_id),
+            nullptr
+        );
+    }
+    std::string value = to_std_string(env, token);
+    return flare_sdk_complete_connect_token_refresh(
+        static_cast<FlareHandle>(handle),
+        static_cast<uint64_t>(request_id),
+        value.c_str()
+    );
 }
 
 extern "C" JNIEXPORT jlong JNICALL

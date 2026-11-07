@@ -1,7 +1,9 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import {
   getFlareSdkSingleton,
+  FlareAboutScreen as AboutView,
   FlareChatPlaceholder as ChatPlaceholderView,
+  FlareAccessDiagnosticsScreen as NetworkView,
   FlareChatWorkspace as ChatView,
   FlareConversationsPanel as ConversationsView,
   FlareHomeSyncScreen as SyncProgressView,
@@ -16,6 +18,8 @@ export const router = createRouter({
   routes: [
     { path: "/login", name: "login", component: LoginView, meta: { public: true } },
     { path: "/sync", name: "sync", component: SyncProgressView },
+    { path: "/network", name: "network", component: NetworkView },
+    { path: "/about", name: "about", component: AboutView },
     {
       path: "/",
       component: WorkbenchLayout,
@@ -44,6 +48,8 @@ router.beforeEach(async (to) => {
   let loggedIn = sdk?.loggedIn.value ?? false;
   if (!loggedIn && sdk?.hasSavedSession()) loggedIn = await sdk.resumeSavedSession();
   if (!loggedIn) return { name: "login", replace: true };
+  // Home sync waits for the connection, and these pages are the way out when the connection cannot come up.
+  if (to.name === "network" || to.name === "about") return true;
   if (to.name === "sync") return sdk?.homeSyncReady.value ? { name: "conversations", replace: true } : true;
   if (!sdk?.homeSyncReady.value) return { name: "sync", replace: true };
   if (to.name === "chat" && !sdk?.activeConversationId.value) {

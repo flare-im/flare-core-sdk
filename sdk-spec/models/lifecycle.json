@@ -1,0 +1,29 @@
+{
+  "group": "lifecycle",
+  "description": "Platform lifecycle signals.",
+  "enums": [
+    {
+      "name": "AppState",
+      "description": "Whether the app is in the foreground or the background.",
+      "values": [
+        "foreground",
+        "background"
+      ]
+    }
+  ],
+  "models": [
+    {
+      "name": "SetAppStateRequest",
+      "description": "Foreground and background notification from the platform lifecycle.",
+      "fields": [
+        {
+          "name": "appState",
+          "wireName": "appState",
+          "type": "AppState",
+          "required": true,
+          "description": "Current application state."
+        }
+      ]
+    }
+  ]
+}

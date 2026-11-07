@@ -17,9 +17,11 @@ final class PluginNativeFfiTests: XCTestCase {
         let bridge = try FfiNativeBridge(libraryPath: library)
         let api = DefaultCapabilitiesApi(bridge: bridge)
         do {
+            // Development access: the fixture is the Core API; the IM endpoint is never reached.
             _ = try await bridge.invoke(NativeCallMap.sdkInit, request: AnySendable([
-                "dataUrl": directory.absoluteString, "tenantId": "201", "httpUrl": gateway, "wsUrl": "ws://127.0.0.1:1",
-            ]))
+                "dataUrl": directory.absoluteString, "tenantId": "201",
+                "access": ["trustMode": "development", "developmentEndpoints": ["coreApiUrl": gateway, "quicUrl": "quic://127.0.0.1:1"]],
+            ] as [String: Any]))
             do {
                 _ = try await bridge.invoke(NativeCallMap.sdkConnect, request: AnySendable(["userId": "u1"]))
                 XCTFail("connect before preparation must fail")

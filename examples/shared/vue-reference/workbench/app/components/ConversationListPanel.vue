@@ -50,6 +50,8 @@ const props = withDefaults(defineProps<{
   closeSearchLabel: string;
   createLabel: string;
   moreLabel: string;
+  /** Something new behind the More button, nothing to count. */
+  moreDot?: boolean;
   loading?: boolean;
   status?: ConversationPanelStatus;
   loadingTitle: string;
@@ -68,6 +70,7 @@ const props = withDefaults(defineProps<{
   filterLabel: "Filters",
   searchOpen: false,
   searchQuery: "",
+  moreDot: false,
   loading: false,
   eyebrow: "",
   meta: "",
@@ -123,7 +126,7 @@ const emptyDescriptionText = computed(() => props.searchQuery ? props.noResultsD
             @click="emit('update:searchOpen', !searchOpen)"
           />
           <FlareIconButton :icon="AddOutline" :ariaLabel="createLabel" variant="solid" @click="emit('create')" />
-          <FlareIconButton :icon="EllipsisHorizontalOutline" :ariaLabel="moreLabel" @click="emit('more')" />
+          <FlareIconButton :icon="EllipsisHorizontalOutline" :ariaLabel="moreLabel" :dot="moreDot" @click="emit('more')" />
         </template>
       </FlareScreenHeader>
     </template>

@@ -4,8 +4,16 @@ import type { EventsApi } from '../../api/modules/events';
 import type { SubscribeEventsRequest, Subscription, UnsubscribeRequest } from '../../api/types';
 import type { EventCallback, EventSubscription, FlareImEventListener } from '../../listener';
 import {
-  ConnectionEvent,
+  AccessChangedEvent,
+  AccessChanges,
+  AccessEndpoint,
+  AccessEventName,
+  AccessSwitchedEvent,
   ConnectionEventName,
+  ConnectionPhase,
+  ConnectionQuality,
+  ConnectionStatus,
+  ConnectionSyncStateEvent,
   ConversationEvent,
   ConversationEventName,
   LifecycleEvent,
@@ -23,26 +31,25 @@ import {
   ProgressEventName,
   ReactionChangedEvent,
   ReadReceiptEvent,
-  SdkConnectionState,
   SdkErrorPayload,
   SyncEvent,
   SyncEventName,
   TypingAggregateEvent,
   TypingEvent,
+  UpdateEventName,
+  UpdateStatus,
   ViewUpdate,
   ProgressEvent as SdkProgressEvent,
 } from '../../model';
+import { withoutNullFields } from '../codec/nativeInvoke';
 import { messageFromJson, sendAckFromJson, viewUpdateFromJson, wireDecodeResponse } from '../codec/wireCodec';
 import { FlareSdkException } from '../../bridge/flareSdkException';
 
-const EVENT_CODE_CONNECTION_CONNECTED = 1001;
-const EVENT_CODE_CONNECTION_DISCONNECTED = 1002;
-const EVENT_CODE_CONNECTION_RECONNECTING = 1003;
-const EVENT_CODE_CONNECTION_STATE_CHANGED = 1004;
 const EVENT_CODE_CONNECTION_SYNC_STATE_CHANGED = 1005;
-const EVENT_CODE_CONNECTION_SERVER_ERROR = 1006;
-const EVENT_CODE_CONNECTION_KICKED_OFF = 1007;
-const EVENT_CODE_CONNECTION_TOKEN_EXPIRED = 1008;
+const EVENT_CODE_CONNECTION_STATUS = 1010;
+const EVENT_CODE_ACCESS_SWITCHED = 1011;
+const EVENT_CODE_ACCESS_CHANGED = 1012;
+const EVENT_CODE_UPDATE_STATE = 1013;
 const EVENT_CODE_MESSAGE_RECEIVED = 2001;
 const EVENT_CODE_MESSAGE_RECEIVED_BATCH = 2002;
 const EVENT_CODE_MESSAGE_SEND_ACK = 2003;
@@ -71,6 +78,7 @@ const EVENT_CODE_CONVERSATION_UPDATED = 3003;
 const EVENT_CODE_CONVERSATION_UNREAD_COUNT_CHANGED = 3004;
 const EVENT_CODE_CONVERSATION_DELETED = 3005;
 const EVENT_CODE_NOTIFICATION_RECEIVED = 3501;
+const EVENT_CODE_NOTIFICATION_MESSAGE_SOUND = 3502;
 const EVENT_CODE_SYNC_STARTED = 4001;
 const EVENT_CODE_SYNC_FINISHED = 4002;
 const EVENT_CODE_SYNC_FAILED = 4003;
@@ -85,14 +93,11 @@ const EVENT_CODE_PLUGIN_REALTIME = 7001;
 const EVENT_CODE_PLUGIN_CATALOG_CHANGED = 7002;
 
 const WEB_EVENT_TYPE_BY_CHANNEL: Record<string, number> = {
-  "im://connected": EVENT_CODE_CONNECTION_CONNECTED,
-  "im://disconnected": EVENT_CODE_CONNECTION_DISCONNECTED,
-  "im://reconnecting": EVENT_CODE_CONNECTION_RECONNECTING,
-  "im://state": EVENT_CODE_CONNECTION_STATE_CHANGED,
   "im://sync_state_changed": EVENT_CODE_CONNECTION_SYNC_STATE_CHANGED,
-  "im://server_error": EVENT_CODE_CONNECTION_SERVER_ERROR,
-  "im://kicked_off": EVENT_CODE_CONNECTION_KICKED_OFF,
-  "im://token_expired": EVENT_CODE_CONNECTION_TOKEN_EXPIRED,
+  "connection://status": EVENT_CODE_CONNECTION_STATUS,
+  "access://switched": EVENT_CODE_ACCESS_SWITCHED,
+  "access://changed": EVENT_CODE_ACCESS_CHANGED,
+  "update://state": EVENT_CODE_UPDATE_STATE,
   "im://message": EVENT_CODE_MESSAGE_RECEIVED,
   "im://message_batch": EVENT_CODE_MESSAGE_RECEIVED_BATCH,
   "im://send_ack": EVENT_CODE_MESSAGE_SEND_ACK,
@@ -121,6 +126,7 @@ const WEB_EVENT_TYPE_BY_CHANNEL: Record<string, number> = {
   "im://unread_count_changed": EVENT_CODE_CONVERSATION_UNREAD_COUNT_CHANGED,
   "im://conversation_deleted": EVENT_CODE_CONVERSATION_DELETED,
   "im://notification": EVENT_CODE_NOTIFICATION_RECEIVED,
+  "im://message_sound": EVENT_CODE_NOTIFICATION_MESSAGE_SOUND,
   "im://sync_started": EVENT_CODE_SYNC_STARTED,
   "im://sync_finished": EVENT_CODE_SYNC_FINISHED,
   "im://sync_failed": EVENT_CODE_SYNC_FAILED,
@@ -222,51 +228,107 @@ function sdkErrorPayloadFromJson(value: unknown): SdkErrorPayload | undefined {
   };
 }
 
-function connectionStateFromWire(value: unknown): SdkConnectionState {
-  const raw = String(value ?? '').trim().toLowerCase();
-  switch (raw) {
-    case 'connecting': return SdkConnectionState.Connecting;
-    case 'connected': return SdkConnectionState.Connected;
-    case 'ready': return SdkConnectionState.Ready;
-    case 'reconnecting': return SdkConnectionState.Reconnecting;
-    case 'disconnected': return SdkConnectionState.Disconnected;
-    default: throw new FlareSdkException('invalidParameter', `invalid connection state: ${raw || '<empty>'}`, 'event.decode', { field: 'state' });
-  }
+function nullableString(value: unknown, field: string): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'string') return value;
+  return invalidEventField(field, 'string');
 }
 
-function connectionEvent(name: ConnectionEventName, state: SdkConnectionState, event: string, payload: unknown): ConnectionEvent & Record<string, unknown> {
+function requiredStringList(value: unknown, field: string): string[] {
+  return requiredArray(value, field).map((item, index) => requiredString(item, `${field}.${index}`));
+}
+
+function enumValue<T extends string>(values: Record<string, T>, value: unknown, field: string): T {
+  const known = Object.values(values) as string[];
+  if (typeof value === 'string' && known.includes(value)) return value as T;
+  return invalidEventField(field, known.join(' | '));
+}
+
+/** Decodes a `connection://status` payload. Absent and null fields are left out (never null). */
+export function connectionStatusFromJson(payload: unknown): ConnectionStatus {
   const record = eventPayloadRecord(payload);
-  const { error: rawError, ...rest } = record;
-  const error = sdkErrorPayloadFromJson(rawError);
-  const reason = optionalString(record.reason, 'reason');
-  const attempt = optionalNumber(record.attempt, 'attempt');
+  const status: ConnectionStatus = {
+    phase: enumValue(ConnectionPhase, record.phase, 'phase'),
+    attempt: requiredNumber(record.attempt, 'attempt'),
+    developmentMode: requiredBoolean(record.developmentMode, 'developmentMode'),
+  };
+  if (record.quality !== undefined && record.quality !== null) status.quality = enumValue(ConnectionQuality, record.quality, 'quality');
+  const accessPointId = nullableString(record.accessPointId, 'accessPointId');
+  if (accessPointId !== undefined) status.accessPointId = accessPointId;
+  const cellId = nullableString(record.cellId, 'cellId');
+  if (cellId !== undefined) status.cellId = cellId;
+  const regionId = nullableString(record.regionId, 'regionId');
+  if (regionId !== undefined) status.regionId = regionId;
+  const protocol = nullableString(record.protocol, 'protocol');
+  if (protocol !== undefined) status.protocol = protocol;
+  const rttMs = optionalNumber(record.rttMs, 'rttMs');
+  if (rttMs !== undefined) status.rttMs = rttMs;
+  const nextRetryAt = optionalNumber(record.nextRetryAt, 'nextRetryAt');
+  if (nextRetryAt !== undefined) status.nextRetryAt = nextRetryAt;
+  const reason = nullableString(record.reason, 'reason');
+  if (reason !== undefined) status.reason = reason;
+  return status;
+}
+
+function accessEndpointFromJson(value: unknown, field: string): AccessEndpoint {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) invalidEventField(field, 'object');
+  const record = value as Record<string, unknown>;
+  return { ap: requiredString(record.ap, `${field}.ap`), protocol: requiredString(record.protocol, `${field}.protocol`) };
+}
+
+export function accessSwitchedEventFromJson(payload: unknown): AccessSwitchedEvent {
+  const record = eventPayloadRecord(payload);
   return {
-    ...rest,
-    type: 'connection',
-    event,
-    name,
-    state,
-    ...(reason !== undefined ? { reason } : {}),
-    ...(attempt !== undefined ? { attempt } : {}),
-    ...(error ? { error } : {}),
+    from: accessEndpointFromJson(record.from, 'from'),
+    to: accessEndpointFromJson(record.to, 'to'),
+    reason: requiredString(record.reason, 'reason'),
   };
 }
 
-function connectionStateChangedEvent(payload: unknown): ConnectionEvent & Record<string, unknown> {
+export function accessChangedEventFromJson(payload: unknown): AccessChangedEvent {
   const record = eventPayloadRecord(payload);
-  const state = connectionStateFromWire(record.state);
-  const name = connectionEventNameFromState(state);
-  return connectionEvent(name, state, 'state_changed', record);
+  const changes = record.changes;
+  if (!changes || typeof changes !== 'object' || Array.isArray(changes)) invalidEventField('changes', 'object');
+  const changeRecord = changes as Record<string, unknown>;
+  const accessChanges: AccessChanges = {
+    accessPointsAdded: requiredStringList(changeRecord.accessPointsAdded, 'changes.accessPointsAdded'),
+    accessPointsRemoved: requiredStringList(changeRecord.accessPointsRemoved, 'changes.accessPointsRemoved'),
+    policyChanged: requiredBoolean(changeRecord.policyChanged, 'changes.policyChanged'),
+  };
+  return {
+    serial: requiredNumber(record.serial, 'serial'),
+    source: requiredString(record.source, 'source'),
+    stale: requiredBoolean(record.stale, 'stale'),
+    developmentMode: requiredBoolean(record.developmentMode, 'developmentMode'),
+    changes: accessChanges,
+  };
 }
 
-function connectionEventNameFromState(state: SdkConnectionState): ConnectionEventName {
-  switch (state) {
-    case SdkConnectionState.Connecting: return ConnectionEventName.Connecting;
-    case SdkConnectionState.Connected: return ConnectionEventName.Connected;
-    case SdkConnectionState.Ready: return ConnectionEventName.Ready;
-    case SdkConnectionState.Reconnecting: return ConnectionEventName.Reconnecting;
-    case SdkConnectionState.Disconnected: return ConnectionEventName.Disconnected;
-  }
+function connectionStatusEvent(payload: unknown): ConnectionStatus & Record<string, unknown> {
+  return { ...connectionStatusFromJson(payload), type: 'connection', event: ConnectionEventName.Status };
+}
+
+function connectionSyncStateEvent(payload: unknown): ConnectionSyncStateEvent & Record<string, unknown> {
+  const record = eventPayloadRecord(payload);
+  return { type: 'connection', event: ConnectionEventName.SyncStateChanged, state: requiredString(record.state, 'state') };
+}
+
+function accessSwitchedEvent(payload: unknown): AccessSwitchedEvent & Record<string, unknown> {
+  return { ...accessSwitchedEventFromJson(payload), type: 'access', event: AccessEventName.Switched };
+}
+
+function accessChangedEvent(payload: unknown): AccessChangedEvent & Record<string, unknown> {
+  return { ...accessChangedEventFromJson(payload), type: 'access', event: AccessEventName.Changed };
+}
+
+function updateStateEvent(payload: unknown): UpdateStatus & Record<string, unknown> {
+  return { ...(withoutNullFields(eventPayloadRecord(payload)) as unknown as UpdateStatus), type: 'update', event: UpdateEventName.State };
+}
+
+/** The event's own payload without the `type` / `event` routing keys the decoder adds. */
+function eventPayloadOf<T>(event: unknown): T {
+  const { type: _type, event: _event, ...payload } = event as Record<string, unknown>;
+  return payload as T;
 }
 
 function messageReceivedEvent(payload: unknown): MessageReceivedEvent & Record<string, unknown> {
@@ -443,14 +505,11 @@ function lifecycleNameIs(event: unknown, name: string): boolean {
 
 export function nativeEventFromCode(eventType: number, payload: unknown): unknown {
   switch (eventType) {
-    case EVENT_CODE_CONNECTION_CONNECTED: return connectionEvent(ConnectionEventName.Connected, SdkConnectionState.Connected, "connected", payload);
-    case EVENT_CODE_CONNECTION_DISCONNECTED: return connectionEvent(ConnectionEventName.Disconnected, SdkConnectionState.Disconnected, "disconnected", payload);
-    case EVENT_CODE_CONNECTION_RECONNECTING: return connectionEvent(ConnectionEventName.Reconnecting, SdkConnectionState.Reconnecting, "reconnecting", payload);
-    case EVENT_CODE_CONNECTION_STATE_CHANGED: return connectionStateChangedEvent(payload);
-    case EVENT_CODE_CONNECTION_SYNC_STATE_CHANGED: return connectionEvent(ConnectionEventName.SyncStateChanged, SdkConnectionState.Ready, "sync_state_changed", payload);
-    case EVENT_CODE_CONNECTION_SERVER_ERROR: return connectionEvent(ConnectionEventName.ServerError, SdkConnectionState.Connected, "server_error", payload);
-    case EVENT_CODE_CONNECTION_KICKED_OFF: return connectionEvent(ConnectionEventName.KickedOff, SdkConnectionState.Disconnected, "kicked_off", payload);
-    case EVENT_CODE_CONNECTION_TOKEN_EXPIRED: return connectionEvent(ConnectionEventName.TokenExpired, SdkConnectionState.Disconnected, "token_expired", payload);
+    case EVENT_CODE_CONNECTION_SYNC_STATE_CHANGED: return connectionSyncStateEvent(payload);
+    case EVENT_CODE_CONNECTION_STATUS: return connectionStatusEvent(payload);
+    case EVENT_CODE_ACCESS_SWITCHED: return accessSwitchedEvent(payload);
+    case EVENT_CODE_ACCESS_CHANGED: return accessChangedEvent(payload);
+    case EVENT_CODE_UPDATE_STATE: return updateStateEvent(payload);
     case EVENT_CODE_MESSAGE_RECEIVED: return messageReceivedEvent(payload);
     case EVENT_CODE_MESSAGE_RECEIVED_BATCH: return messageReceivedBatchEvent(payload);
     case EVENT_CODE_MESSAGE_SEND_ACK: return messageSendAckEvent(payload);
@@ -479,6 +538,7 @@ export function nativeEventFromCode(eventType: number, payload: unknown): unknow
     case EVENT_CODE_CONVERSATION_UNREAD_COUNT_CHANGED: return conversationEvent(ConversationEventName.UnreadCountChanged, "unread_count_changed", payload);
     case EVENT_CODE_CONVERSATION_DELETED: return conversationEvent(ConversationEventName.Deleted, "deleted", payload);
     case EVENT_CODE_NOTIFICATION_RECEIVED: return notificationReceivedEvent(payload);
+    case EVENT_CODE_NOTIFICATION_MESSAGE_SOUND: return undefined;
     case EVENT_CODE_SYNC_STARTED: return syncEvent(SyncEventName.Started, "started", payload);
     case EVENT_CODE_SYNC_FINISHED: return syncEvent(SyncEventName.Finished, "finished", payload);
     case EVENT_CODE_SYNC_FAILED: return syncEvent(SyncEventName.Failed, "failed", payload);
@@ -609,40 +669,20 @@ export class DefaultEventsApi implements EventsApi {
     return this.registerWhere(listener, (event) => lifecycleNameIs(event, LifecycleEventName.Disposed));
   }
 
-  onConnecting(listener: EventCallback<ConnectionEvent>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventNameIs(event, 'connection', ConnectionEventName.Connecting));
+  onConnectionStatusChanged(listener: EventCallback<ConnectionStatus>): EventSubscription {
+    return this.registerWhere(listener, (event) => eventEventIs(event, 'connection', ConnectionEventName.Status), eventPayloadOf);
   }
 
-  onConnectSuccess(listener: EventCallback<ConnectionEvent>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventNameIs(event, 'connection', ConnectionEventName.Connected));
+  onAccessSwitched(listener: EventCallback<AccessSwitchedEvent>): EventSubscription {
+    return this.registerWhere(listener, (event) => eventEventIs(event, 'access', AccessEventName.Switched), eventPayloadOf);
   }
 
-  onConnectReady(listener: EventCallback<ConnectionEvent>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventNameIs(event, 'connection', ConnectionEventName.Ready));
+  onAccessChanged(listener: EventCallback<AccessChangedEvent>): EventSubscription {
+    return this.registerWhere(listener, (event) => eventEventIs(event, 'access', AccessEventName.Changed), eventPayloadOf);
   }
 
-  onConnectFailed(listener: EventCallback<ConnectionEvent>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventNameIs(event, 'connection', ConnectionEventName.ServerError));
-  }
-
-  onDisconnected(listener: EventCallback<ConnectionEvent>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventNameIs(event, 'connection', ConnectionEventName.Disconnected));
-  }
-
-  onReconnecting(listener: EventCallback<ConnectionEvent>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventNameIs(event, 'connection', ConnectionEventName.Reconnecting));
-  }
-
-  onReconnectFailed(listener: EventCallback<ConnectionEvent>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventNameIs(event, 'connection', ConnectionEventName.ReconnectFailed));
-  }
-
-  onKickedOffline(listener: EventCallback<ConnectionEvent>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventNameIs(event, 'connection', ConnectionEventName.KickedOff));
-  }
-
-  onUserTokenExpired(listener: EventCallback<ConnectionEvent>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventNameIs(event, 'connection', ConnectionEventName.TokenExpired));
+  onUpdateState(listener: EventCallback<UpdateStatus>): EventSubscription {
+    return this.registerWhere(listener, (event) => eventEventIs(event, 'update', UpdateEventName.State), eventPayloadOf);
   }
 
   onMessageReceived(listener: EventCallback<MessageReceivedEvent>): EventSubscription {
@@ -788,10 +828,11 @@ export class DefaultEventsApi implements EventsApi {
   private registerWhere<T>(
     listener: EventCallback<T>,
     predicate: (event: unknown) => boolean,
+    project: (event: unknown) => T = (event) => event as T,
   ): EventSubscription {
     return this.register((event: unknown) => {
       if (predicate(event)) {
-        listener(event as T);
+        listener(project(event));
       }
     });
   }
@@ -889,34 +930,26 @@ export class DefaultEventsApi implements EventsApi {
       }
     }
     if (type === 'connection') {
-      switch (name) {
-        case ConnectionEventName.Connecting:
-          listener.onConnecting?.(event as ConnectionEvent);
+      if (eventName === ConnectionEventName.Status) {
+        listener.onConnectionStatusChanged?.(eventPayloadOf<ConnectionStatus>(event));
+      }
+      return;
+    }
+    if (type === 'access') {
+      switch (eventName) {
+        case AccessEventName.Switched:
+          listener.onAccessSwitched?.(eventPayloadOf<AccessSwitchedEvent>(event));
           return;
-        case ConnectionEventName.Connected:
-          listener.onConnectSuccess?.(event as ConnectionEvent);
-          return;
-        case ConnectionEventName.Ready:
-          listener.onConnectReady?.(event as ConnectionEvent);
-          return;
-        case ConnectionEventName.Disconnected:
-          listener.onDisconnected?.(event as ConnectionEvent);
-          return;
-        case ConnectionEventName.Reconnecting:
-          listener.onReconnecting?.(event as ConnectionEvent);
-          return;
-        case ConnectionEventName.ReconnectFailed:
-          listener.onReconnectFailed?.(event as ConnectionEvent);
-          return;
-        case ConnectionEventName.KickedOff:
-          listener.onKickedOffline?.(event as ConnectionEvent);
-          return;
-        case ConnectionEventName.TokenExpired:
-          listener.onUserTokenExpired?.(event as ConnectionEvent);
+        case AccessEventName.Changed:
+          listener.onAccessChanged?.(eventPayloadOf<AccessChangedEvent>(event));
           return;
         default:
           return;
       }
+    }
+    if (type === 'update') {
+      if (eventName === UpdateEventName.State) listener.onUpdateState?.(eventPayloadOf<UpdateStatus>(event));
+      return;
     }
     if (type === 'view') {
       listener.onViewUpdated?.(event as ViewUpdate);

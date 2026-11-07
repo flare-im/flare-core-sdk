@@ -2,14 +2,11 @@ import Foundation
 
 /// GENERATED. Do not edit by hand.
 public enum EventCode {
-    public static let connectionConnected: Int = 1001
-    public static let connectionDisconnected: Int = 1002
-    public static let connectionReconnecting: Int = 1003
-    public static let connectionStateChanged: Int = 1004
     public static let connectionSyncStateChanged: Int = 1005
-    public static let connectionServerError: Int = 1006
-    public static let connectionKickedOff: Int = 1007
-    public static let connectionTokenExpired: Int = 1008
+    public static let connectionStatus: Int = 1010
+    public static let accessSwitched: Int = 1011
+    public static let accessChanged: Int = 1012
+    public static let updateState: Int = 1013
     public static let messageReceived: Int = 2001
     public static let messageReceivedBatch: Int = 2002
     public static let messageSendAck: Int = 2003
@@ -38,6 +35,7 @@ public enum EventCode {
     public static let conversationUnreadCountChanged: Int = 3004
     public static let conversationDeleted: Int = 3005
     public static let notificationReceived: Int = 3501
+    public static let notificationMessageSound: Int = 3502
     public static let syncStarted: Int = 4001
     public static let syncFinished: Int = 4002
     public static let syncFailed: Int = 4003

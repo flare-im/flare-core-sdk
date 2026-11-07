@@ -50,67 +50,32 @@
       "description": "The SDK client has been disposed."
     },
     {
-      "name": "onConnecting",
+      "name": "onConnectionStatusChanged",
       "kind": "connection",
-      "eventName": "connecting",
-      "payload": "ConnectionEvent",
-      "description": "SDK is connecting to the IM server."
+      "eventName": "status",
+      "payload": "ConnectionStatus",
+      "description": "The connection status changed (connection://status). Replace the held status whole and hand it to the Kit ConnectionNotice unchanged."
     },
     {
-      "name": "onConnectSuccess",
-      "kind": "connection",
-      "eventName": "connected",
-      "payload": "ConnectionEvent",
-      "description": "SDK connected to the IM server successfully."
+      "name": "onAccessSwitched",
+      "kind": "access",
+      "eventName": "switched",
+      "payload": "AccessSwitchedEvent",
+      "description": "The IM connection moved to another access point (access://switched)."
     },
     {
-      "name": "onConnectReady",
-      "kind": "connection",
-      "eventName": "ready",
-      "payload": "ConnectionEvent",
-      "description": "SDK connection is authenticated and ready for message traffic."
+      "name": "onAccessChanged",
+      "kind": "access",
+      "eventName": "changed",
+      "payload": "AccessChangedEvent",
+      "description": "A new access manifest was accepted (access://changed)."
     },
     {
-      "name": "onConnectFailed",
-      "kind": "connection",
-      "eventName": "server_error",
-      "payload": "ConnectionEvent",
-      "description": "SDK failed to connect to the IM server."
-    },
-    {
-      "name": "onDisconnected",
-      "kind": "connection",
-      "eventName": "disconnected",
-      "payload": "ConnectionEvent",
-      "description": "SDK disconnected from the IM server."
-    },
-    {
-      "name": "onReconnecting",
-      "kind": "connection",
-      "eventName": "reconnecting",
-      "payload": "ConnectionEvent",
-      "description": "SDK is attempting to reconnect to the IM server."
-    },
-    {
-      "name": "onReconnectFailed",
-      "kind": "connection",
-      "eventName": "reconnect_failed",
-      "payload": "ConnectionEvent",
-      "description": "SDK reconnect attempt failed."
-    },
-    {
-      "name": "onKickedOffline",
-      "kind": "connection",
-      "eventName": "kicked_off",
-      "payload": "ConnectionEvent",
-      "description": "The account logged in elsewhere and this device was kicked offline."
-    },
-    {
-      "name": "onUserTokenExpired",
-      "kind": "connection",
-      "eventName": "token_expired",
-      "payload": "ConnectionEvent",
-      "description": "The login token expired and the app should renew credentials."
+      "name": "onUpdateState",
+      "kind": "update",
+      "eventName": "state",
+      "payload": "UpdateStatus",
+      "description": "The update center state changed (update://state). Delivered with a session; before sign-in read update.getState."
     },
     {
       "name": "onMessageReceived",

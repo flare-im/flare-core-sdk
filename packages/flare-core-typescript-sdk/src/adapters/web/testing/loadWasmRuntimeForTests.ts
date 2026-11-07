@@ -42,10 +42,18 @@ export async function loadWasmRuntimeForTests(): Promise<FlareWasmRuntime> {
     await mod.default(wasmBytes);
   }
   const runtime = mod.createWasmRuntime();
+  // wasm-bindgen methods live on the class prototype: bind the host hooks explicitly.
+  const hooks = runtime as unknown as Record<string, unknown>;
+  const bindHook = (name: string) =>
+    typeof hooks[name] === "function"
+      ? { [name]: (hooks[name] as (...args: unknown[]) => unknown).bind(runtime) }
+      : {};
   return {
     ...runtime,
     invoke: runtime.invoke.bind(runtime),
     ...(runtime.dispose ? { dispose: runtime.dispose.bind(runtime) } : {}),
+    ...bindHook("setAccessStoreHost"),
+    ...bindHook("setConnectTokenRefresher"),
     flareBindingContractVersion: mod.flareBindingContractVersion,
   };
 }

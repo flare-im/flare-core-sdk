@@ -3,7 +3,7 @@ package com.flare.im.model.command
 import com.flare.im.model.entity.NetworkInterfaceKind
 
 /** GENERATED. Do not edit by hand. */
-/** Platform network-change notification used to trigger active reconnect. */
+/** Platform network-change notification. The link supervisor alone decides whether and how to reconnect. */
 data class NetworkChangeRequest(
     /** wire: `available`. Whether a network route is currently available. Omitted means available. */
     val available: Boolean? = null,
@@ -15,4 +15,6 @@ data class NetworkChangeRequest(
     val metered: Boolean? = null,
     /** wire: `reason`. Optional platform reason string for diagnostics. */
     val reason: String? = null,
+    /** wire: `fingerprintHint`. Coarse network identity (native: Wi-Fi gateway prefix or cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID. */
+    val fingerprintHint: String? = null,
 )

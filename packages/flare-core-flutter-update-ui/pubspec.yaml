@@ -1,0 +1,26 @@
+name: flare_core_flutter_update_ui
+description: >-
+  The Flare update center on the Flare IM UI Kit for Flutter apps: the status
+  scope, the update prompt, the version panel and the About page. The Kit holds
+  no SDK and flare_core_flutter_update holds no UI, so what joins them lives
+  here and an app only places it.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.1
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flare_core_flutter_sdk:
+    path: ../flare-core-flutter-sdk
+  flare_core_flutter_update:
+    path: ../flare-core-flutter-update
+  flare_im_ui:
+    path: ../../../flare-im-design/packages/flutter-im-ui
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

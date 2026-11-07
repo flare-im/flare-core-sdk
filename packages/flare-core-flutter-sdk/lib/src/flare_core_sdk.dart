@@ -1,6 +1,5 @@
 import 'dart:ffi';
 
-import 'api/api.dart';
 import 'contract/bridge_contract.dart';
 import 'bridge/ffi_native_bridge.dart';
 import 'adapter/default_flare_im_client.dart';
@@ -11,7 +10,12 @@ abstract final class FlareCoreSdk {
   const FlareCoreSdk._();
 
   /// Creates a ready-to-use client with the default platform native library.
-  static FlareImClient createClient({
+  ///
+  /// Flutter apps use `FlareCoreFlutter.createClient` from
+  /// `flare_core_flutter_lifecycle` instead: it initializes this client with
+  /// the device's platform source, so the network, foreground state and app
+  /// version reach the core without app wiring.
+  static DefaultFlareImClient createClient({
     DynamicLibrary? library,
     String? libraryPath,
   }) {
@@ -23,7 +27,7 @@ abstract final class FlareCoreSdk {
   }
 
   /// Creates a client from a custom bridge, useful for host integration tests.
-  static FlareImClient createClientWithBridge(NativeBridge bridge) {
+  static DefaultFlareImClient createClientWithBridge(NativeBridge bridge) {
     return DefaultFlareImClient(bridge);
   }
 
@@ -42,6 +46,10 @@ abstract final class FlareCoreSdk {
 /// [machineReason] Core's or the plugin's code (`PLUGIN_DISABLED`, `CALL_FULL`),
 /// [httpStatus] and [remoteCode] Core's answer, [refusedMessageIds] the
 /// messages the operation refused. Read these, never [message].
+///
+/// Failures with their own handling arrive as typed subclasses:
+/// [OverloadedException], [UpgradeRequiredException] and
+/// [NetworkUncertainException].
 final class FlareSdkException implements Exception {
   const FlareSdkException({
     required this.code,
@@ -57,7 +65,10 @@ final class FlareSdkException implements Exception {
   });
 
   /// The exception for a failed native call: the structured error in
-  /// `details_json` when the SDK wrote one, else the C ABI code alone.
+  /// `details_json` when the SDK wrote one, else the C ABI code alone. The
+  /// codes with their own handling (C `FLARE_ERR_OVERLOADED`,
+  /// `FLARE_ERR_UPGRADE_REQUIRED`, `FLARE_ERR_NETWORK_UNCERTAIN`) come back
+  /// as their typed subclass.
   factory FlareSdkException.fromNative({
     required int nativeCode,
     required String message,
@@ -70,18 +81,92 @@ final class FlareSdkException implements Exception {
     final httpStatus = structured['httpStatus'];
     final remoteCode = structured['remoteCode'];
     final machineReason = structured['machineReason'];
-    return FlareSdkException(
-      code: code is String && code.isNotEmpty ? code : 'native_error_$nativeCode',
-      message: message,
-      operation: operation,
-      details: details,
-      reason: reason is String ? reason : null,
-      retryable: structured['retryable'] == true,
-      httpStatus: httpStatus is int ? httpStatus : null,
-      remoteCode: remoteCode is int ? remoteCode : null,
-      machineReason: machineReason is String ? machineReason : null,
-      refusedMessageIds: _stringList(structured['refusedMessageIds']),
-    );
+    final wireCode =
+        code is String && code.isNotEmpty ? code : 'native_error_$nativeCode';
+    final typedReason = reason is String ? reason : null;
+    final retryable = structured['retryable'] == true;
+    final typedHttpStatus = httpStatus is int ? httpStatus : null;
+    final typedRemoteCode = remoteCode is int ? remoteCode : null;
+    final typedMachineReason = machineReason is String ? machineReason : null;
+    final refused = _stringList(structured['refusedMessageIds']);
+    switch (_typedKind(nativeCode, wireCode)) {
+      case _TypedKind.overloaded:
+        final wait = structured['retryAfterMs'];
+        return OverloadedException(
+          message: message,
+          operation: operation,
+          details: details,
+          reason: typedReason,
+          retryable: retryable,
+          httpStatus: typedHttpStatus,
+          remoteCode: typedRemoteCode,
+          machineReason: typedMachineReason,
+          retryAfterMs: wait is num && wait.isFinite && wait >= 0
+              ? wait.toInt()
+              : null,
+        );
+      case _TypedKind.upgradeRequired:
+        return UpgradeRequiredException(
+          message: message,
+          operation: operation,
+          details: details,
+          reason: typedReason,
+          retryable: retryable,
+          httpStatus: typedHttpStatus,
+          remoteCode: typedRemoteCode,
+          machineReason: typedMachineReason,
+        );
+      case _TypedKind.networkUncertain:
+        return NetworkUncertainException(
+          message: message,
+          operation: operation,
+          details: details,
+          reason: typedReason,
+          retryable: retryable,
+          httpStatus: typedHttpStatus,
+          remoteCode: typedRemoteCode,
+          machineReason: typedMachineReason,
+        );
+      case null:
+        return FlareSdkException(
+          code: wireCode,
+          message: message,
+          operation: operation,
+          details: details,
+          reason: typedReason,
+          retryable: retryable,
+          httpStatus: typedHttpStatus,
+          remoteCode: typedRemoteCode,
+          machineReason: typedMachineReason,
+          refusedMessageIds: refused,
+        );
+    }
+  }
+
+  /// C ABI codes from `bindings/contract/errors.json`.
+  static const int _nativeOverloaded = 12;
+  static const int _nativeUpgradeRequired = 13;
+  static const int _nativeNetworkUncertain = 14;
+
+  /// The typed error for a C ABI code or an error code, core name
+  /// (`OVERLOADED`) or client code (`overloaded`) alike.
+  static _TypedKind? _typedKind(int nativeCode, String code) {
+    if (nativeCode == _nativeOverloaded ||
+        code == 'OVERLOADED' ||
+        code == 'overloaded') {
+      return _TypedKind.overloaded;
+    }
+    if (nativeCode == _nativeUpgradeRequired ||
+        code == 'UPGRADE_REQUIRED' ||
+        code == 'upgradeRequired') {
+      return _TypedKind.upgradeRequired;
+    }
+    if (nativeCode == _nativeNetworkUncertain ||
+        code == 'NETWORK_UNCERTAIN' ||
+        code == 'networkUncertain') {
+      return _TypedKind.networkUncertain;
+    }
+    return null;
   }
 
   /// [value] when it is a non-empty list of strings, else null.
@@ -109,4 +194,62 @@ final class FlareSdkException implements Exception {
     final op = operation == null ? '' : ' operation=$operation';
     return 'FlareSdkException(code=$code$op, message=$message)';
   }
+}
+
+enum _TypedKind { overloaded, upgradeRequired, networkUncertain }
+
+/// The server is shedding load (`OVERLOADED`, C `FLARE_ERR_OVERLOADED`).
+///
+/// Retry on the same access point after [retryAfterMs] when given; it is never
+/// an access point failure.
+final class OverloadedException extends FlareSdkException {
+  const OverloadedException({
+    required super.message,
+    super.operation,
+    super.details,
+    super.reason,
+    super.retryable,
+    super.httpStatus,
+    super.remoteCode,
+    super.machineReason,
+    this.retryAfterMs,
+  }) : super(code: 'OVERLOADED');
+
+  /// How long the server asked to wait, when it said.
+  final int? retryAfterMs;
+}
+
+/// The app build is below the server minimum (`UPGRADE_REQUIRED`,
+/// C `FLARE_ERR_UPGRADE_REQUIRED`).
+///
+/// The session stays stopped (`actionRequired` / `upgradeRequired`) until the
+/// user upgrades.
+final class UpgradeRequiredException extends FlareSdkException {
+  const UpgradeRequiredException({
+    required super.message,
+    super.operation,
+    super.details,
+    super.reason,
+    super.retryable,
+    super.httpStatus,
+    super.remoteCode,
+    super.machineReason,
+  }) : super(code: 'UPGRADE_REQUIRED');
+}
+
+/// A non-idempotent request may or may not have reached the server
+/// (`NETWORK_UNCERTAIN`, C `FLARE_ERR_NETWORK_UNCERTAIN`).
+///
+/// Reconcile with the same Idempotency-Key before retrying.
+final class NetworkUncertainException extends FlareSdkException {
+  const NetworkUncertainException({
+    required super.message,
+    super.operation,
+    super.details,
+    super.reason,
+    super.retryable,
+    super.httpStatus,
+    super.remoteCode,
+    super.machineReason,
+  }) : super(code: 'NETWORK_UNCERTAIN');
 }

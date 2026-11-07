@@ -8,8 +8,13 @@ public final class DefaultConnectionApi: ConnectionApiProtocol {
         self.bridge = bridge
     }
 
-    public func getConnectionState() async throws -> ConnectionState {
-        return try await invokeConnectionState(bridge, descriptor: NativeCallMap.connectionGetState, request: nil)
+    public func getStatus() async throws -> ConnectionStatus {
+        let raw = try await invokeMap(bridge, descriptor: NativeCallMap.connectionGetStatus, request: nil)
+        return try connectionStatusFromJson(raw)
+    }
+
+    public func reconnectNow() async throws -> Void {
+        try await invokeVoid(bridge, descriptor: NativeCallMap.connectionReconnectNow, request: nil)
     }
 
     public func disconnect() async throws -> Void {
@@ -21,8 +26,7 @@ public final class DefaultConnectionApi: ConnectionApiProtocol {
         return try serverClockResponseFromJson(raw)
     }
 
-    public func notifyNetworkChange(_ request: NetworkChangeRequest) async throws -> NetworkChangeResponse {
-        let raw = try await invokeMap(bridge, descriptor: NativeCallMap.connectionNotifyNetworkChange, request: unwrapRequest(AnySendable(networkChangeRequestToMap(request))))
-        return try networkChangeResponseFromJson(raw)
+    public func notifyNetworkChange(_ request: NetworkChangeRequest) async throws -> Void {
+        try await invokeVoid(bridge, descriptor: NativeCallMap.connectionNotifyNetworkChange, request: AnySendable(networkChangeRequestToMap(request)))
     }
 }

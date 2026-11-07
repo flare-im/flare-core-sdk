@@ -2,10 +2,12 @@ import Foundation
 
 /// GENERATED. Do not edit by hand.
 public struct AnySendable: @unchecked Sendable { public let value: Any; public init(_ value: Any) { self.value = value } }
-public enum ConnectionState: String, Sendable { case disconnected, connecting, connected, ready, reconnecting }
 
 public protocol FlareImClientProtocol: SessionApiProtocol {
     var connection: any ConnectionApiProtocol { get }
+    var access: any AccessApiProtocol { get }
+    var lifecycle: any LifecycleApiProtocol { get }
+    var update: any UpdateApiProtocol { get }
     var conversations: any ConversationsApiProtocol { get }
     var messageBuilder: any MessageBuilderApiProtocol { get }
     var messages: any MessagesApiProtocol { get }

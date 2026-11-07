@@ -1,0 +1,19 @@
+name: flare_core_flutter_push
+description: Optional OS push host for the business-neutral Flare client lifecycle.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  # HTTP v1 registration-token transport. 17's FID direct-send is a different
+  # vendor contract; do not silently register it as an existing FCM token.
+  firebase_core: ^4.0.0
+  firebase_messaging: ^16.3.0
+  flutter_local_notifications: ^22.3.2
+  flare_core_flutter_sdk:
+    path: ../flare-core-flutter-sdk
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

@@ -1,15 +1,6 @@
 /** GENERATED. Do not edit by hand. */
-/** Connection event notification name. */
+/** Connection event name: the one status event, and the coarse sync state hint. */
 export enum ConnectionEventName {
-  Connecting = "connecting",
-  Connected = "connected",
-  Ready = "ready",
-  Disconnected = "disconnected",
-  Reconnecting = "reconnecting",
-  ReconnectFailed = "reconnect_failed",
-  StateChanged = "state_changed",
+  Status = "status",
   SyncStateChanged = "sync_state_changed",
-  ServerError = "server_error",
-  KickedOff = "kicked_off",
-  TokenExpired = "token_expired",
 }

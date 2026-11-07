@@ -127,6 +127,16 @@ describe("WebMediaApi downloads", () => {
     expect(anchors).toHaveLength(0);
   });
 
+  it("keeps the message reference when obtaining a recipient's download URL", async () => {
+    const inner = innerApi();
+    await WebMediaApi.fromInner(inner).downloadToUserDirectory({
+      fileId: "shared", messageId: "incoming", conversationId: "chat-1", messageSeq: 9,
+    });
+    expect(inner.getTempDownloadUrl).toHaveBeenCalledWith(expect.objectContaining({
+      fileId: "shared", messageId: "incoming", conversationId: "chat-1", messageSeq: 9,
+    }));
+  });
+
   it("remembers a file saved into the picked folder until it is gone", async () => {
     pickedSave.result = { directory: "Flare 下载", fileName: "报告.pdf" };
     const api = WebMediaApi.fromInner(innerApi());

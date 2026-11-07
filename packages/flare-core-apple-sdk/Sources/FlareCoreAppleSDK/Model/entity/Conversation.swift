@@ -27,6 +27,8 @@ public struct Conversation: Codable, Sendable {
     public let ext: [String: String]
     /// wire: `isArchived`. 
     public let isArchived: Bool
+    /// wire: `isMentionOnly`. Notification preference. None means the sync source did not supply it.
+    public let isMentionOnly: Bool?
     /// wire: `isMuted`. 
     public let isMuted: Bool
     /// wire: `isPinned`. 
@@ -82,7 +84,7 @@ public struct Conversation: Codable, Sendable {
     /// wire: `visibleAfterSeq`. 当前用户的历史可见边界；seq <= visible_after_seq 的消息不可见，不参与冷启动回灌。
     public let visibleAfterSeq: UInt64
 
-    public init(avatarUrl: String = "", badge: String? = nil, businessType: String = "", channelId: String = "", conversationId: String = "", conversationType: ConversationType, createdAt: UInt64 = 0, description: String? = nil, displayName: String = "", draft: String? = nil, ext: [String: String] = [:], isArchived: Bool = false, isMuted: Bool = false, isPinned: Bool = false, lastMessage: MessagePreview? = nil, lastMessageAt: UInt64? = nil, lastMessageId: String? = nil, lastMessagePreview: String? = nil, lastReadSeq: UInt64 = 0, lastSender: DisplayName? = nil, lastSenderAvatarUrl: String = "", lastSenderId: String? = nil, lastSenderNickname: String = "", maxSeq: UInt64 = 0, memberPreview: [ConversationParticipant] = [], membersCount: UInt32 = 0, mentionCount: UInt32 = 0, mentionMe: Bool = false, participantVersion: UInt64 = 0, participants: [ConversationParticipant] = [], peerReadSeq: UInt64 = 0, remark: String? = nil, role: String? = nil, title: DisplayName, unreadCount: UInt32 = 0, updatedAt: UInt64 = 0, updatedAtTs: UInt64? = nil, version: UInt64 = 0, visibleAfterSeq: UInt64 = 0) {
+    public init(avatarUrl: String = "", badge: String? = nil, businessType: String = "", channelId: String = "", conversationId: String = "", conversationType: ConversationType, createdAt: UInt64 = 0, description: String? = nil, displayName: String = "", draft: String? = nil, ext: [String: String] = [:], isArchived: Bool = false, isMentionOnly: Bool? = nil, isMuted: Bool = false, isPinned: Bool = false, lastMessage: MessagePreview? = nil, lastMessageAt: UInt64? = nil, lastMessageId: String? = nil, lastMessagePreview: String? = nil, lastReadSeq: UInt64 = 0, lastSender: DisplayName? = nil, lastSenderAvatarUrl: String = "", lastSenderId: String? = nil, lastSenderNickname: String = "", maxSeq: UInt64 = 0, memberPreview: [ConversationParticipant] = [], membersCount: UInt32 = 0, mentionCount: UInt32 = 0, mentionMe: Bool = false, participantVersion: UInt64 = 0, participants: [ConversationParticipant] = [], peerReadSeq: UInt64 = 0, remark: String? = nil, role: String? = nil, title: DisplayName, unreadCount: UInt32 = 0, updatedAt: UInt64 = 0, updatedAtTs: UInt64? = nil, version: UInt64 = 0, visibleAfterSeq: UInt64 = 0) {
         self.avatarUrl = avatarUrl
         self.badge = badge
         self.businessType = businessType
@@ -95,6 +97,7 @@ public struct Conversation: Codable, Sendable {
         self.draft = draft
         self.ext = ext
         self.isArchived = isArchived
+        self.isMentionOnly = isMentionOnly
         self.isMuted = isMuted
         self.isPinned = isPinned
         self.lastMessage = lastMessage

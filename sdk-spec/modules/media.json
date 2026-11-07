@@ -50,6 +50,7 @@
     },
     {
       "name": "getMediaUrl",
+      "description": "Stored attachment reads may provide conversationId and positive int64 messageSeq together. The server validates current message visibility and exact attachment membership; omitted reference reads use owner/explicit ACL, never a public-object fallback.",
       "operation": "media.get_url",
       "transport": "media-dispatch-json",
       "cApi": "flare_media_dispatch_json",
@@ -70,6 +71,7 @@
     },
     {
       "name": "resolveMediaAccess",
+      "description": "Supports the same paired conversationId/messageSeq read reference as getMediaUrl. Native message-bound autoCache validates the exact visible attachment before cache access and uses the configured SDK TLS client for bounded cache downloads.",
       "operation": "media.resolve_access",
       "transport": "media-dispatch-json",
       "cApi": "flare_media_dispatch_json",

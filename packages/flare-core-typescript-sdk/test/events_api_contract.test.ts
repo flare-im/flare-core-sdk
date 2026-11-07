@@ -12,12 +12,13 @@ import type { NativeBridge } from "../src/contract/bridge_contract";
 import {
   ConversationType,
   ConversationEventName,
-  ConnectionEventName,
+  ConnectionPhase,
+  ConnectionQuality,
   MessageEventName,
   MessageContentType,
   PluginEventName,
-  SdkConnectionState,
   TimelineSyncState,
+  type ConnectionStatus,
 } from "../src/model";
 
 const eventGoldenDir = path.resolve(
@@ -46,22 +47,40 @@ function testBridge(): NativeBridge {
 }
 
 describe("DefaultEventsApi direct event callbacks", () => {
-  it("dispatches connection state_changed to the matching typed callback only", () => {
+  it("hands connection://status to the status callback as the payload alone", () => {
     const events = new DefaultEventsApi(testBridge());
-    const ready: string[] = [];
-    const connected: string[] = [];
-    const disconnected: string[] = [];
+    const statuses: ConnectionStatus[] = [];
+    const switched: unknown[] = [];
 
-    events.onConnectReady((event) => ready.push(event.state));
-    events.onConnectSuccess((event) => connected.push(event.state));
-    events.onDisconnected((event) => disconnected.push(event.state));
+    events.onConnectionStatusChanged((status) => statuses.push(status));
+    events.onAccessSwitched((event) => switched.push(event));
 
-    events.emitNativeEvent(1004, { state: "Ready" });
-    events.emitNativeEvent(1004, { state: "Connected" });
+    events.emitNativeEvent(webEventType("connection://status"), {
+      phase: "online",
+      quality: "good",
+      accessPointId: "ap-sg-1",
+      cellId: "cell-sg-a",
+      regionId: "sg",
+      protocol: "quic",
+      rttMs: 42,
+      attempt: 0,
+      nextRetryAt: null,
+      reason: null,
+      developmentMode: false,
+    });
 
-    expect(ready).toEqual([SdkConnectionState.Ready]);
-    expect(connected).toEqual([SdkConnectionState.Connected]);
-    expect(disconnected).toEqual([]);
+    expect(statuses).toEqual([{
+      phase: ConnectionPhase.Online,
+      quality: ConnectionQuality.Good,
+      accessPointId: "ap-sg-1",
+      cellId: "cell-sg-a",
+      regionId: "sg",
+      protocol: "quic",
+      rttMs: 42,
+      attempt: 0,
+      developmentMode: false,
+    }]);
+    expect(switched).toEqual([]);
   });
 
   it("dispatches message mutation callbacks by concrete event name", () => {
@@ -109,23 +128,9 @@ describe("DefaultEventsApi direct event callbacks", () => {
     expect(edited).toEqual([]);
   });
 
-  it("maps core connection state strings to strict event names", () => {
-    const events = new DefaultEventsApi(testBridge());
-    const names: string[] = [];
-
-    events.onConnecting((event) => names.push(event.name));
-    events.onConnectReady((event) => names.push(event.name));
-    events.onReconnecting((event) => names.push(event.name));
-
-    events.emitNativeEvent(1004, { state: "Connecting" });
-    events.emitNativeEvent(1004, { state: "Ready" });
-    events.emitNativeEvent(1004, { state: "Reconnecting" });
-
-    expect(names).toEqual([
-      ConnectionEventName.Connecting,
-      ConnectionEventName.Ready,
-      ConnectionEventName.Reconnecting,
-    ]);
+  it("rejects a status payload whose phase is not a connection phase", () => {
+    expect(() => nativeEventFromCode(1010, { phase: "ready", attempt: 0, developmentMode: false }))
+      .toThrow("invalid event payload field: phase");
   });
 
   it("keeps unknown native event codes as raw forward-compatible events", () => {
@@ -144,14 +149,14 @@ describe("DefaultEventsApi direct event callbacks", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
     try {
-      events.onConnectReady(() => {
+      events.onConnectionStatusChanged(() => {
         throw new Error("listener broke");
       });
-      events.onConnectReady((event) => received.push(event.state));
+      events.onConnectionStatusChanged((status) => received.push(status.phase));
 
-      events.emitNativeEvent(1004, { state: "Ready" });
+      events.emitNativeEvent(1010, { phase: "reconnecting", attempt: 2, nextRetryAt: 1_762_250_000_000, developmentMode: false });
 
-      expect(received).toEqual([SdkConnectionState.Ready]);
+      expect(received).toEqual([ConnectionPhase.Reconnecting]);
       expect(consoleError).toHaveBeenCalledWith(
         "[flare-core] event listener failed",
         expect.any(Error),

@@ -1,0 +1,107 @@
+{
+  "key": "update",
+  "facade": "client.update",
+  "description": "Update center: release evaluation, download and the install plan. Works before sign-in and with every IM node down; the release manifest comes from the access mirrors.",
+  "methods": [
+    {
+      "name": "getState",
+      "operation": "update.get_state",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "UpdateGetStateRequest",
+      "response": "UpdateStatus",
+      "stability": "stable",
+      "description": "Current update state, download progress included. No network request of its own; readable before sign-in, when no event reaches the host. With foreground it first counts as a return to the foreground, once however often that is reported, so a controller does not depend on lifecycle.setAppState arriving first."
+    },
+    {
+      "name": "check",
+      "operation": "update.check",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "UpdateCheckRequest",
+      "response": "UpdateStatus",
+      "stability": "stable",
+      "description": "Starts a check of the release manifest and answers at once: the state is checking while the round runs in the background, so poll getState or follow update://state. A non-manual check is limited to once in six hours and otherwise answers the current state; a manual one is not, and a failure lands in error. A request during a running round joins it."
+    },
+    {
+      "name": "download",
+      "operation": "update.download",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "UpdateDownloadRequest",
+      "response": "UpdateStatus",
+      "stability": "stable",
+      "description": "Downloads the package of a release of kind package and returns when it is done. Progress goes through update://state and getState. On a metered network without allowMetered, error is update.meteredConfirmationRequired."
+    },
+    {
+      "name": "install",
+      "operation": "update.install",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "Unit",
+      "response": "UpdateInstallPlan",
+      "stability": "stable",
+      "description": "The install plan for the platform package to run; the state moves to installing. Throws with an update.* code when there is nothing to install."
+    },
+    {
+      "name": "reportInstall",
+      "operation": "update.report_install",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "UpdateReportInstallRequest",
+      "response": "UpdateStatus",
+      "stability": "stable",
+      "description": "Reports what the platform package did with the plan."
+    },
+    {
+      "name": "defer",
+      "operation": "update.defer",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "Unit",
+      "response": "UpdateStatus",
+      "stability": "stable",
+      "description": "Later. While downloading or verifying it only puts the prompt away; otherwise it defers for 24 hours. A forced update answers update.notSkippable in error."
+    },
+    {
+      "name": "skip",
+      "operation": "update.skip",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "UpdateSkipRequest",
+      "response": "UpdateStatus",
+      "stability": "stable",
+      "description": "Skips one optional version. A forced update answers update.notSkippable in error."
+    },
+    {
+      "name": "markPrompted",
+      "operation": "update.mark_prompted",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "UpdateMarkPromptedRequest",
+      "response": "UpdateStatus",
+      "stability": "stable",
+      "description": "Tells the core a prompt really appeared; the frequency rules and the prompt held through an update flow count on it."
+    },
+    {
+      "name": "setLocale",
+      "operation": "update.set_locale",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "UpdateSetLocaleRequest",
+      "response": "UpdateStatus",
+      "stability": "stable",
+      "description": "Chooses the language of the release notes and blockReason, ahead of app.locale; applies at once and survives another init."
+    },
+    {
+      "name": "getResources",
+      "operation": "update.get_resources",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "UpdateGetResourcesRequest",
+      "response": "UpdateResources",
+      "stability": "stable",
+      "description": "The verified resource packs of this run, sorted by id. Read once at process start and fixed until the process ends: packs downloaded or withdrawn meanwhile take effect on the next start. Works before sign-in and waits for the startup read."
+    }
+  ]
+}

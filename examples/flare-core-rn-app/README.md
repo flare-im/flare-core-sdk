@@ -71,6 +71,13 @@ npm run ios
 npm run android
 ```
 
+Where the app connects is the SDK `access` configuration, fixed when the bundle is built; the sign-in screen
+has no server settings. `start`, `ios`, `android` and `bundle:*` run `npm run sync:access-config`, which writes
+`FLARE_ACCESS_JSON` (the `access` object as JSON) to `.generated/flare-access.json` (see `src/config/access.ts`).
+Unset, a development bundle connects to the local stack (`ws://127.0.0.1:60051`, core API `http://127.0.0.1:50050`;
+on the Android emulator use `10.0.2.2` in `FLARE_ACCESS_JSON` or `adb reverse`) and a release bundle offers no sign-in.
+A second access point goes in `developmentEndpoints.accessPoints`.
+
 The native projects are currently responsible for launching the RN app and bundling the Ant Design icon fonts. To make "Initialize SDK Client" connect to real core capabilities,
 you need to continue implementing the RN native module `FlareImCoreSdk.invoke` and link `flare-core-sdk-engine/bindings/c` within it.
 

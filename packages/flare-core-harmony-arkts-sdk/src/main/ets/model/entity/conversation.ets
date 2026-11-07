@@ -30,6 +30,8 @@ export interface Conversation {
   ext: Record<string, string>;
   /** wire: `isArchived`.  */
   isArchived: boolean;
+  /** wire: `isMentionOnly`. Notification preference. None means the sync source did not supply it. */
+  isMentionOnly?: boolean;
   /** wire: `isMuted`.  */
   isMuted: boolean;
   /** wire: `isPinned`.  */

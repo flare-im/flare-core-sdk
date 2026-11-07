@@ -1,0 +1,17 @@
+{
+  "key": "lifecycle",
+  "facade": "client.lifecycle",
+  "description": "Platform lifecycle signals the core needs (foreground and background).",
+  "methods": [
+    {
+      "name": "setAppState",
+      "operation": "lifecycle.set_app_state",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "SetAppStateRequest",
+      "response": "Unit",
+      "stability": "stable",
+      "description": "Reports whether the app is in the foreground or the background (heartbeat cadence, wake probes). The platform lifecycle installed at init calls it."
+    }
+  ]
+}

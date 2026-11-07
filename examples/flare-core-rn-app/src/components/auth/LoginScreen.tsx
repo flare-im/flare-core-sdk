@@ -1,15 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { IconOutline } from '@ant-design/icons-react-native';
 import { styles } from '../../styles';
-import type { LoginFormState, LoginTransportMode, SdkStatus } from '../../types';
+import type { LoginFormState, SdkStatus } from '../../types';
 import { connectionText } from '../../utils';
-
-const transportOptions: Array<{ mode: LoginTransportMode; label: string; detail: string }> = [
-  { mode: 'websocket', label: 'WebSocket', detail: '按填写的 ws:// 或 wss:// 地址连接' },
-  { mode: 'quic', label: 'QUIC', detail: '使用 native QUIC transport 直连' },
-  { mode: 'race', label: '竞速', detail: 'QUIC 与 WebSocket 按顺序竞速' },
-];
 
 const gridLines = [0, 1, 2, 3, 4, 5];
 
@@ -21,9 +15,7 @@ export function LoginScreen(props: {
   onChange: (patch: Partial<LoginFormState>) => void;
   onLogin: () => void;
 }) {
-  const [transportOpen, setTransportOpen] = useState(false);
-  const [serverOpen, setServerOpen] = useState(false);
-  const selectedTransport = transportOptions.find((item) => item.mode === props.form.transportMode) ?? transportOptions[0];
+  // Only the identity: where to connect is the bundle's access configuration, the protocol the core's choice.
   const canLogin = Boolean(props.form.userId.trim()) && !props.loading;
 
   return (
@@ -71,68 +63,6 @@ export function LoginScreen(props: {
           </View>
         </View>
 
-        <View style={styles.loginFieldGroup}>
-          <Text style={styles.loginLabel}>连接协议</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: transportOpen }}
-            onPress={() => setTransportOpen((open) => !open)}
-            style={styles.loginSelectRow}
-          >
-            <View>
-              <Text style={styles.loginSelectValue}>{selectedTransport.label}</Text>
-              <Text style={styles.loginSelectDetail}>{selectedTransport.detail}</Text>
-            </View>
-            <IconOutline name={transportOpen ? 'up' : 'down'} size={18} color="#c8ccd5" />
-          </Pressable>
-          {transportOpen && (
-            <View style={styles.loginDropdown}>
-              {transportOptions.map((option) => {
-                const active = props.form.transportMode === option.mode;
-                return (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    key={option.mode}
-                    onPress={() => {
-                      props.onChange({ transportMode: option.mode });
-                      setTransportOpen(false);
-                    }}
-                    style={[styles.loginDropdownItem, active && styles.loginDropdownItemActive]}
-                  >
-                    <Text style={[styles.loginDropdownLabel, active && styles.loginDropdownLabelActive]}>{option.label}</Text>
-                    <Text style={styles.loginDropdownDetail}>{option.detail}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: serverOpen }}
-          onPress={() => setServerOpen((open) => !open)}
-          style={styles.loginDisclosure}
-        >
-          <Text style={styles.loginDisclosureText}>服务器地址（可选）</Text>
-          <IconOutline name={serverOpen ? 'up' : 'down'} size={18} color="#c8ccd5" />
-        </Pressable>
-
-        {serverOpen && (
-          <View style={styles.loginServerPanel}>
-            <LoginConfigInput label="WS" value={props.form.wsUrl} placeholder="ws://127.0.0.1:60051/ws" onChange={(wsUrl) => props.onChange({ wsUrl })} />
-            {props.form.transportMode !== 'websocket' && (
-              <>
-                <LoginConfigInput label="QUIC" value={props.form.quicUrl} placeholder="quic://127.0.0.1:60052" onChange={(quicUrl) => props.onChange({ quicUrl })} />
-                <LoginConfigInput label="TLS CA" value={props.form.tlsCaCertPath} placeholder="/path/to/server.crt" onChange={(tlsCaCertPath) => props.onChange({ tlsCaCertPath })} />
-              </>
-            )}
-            <LoginConfigInput label="HTTP" value={props.form.httpUrl} placeholder="http://127.0.0.1:60051" onChange={(httpUrl) => props.onChange({ httpUrl })} />
-            <LoginConfigInput label="Data" value={props.form.dataUrl} placeholder="可选 dataUrl" onChange={(dataUrl) => props.onChange({ dataUrl })} />
-          </View>
-        )}
-
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: !canLogin }}
@@ -153,31 +83,9 @@ export function LoginScreen(props: {
           <Text style={styles.loginStatusPillText}>{props.sdkStatus === 'ready' ? '会话活跃' : connectionText(props.sdkStatus)}</Text>
         </View>
         <Text numberOfLines={1} style={styles.loginStatusText}>
-          {props.form.userId.trim() || '未登录'} · {selectedTransport.label} · {props.sdkMessage}
+          {props.form.userId.trim() || '未登录'} · {props.sdkMessage}
         </Text>
       </View>
-    </View>
-  );
-}
-
-function LoginConfigInput(props: {
-  label: string;
-  value: string;
-  placeholder: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <View style={styles.loginConfigRow}>
-      <Text style={styles.loginConfigLabel}>{props.label}</Text>
-      <TextInput
-        autoCapitalize="none"
-        autoCorrect={false}
-        onChangeText={props.onChange}
-        placeholder={props.placeholder}
-        placeholderTextColor="#707783"
-        style={styles.loginConfigInput}
-        value={props.value}
-      />
     </View>
   );
 }

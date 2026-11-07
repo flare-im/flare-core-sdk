@@ -52,23 +52,23 @@
 
 #define FLARE_ERR_FFI_PANIC 11
 
+#define FLARE_ERR_OVERLOADED 12
+
+#define FLARE_ERR_UPGRADE_REQUIRED 13
+
+#define FLARE_ERR_NETWORK_UNCERTAIN 14
+
 #define FLARE_EVENT_UNKNOWN 0
 
-#define FLARE_EVENT_CONNECTION_CONNECTED 1001
-
-#define FLARE_EVENT_CONNECTION_DISCONNECTED 1002
-
-#define FLARE_EVENT_CONNECTION_RECONNECTING 1003
-
-#define FLARE_EVENT_CONNECTION_STATE_CHANGED 1004
+#define FLARE_EVENT_CONNECTION_STATUS 1010
 
 #define FLARE_EVENT_CONNECTION_SYNC_STATE_CHANGED 1005
 
-#define FLARE_EVENT_CONNECTION_SERVER_ERROR 1006
+#define FLARE_EVENT_ACCESS_SWITCHED 1011
 
-#define FLARE_EVENT_CONNECTION_KICKED_OFF 1007
+#define FLARE_EVENT_ACCESS_CHANGED 1012
 
-#define FLARE_EVENT_CONNECTION_TOKEN_EXPIRED 1008
+#define FLARE_EVENT_UPDATE_STATE 1013
 
 #define FLARE_EVENT_MESSAGE_RECEIVED 2001
 
@@ -125,6 +125,8 @@
 #define FLARE_EVENT_CONVERSATION_DELETED 3005
 
 #define FLARE_EVENT_NOTIFICATION_RECEIVED 3501
+
+#define FLARE_EVENT_NOTIFICATION_MESSAGE_SOUND 3502
 
 #define FLARE_EVENT_SYNC_STARTED 4001
 
@@ -214,6 +216,16 @@ typedef struct FlareBytes {
 } FlareBytes;
 
 /**
+ * 连接令牌续期请求回调：核心需要新的连接令牌时调用，运行在 SDK 后台线程上。宿主应立即返回，
+ * 换到令牌后用 `flare_sdk_complete_connect_token_refresh(handle, request_id, token)` 交回
+ * （换不到时 `token` 传空指针）。20 秒内未交回按「没换到」处理。
+ *
+ * 可为空（`NULL` 表示卸下回调），所以别名本身就是 `Option`：cbindgen 把它生成为普通的函数指针
+ * typedef，宿主按 `FlareTokenRefreshCallback` 传参；写成 `Option<别名>` 会生成一个不完整的结构体。
+ */
+typedef void (*FlareTokenRefreshCallback)(void *context, uint64_t request_id);
+
+/**
  * 输入字符串视图 (调用方持有)
  */
 typedef struct FlareStringView {
@@ -288,8 +300,6 @@ int32_t flare_capability_dispatch_json(FlareHandle handle,
                                        const char *params_json,
                                        void *context,
                                        FlareResultCallback callback);
-
-int32_t flare_sdk_state(FlareHandle handle);
 
 int32_t flare_sdk_disconnect(FlareHandle handle, void *context, FlareResultCallback callback);
 
@@ -472,5 +482,25 @@ bool flare_sdk_is_connected(FlareHandle handle);
 bool flare_sdk_session_active(FlareHandle handle);
 
 int32_t flare_sdk_current_user_id(FlareHandle handle, void *context, FlareResultCallback callback);
+
+/**
+ * 装上（`refresh_callback` 非空）或卸下（为空）连接令牌续期回调；结果经 `callback` 异步返回。
+ *
+ * SDK 托管令牌（初始化配置里有 `auth`，空对象也算）时不需要它，核心自己经 Core API 签发和换新。
+ */
+int32_t flare_sdk_set_connect_token_refresher(FlareHandle handle,
+                                              void *refresh_context,
+                                              FlareTokenRefreshCallback refresh_callback,
+                                              void *context,
+                                              FlareResultCallback callback);
+
+/**
+ * 交回续期请求 `request_id` 的结果：`token` 为新的连接令牌，换不到时传空指针。
+ *
+ * 返回 `FLARE_ERR_INVALID_PARAM` 表示请求号未知或已作废（核心已不再等待），宿主无需重试。
+ */
+int32_t flare_sdk_complete_connect_token_refresh(FlareHandle handle,
+                                                 uint64_t request_id,
+                                                 const char *token);
 
 #endif  /* FLARE_IM_CORE_SDK_FFI_H */

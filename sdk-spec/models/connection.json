@@ -1,10 +1,10 @@
 {
   "group": "connection",
-  "description": "Connection lifecycle requests and responses.",
+  "description": "Connection status, network-change notifications and the server clock.",
   "enums": [
     {
       "name": "NetworkInterfaceKind",
-      "description": "Standardized platform network interface kind for active reconnect hints.",
+      "description": "Standardized platform network interface kind, part of the local network fingerprint.",
       "values": [
         "unknown",
         "wifi",
@@ -12,12 +12,35 @@
         "ethernet",
         "other"
       ]
+    },
+    {
+      "name": "ConnectionPhase",
+      "description": "Where the link supervisor is: the one connection state hosts and the Kit ConnectionNotice read.",
+      "values": [
+        "idle",
+        "connecting",
+        "syncing",
+        "online",
+        "switching",
+        "reconnecting",
+        "waitingForNetwork",
+        "serviceUnavailable",
+        "actionRequired"
+      ]
+    },
+    {
+      "name": "ConnectionQuality",
+      "description": "Line quality while online. Neither value shows a banner; poor shows on the diagnostics page.",
+      "values": [
+        "good",
+        "poor"
+      ]
     }
   ],
   "models": [
     {
       "name": "NetworkChangeRequest",
-      "description": "Platform network-change notification used to trigger active reconnect.",
+      "description": "Platform network-change notification. The link supervisor alone decides whether and how to reconnect.",
       "fields": [
         {
           "name": "available",
@@ -53,19 +76,96 @@
           "type": "String",
           "required": false,
           "description": "Optional platform reason string for diagnostics."
+        },
+        {
+          "name": "fingerprintHint",
+          "wireName": "fingerprintHint",
+          "type": "String",
+          "required": false,
+          "description": "Coarse network identity (native: Wi-Fi gateway prefix or cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID."
         }
       ]
     },
     {
-      "name": "NetworkChangeResponse",
-      "description": "Result of handling a platform network-change notification.",
+      "name": "ConnectionStatus",
+      "description": "Payload of connection://status and the value of connection.getStatus. Every field is present (null without a value): hosts replace their copy whole on every event and hand it to the Kit ConnectionNotice unchanged.",
       "fields": [
         {
-          "name": "reconnected",
-          "wireName": "reconnected",
+          "name": "phase",
+          "wireName": "phase",
+          "type": "ConnectionPhase",
+          "required": true,
+          "description": "Where the link supervisor is."
+        },
+        {
+          "name": "quality",
+          "wireName": "quality",
+          "type": "ConnectionQuality",
+          "required": false,
+          "description": "Line quality; set only while online."
+        },
+        {
+          "name": "accessPointId",
+          "wireName": "accessPointId",
+          "type": "String",
+          "required": false,
+          "description": "Current (or connecting) access point."
+        },
+        {
+          "name": "cellId",
+          "wireName": "cellId",
+          "type": "String",
+          "required": false,
+          "description": "Cell of the current access point."
+        },
+        {
+          "name": "regionId",
+          "wireName": "regionId",
+          "type": "String",
+          "required": false,
+          "description": "Region of the current access point."
+        },
+        {
+          "name": "protocol",
+          "wireName": "protocol",
+          "type": "String",
+          "required": false,
+          "description": "Transport of the current connection: quic or ws."
+        },
+        {
+          "name": "rttMs",
+          "wireName": "rttMs",
+          "type": "UInt32",
+          "required": false,
+          "description": "Latest heartbeat round trip (the handshake time before the first sample)."
+        },
+        {
+          "name": "attempt",
+          "wireName": "attempt",
+          "type": "UInt32",
+          "required": true,
+          "description": "Which round of the current recovery this is; zero once online."
+        },
+        {
+          "name": "nextRetryAt",
+          "wireName": "nextRetryAt",
+          "type": "Int64",
+          "required": false,
+          "description": "When the next round starts: Unix milliseconds on the device clock (not the server clock, not a delay)."
+        },
+        {
+          "name": "reason",
+          "wireName": "reason",
+          "type": "String",
+          "required": false,
+          "description": "actionRequired: kicked, expired, upgradeRequired or tenantUnavailable. switching: failure, drain, failback, manual or manifest."
+        },
+        {
+          "name": "developmentMode",
+          "wireName": "developmentMode",
           "type": "Boolean",
           "required": true,
-          "description": "Whether the SDK had an active session and attempted reconnect."
+          "description": "Endpoints come from development-mode configuration: the Kit shows its development badge in every phase."
         }
       ]
     },

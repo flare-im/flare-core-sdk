@@ -7,10 +7,10 @@ public class BuildCustomMessageRequest {
     // wire: `conversationId`. Target conversation id.
     public let conversationId: String
     // wire: `type`. Extension type key.
-    public let type: String
+    public let typeValue: String
 
-    public init(conversationId!: String, type!: String) {
+    public init(conversationId!: String, typeValue!: String) {
         this.conversationId = conversationId
-        this.type = type
+        this.typeValue = typeValue
     }
 }

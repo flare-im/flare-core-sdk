@@ -41,6 +41,7 @@ import type {
 } from "@flare-im/vue-ui/contracts";
 import { useFlareWorkbenchUi } from "../../composables/useFlareWorkbenchUi";
 import { useFlareSdk } from "../sdk/flareSdkContext";
+import { useFlareUpdates } from "../state/update";
 import { getMessageText } from "@flare-im/vue-ui/utils";
 import { conversationTitle, resolveConversationPeer } from "../shared/conversationTitle";
 import { useFlareI18n } from "../shared/i18n";
@@ -223,10 +224,7 @@ const messageMediaDownloadUiStates = computed<Record<string, MessageMediaDownloa
   return states;
 });
 
-const isConnected = computed(() => {
-  const state = sdk.connectionState.value;
-  return state === "ready" || state === "connected";
-});
+const isConnected = computed(() => sdk.connectionPhase.value === "online");
 
 const activeTitle = computed(() =>
   conversationTitle(sdk.activeConversation.value, sdk.currentUserId.value || sdk.form.userId) || t("nav.chat"),
@@ -244,17 +242,6 @@ const activeSubtitle = computed(() => {
 });
 
 const composerDisabled = computed(() => !sdk.activeConversationId.value);
-const composerStatusHint = computed(() => {
-  if (isConnected.value) return "";
-  const state = sdk.connectionState.value;
-  if (state === "connecting") return t("connection.connecting");
-  if (state === "reconnecting") return t("connection.reconnecting");
-  return "";
-});
-const composerStatusPulse = computed(() => {
-  const state = sdk.connectionState.value;
-  return state === "connecting" || state === "reconnecting";
-});
 const pinnedCount = computed(() => sdk.pinnedMessages.value.length);
 const showContentTabs = computed(() =>
   !multiSelectMode.value && Boolean(sdk.activeConversationId.value) && pinnedCount.value > 0,
@@ -300,20 +287,6 @@ const chatEmptyState = computed(() => {
   };
 });
 
-const runtimeStatus = computed(() => {
-  const state = sdk.connectionState.value;
-  if (state === "ready" || state === "connected") {
-    return { show: false, title: t("connection.stable"), detail: t("connection.ready"), tone: "success" as const, pulse: false };
-  }
-  if (state === "connecting") {
-    return { show: true, title: t("connection.connecting"), detail: t("connection.syncMessagesDetail"), tone: "info" as const, pulse: true };
-  }
-  if (state === "reconnecting") {
-    return { show: true, title: t("connection.reconnecting"), detail: t("connection.retryHint"), tone: "warning" as const, pulse: true };
-  }
-  return { show: false, title: t("connection.disconnected"), detail: t("connection.retryHint"), tone: "error" as const, pulse: false };
-});
-
 function resolvePeerUserId(): string {
   const item = sdk.activeConversation.value;
   if (!item || item.conversationType !== "single") return "";
@@ -352,7 +325,14 @@ function mapPresenceStatus(raw: string): "online" | "offline" | "busy" {
   return "offline";
 }
 
-const composerPlaceholder = computed(() => t("chat.composerPlaceholder", { name: activeTitle.value }));
+const updates = useFlareUpdates();
+const composerPlaceholder = computed(() => (
+  updates.readOnly.value ? t("composer.readOnlyUpdate") : t("chat.composerPlaceholder", { name: activeTitle.value })
+));
+// A forced web update only reloads a page with nothing in the composer.
+watch(composerText, (text) => {
+  updates.composerHasText.value = text.trim().length > 0;
+});
 
 const replyMessage = computed(() => findMessage(replyMessageId.value));
 const editingMessage = computed(() => findMessage(editingMessageId.value));
@@ -1647,7 +1627,7 @@ const headerActions = computed<Array<FlareConversationHeaderAction & { icon: Fla
 ] : [
   { id: 'search', label: t('workbench.searchMessages'), icon: 'search' },
   { id: 'sdkBuild', label: t('workbench.sdkMsgType'), icon: 'file' },
-  { id: 'more', label: t('workbench.more'), icon: 'more' },
+  { id: 'more', label: t('workbench.more'), icon: 'more', dot: updates.badge.value },
 ]);
 
 function handleHeaderAction(action: { id: string }): void {
@@ -1685,16 +1665,9 @@ function handleHeaderAction(action: { id: string }): void {
     />
     </template>
 
-    <template v-if="runtimeStatus.show || (sdk.messageSyncError.value && sdk.messages.value.length)" #notice>
+    <!-- The connection itself has the app's one connection notice; this slot is the conversation's own sync. -->
+    <template v-if="sdk.messageSyncError.value && sdk.messages.value.length" #notice>
       <FlareStatusBanner
-        v-if="runtimeStatus.show"
-        :text="`${runtimeStatus.title} · ${runtimeStatus.detail}`"
-        :tone="runtimeStatus.tone === 'error' ? 'danger' : runtimeStatus.tone"
-        :pulse="runtimeStatus.pulse"
-      />
-
-      <FlareStatusBanner
-        v-if="sdk.messageSyncError.value && sdk.messages.value.length"
         :text="`${t('chat.messageSyncFailed')} · ${sdk.messageSyncError.value}`"
         tone="danger"
         :action-text="t('chat.syncRetry')"
@@ -1803,8 +1776,7 @@ function handleHeaderAction(action: { id: string }): void {
         v-model="composerText"
         :sending="sending"
         :disabled="composerDisabled"
-        :status-hint="composerStatusHint"
-        :status-hint-pulse="composerStatusPulse"
+        :read-only="updates.readOnly.value"
         :placeholder="composerPlaceholder"
         :target-name="activeTitle"
         :mention-candidates="composerMentionCandidates"

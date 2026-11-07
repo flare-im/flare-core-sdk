@@ -2,17 +2,20 @@
 
 > Generated from split sdk-spec files
 
-- API version: `1.0.0`
-- FFI contract: `flare-im-ffi/v1`
+- API version: `2.0.0`
+- FFI contract: `flare-im-ffi/v2`
 - Core source: `../flare-core-sdk-engine`
 
 ## Modules
 
 | Module | Facade | Methods |
 |--------|--------|---------|
-| `session` | `client` | `create`, `init`, `uninit`, `login`, `prepare`, `connect`, `updateAccessToken`, `setHeartbeatAppState`, `setHeartbeatNatTimeout`, `heartbeatEffectiveInterval`, `logout`, `dispose`, `hardReset`, `currentUserId`, `isConnected`, `sessionActive`, `updatePushToken`, `clearPushToken`, `setPushPermission`, `reconcilePush`, `pushStatus` |
-| `connection` | `client.connection` | `getConnectionState`, `disconnect`, `getServerClock`, `notifyNetworkChange` |
-| `conversations` | `client.conversations` | `listConversations`, `listConversationsByQuery`, `listConversationsIncludingArchived`, `getConversation`, `getOneConversation`, `getGroupConversationByUserIds`, `getMultipleConversations`, `listConversationsPaginated`, `listRawConversations`, `getTotalUnread`, `bootstrapHomeTimeline`, `openConversationTimeline`, `markConversationRead`, `setConversationPinned`, `setConversationMuted`, `setConversationArchived`, `markConversationUnread`, `deleteConversation`, `updateConversationDraft`, `clearLocalChatHistory` |
+| `session` | `client` | `create`, `init`, `uninit`, `login`, `prepare`, `connect`, `updateAccessToken`, `setConnectTokenRefresher`, `completeConnectTokenRefresh`, `setHeartbeatNatTimeout`, `heartbeatEffectiveInterval`, `logout`, `dispose`, `hardReset`, `currentUserId`, `isConnected`, `sessionActive`, `updatePushToken`, `clearPushToken`, `setPushPermission`, `reconcilePush`, `pushStatus` |
+| `connection` | `client.connection` | `getStatus`, `reconnectNow`, `disconnect`, `getServerClock`, `notifyNetworkChange` |
+| `access` | `client.access` | `getStatus`, `listAccessPoints`, `pin`, `unpin`, `refresh`, `importRecovery`, `exportDiagnostics` |
+| `lifecycle` | `client.lifecycle` | `setAppState` |
+| `update` | `client.update` | `getState`, `check`, `download`, `install`, `reportInstall`, `defer`, `skip`, `markPrompted`, `setLocale`, `getResources` |
+| `conversations` | `client.conversations` | `listConversations`, `listConversationsByQuery`, `listConversationsIncludingArchived`, `getConversation`, `getOneConversation`, `getGroupConversationByUserIds`, `getMultipleConversations`, `listConversationsPaginated`, `listRawConversations`, `getTotalUnread`, `bootstrapHomeTimeline`, `openConversationTimeline`, `markConversationRead`, `setConversationPinned`, `setConversationMuted`, `setConversationArchived`, `markConversationUnread`, `deleteConversation`, `updateConversationDraft`, `clearLocalChatHistory`, `clearChatHistoryForSelf` |
 | `message_builder` | `client.messageBuilder` | `listSupportedBuildOperations`, `normalizeRichDocFromMarkdown`, `normalizeRichDocFromHtml`, `normalizeRichDocFromDocJson`, `buildAnnouncement`, `buildAudio`, `buildCard`, `buildCustom`, `buildEmoji`, `buildFile`, `buildForward`, `buildImage`, `buildImageGroup`, `buildLinkCard`, `buildLocation`, `buildMiniProgram`, `buildNotification`, `buildPlaceholder`, `buildQuote`, `buildRichDoc`, `buildSchedule`, `buildSticker`, `buildSystem`, `buildTask`, `buildText`, `buildThreadReply`, `buildVideo`, `buildVote`, `buildWithContent` |
 | `messages` | `client.messages` | `createTextMessage`, `dispatchMessage`, `sendMessageNoOss`, `sendMessage`, `listMessages`, `recallMessage`, `editTextByMessageId`, `deleteMessage`, `deleteMessageForSelf`, `deleteMessageForEveryone`, `markMessageReadAndBurn`, `addReaction`, `removeReaction`, `pinMessage`, `unpinMessage`, `pinMessageById`, `unpinMessageById`, `markMessage`, `markMessageWithColor`, `unmarkMessage`, `markMessageById`, `unmarkMessageById`, `getMessage`, `getRawMessage`, `searchMessages`, `searchMessagesByQuery`, `searchMessagesInConversation`, `readReceiptMembers`, `editRichDocByMessageId`, `setTyping` |
 | `sync` | `client.sync` | `syncConversationSummaries`, `syncConversationSummariesWithVersions`, `bootstrapStartupHome`, `backfillConversationHistory`, `syncConversation`, `syncMessages` |

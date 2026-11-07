@@ -218,8 +218,6 @@ EOF
 
   write_if_missing "$app_root/src/shared/config/app_defaults.json" "$(cat <<'EOF'
 {
-  "wsUrl": "ws://127.0.0.1:8080/ws",
-  "httpUrl": "http://127.0.0.1:50050",
   "tenantId": "default",
   "platform": "web",
   "runtime": "wasm"

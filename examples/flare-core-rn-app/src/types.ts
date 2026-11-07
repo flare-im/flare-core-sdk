@@ -14,16 +14,11 @@ export type ConversationFilter = 'all' | 'unread' | 'mention' | 'pinned' | 'mute
 export type SdkStatus = 'idle' | 'connecting' | 'ready' | 'disconnected' | 'error';
 export type PresenceStatus = 'online' | 'offline' | 'busy';
 export type ComposerPanel = 'emoji' | 'sticker' | 'more' | null;
-export type LoginTransportMode = 'websocket' | 'quic' | 'race';
 
+/** What the sign-in screen collects. Where to connect is the bundle's access configuration (src/config/access.ts). */
 export type LoginFormState = {
   userId: string;
   token: string;
-  transportMode: LoginTransportMode;
-  wsUrl: string;
-  quicUrl: string;
-  tlsCaCertPath: string;
-  httpUrl: string;
   dataUrl: string;
   tenantId: string;
 };
@@ -56,11 +51,6 @@ export type SdkLabInputs = {
   sourcePath: string;
   sourceUrl: string;
   remoteFileId: string;
-  networkAvailable: boolean;
-  networkInterface: 'wifi' | 'cellular' | 'ethernet' | 'unknown';
-  networkExpensive: boolean;
-  networkMetered: boolean;
-  heartbeatAppState: 'foreground' | 'background';
   heartbeatNatTimeoutSecs: number;
   tokenTtlSecs: number;
   draft: string;

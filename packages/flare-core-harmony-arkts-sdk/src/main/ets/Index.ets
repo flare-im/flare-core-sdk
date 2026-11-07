@@ -5,3 +5,4 @@ export * from './model';
 export * from './listener';
 export * from './bridge';
 export * from './adapter';
+export * from './lifecycle/PlatformLifecycle';

@@ -1,3 +1,3 @@
 // GENERATED. Do not edit by hand.
-/// Connection event notification name.
-enum ConnectionEventName { connecting, connected, ready, disconnected, reconnecting, reconnectFailed, stateChanged, syncStateChanged, serverError, kickedOff, tokenExpired }
+/// Connection event name: the one status event, and the coarse sync state hint.
+enum ConnectionEventName { status, syncStateChanged }

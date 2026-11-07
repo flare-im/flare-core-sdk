@@ -1,10 +1,11 @@
 import Foundation
 
 /// GENERATED. Do not edit by hand.
-/// Connection state and manual network lifecycle.
+/// Connection status and manual network lifecycle.
 public protocol ConnectionApiProtocol: AnyObject {
-    func getConnectionState() async throws -> ConnectionState
+    func getStatus() async throws -> ConnectionStatus
+    func reconnectNow() async throws -> Void
     func disconnect() async throws -> Void
     func getServerClock() async throws -> ServerClockResponse
-    func notifyNetworkChange(_ request: NetworkChangeRequest) async throws -> NetworkChangeResponse
+    func notifyNetworkChange(_ request: NetworkChangeRequest) async throws -> Void
 }

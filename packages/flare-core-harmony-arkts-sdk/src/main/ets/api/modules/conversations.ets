@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { ConnectionEvent, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, ViewUpdate } from '../../model';
+import { AccessChangedEvent, AccessSwitchedEvent, BootstrapHomeTimelineRequest, ConnectionStatus, Conversation, ConversationEvent, ConversationListQuery, ConversationTimelineSnapshot, ConversationTotalUnreadResponse, HomeTimelineSnapshot, LifecycleEvent, ListConversationsResponse, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, OpenConversationTimelineRequest, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateConversationDraftRequest, UpdateStatus, ViewUpdate } from '../../model';
 
 /** Conversation query and local conversation state. */
 export interface ConversationsApi {
@@ -23,4 +23,5 @@ export interface ConversationsApi {
   deleteConversation(request: Record<string, Object>): Promise<void>;
   updateConversationDraft(request: UpdateConversationDraftRequest): Promise<void>;
   clearLocalChatHistory(request: Record<string, Object>): Promise<void>;
+  clearChatHistoryForSelf(request: Record<string, Object>): Promise<void>;
 }

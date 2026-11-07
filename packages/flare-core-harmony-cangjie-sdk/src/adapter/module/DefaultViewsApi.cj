@@ -13,30 +13,37 @@ public class DefaultViewsApi <: ViewsApi {
     }
 
     public func openTimeline(request: OpenTimelineViewRequest): ViewOpenResponse {
-        return bridge.invoke(descriptor: NativeCallMap.viewTimelineOpen, requestJson: wireEncodeRequest(openTimelineViewRequestToJson(request)))
+        let raw = bridge.invoke(descriptor: NativeCallMap.viewTimelineOpen, requestJson: wireEncodeRequest(openTimelineViewRequestToJson(request)))
+        return viewOpenResponseFromJson(raw)
     }
 
     public func loadOlderTimeline(request: LoadOlderTimelineViewRequest): TimelineViewPageResponse {
-        return bridge.invoke(descriptor: NativeCallMap.viewTimelineLoadOlder, requestJson: wireEncodeRequest(loadOlderTimelineViewRequestToJson(request)))
+        let raw = bridge.invoke(descriptor: NativeCallMap.viewTimelineLoadOlder, requestJson: wireEncodeRequest(loadOlderTimelineViewRequestToJson(request)))
+        return timelineViewPageResponseFromJson(raw)
     }
 
     public func loadNewerTimeline(request: LoadNewerTimelineViewRequest): TimelineViewPageResponse {
-        return bridge.invoke(descriptor: NativeCallMap.viewTimelineLoadNewer, requestJson: wireEncodeRequest(loadNewerTimelineViewRequestToJson(request)))
+        let raw = bridge.invoke(descriptor: NativeCallMap.viewTimelineLoadNewer, requestJson: wireEncodeRequest(loadNewerTimelineViewRequestToJson(request)))
+        return timelineViewPageResponseFromJson(raw)
     }
 
     public func jumpToLatestTimeline(request: TimelineViewRequest): TimelineViewPageResponse {
-        return bridge.invoke(descriptor: NativeCallMap.viewTimelineJumpToLatest, requestJson: wireEncodeRequest(timelineViewRequestToJson(request)))
+        let raw = bridge.invoke(descriptor: NativeCallMap.viewTimelineJumpToLatest, requestJson: wireEncodeRequest(timelineViewRequestToJson(request)))
+        return timelineViewPageResponseFromJson(raw)
     }
 
     public func timelineSnapshot(request: TimelineViewRequest): ViewOpenResponse {
-        return bridge.invoke(descriptor: NativeCallMap.viewTimelineSnapshot, requestJson: wireEncodeRequest(timelineViewRequestToJson(request)))
+        let raw = bridge.invoke(descriptor: NativeCallMap.viewTimelineSnapshot, requestJson: wireEncodeRequest(timelineViewRequestToJson(request)))
+        return viewOpenResponseFromJson(raw)
     }
 
     public func openConversationList(request: OpenConversationListViewRequest): ViewOpenResponse {
-        return bridge.invoke(descriptor: NativeCallMap.viewConversationListOpen, requestJson: wireEncodeRequest(openConversationListViewRequestToJson(request)))
+        let raw = bridge.invoke(descriptor: NativeCallMap.viewConversationListOpen, requestJson: wireEncodeRequest(openConversationListViewRequestToJson(request)))
+        return viewOpenResponseFromJson(raw)
     }
 
     public func close(request: CloseViewRequest): CloseViewResponse {
-        return bridge.invoke(descriptor: NativeCallMap.viewClose, requestJson: wireEncodeRequest(closeViewRequestToJson(request)))
+        let raw = bridge.invoke(descriptor: NativeCallMap.viewClose, requestJson: wireEncodeRequest(closeViewRequestToJson(request)))
+        return closeViewResponseFromJson(raw)
     }
 }

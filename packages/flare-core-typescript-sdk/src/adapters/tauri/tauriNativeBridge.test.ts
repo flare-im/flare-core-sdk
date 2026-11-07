@@ -36,17 +36,14 @@ describe('Tauri TypeScript SDK adapter', () => {
       return undefined;
     });
 
-    await bridge.invoke(NativeCallMap.sdkInit, {
-      environment: 'development',
-      sdkConfig: { transport: 'websocket', wsUrl: 'ws://127.0.0.1:60051/ws' },
-    });
+    const sdkConfig = {
+      access: { trustMode: 'development', developmentEndpoints: { wsUrl: 'ws://127.0.0.1:60051' } },
+    };
+    await bridge.invoke(NativeCallMap.sdkInit, { environment: 'development', sdkConfig });
     const connected = await bridge.invoke<boolean>(NativeCallMap.sdkIsConnected);
 
     expect(connected).toBe(true);
-    expect(tauri.invoke).toHaveBeenCalledWith('sdk_init', {
-      environment: 'development',
-      sdkConfig: { transport: 'websocket', wsUrl: 'ws://127.0.0.1:60051/ws' },
-    });
+    expect(tauri.invoke).toHaveBeenCalledWith('sdk_init', { environment: 'development', sdkConfig });
     expect(tauri.invoke).toHaveBeenCalledWith('sdk_ffi_contract_version');
     expect(tauri.invoke).toHaveBeenCalledWith('sdk_invoke_json', {
       apiId: 'sdk.is_connected',
@@ -89,11 +86,11 @@ describe('Tauri TypeScript SDK adapter', () => {
   it('connects Tauri event channels to DefaultEventsApi when creating the default client', async () => {
     const { FlareCoreSdk } = await import('./index');
     const unlisten = vi.fn();
-    let connectedPayload: ((event: { payload: unknown }) => void) | undefined;
+    let statusPayload: ((event: { payload: unknown }) => void) | undefined;
 
     tauri.listen.mockImplementation(async (channel: string, handler: (event: { payload: unknown }) => void) => {
-      if (channel === 'im://connected') {
-        connectedPayload = handler;
+      if (channel === 'connection://status') {
+        statusPayload = handler;
       }
       return unlisten;
     });
@@ -107,19 +104,94 @@ describe('Tauri TypeScript SDK adapter', () => {
     const client = FlareCoreSdk.createClient();
     const received: unknown[] = [];
     client.events.addEventListener({
-      onConnectSuccess(event) {
-        received.push(event);
+      onConnectionStatusChanged(status) {
+        received.push(status);
       },
     });
 
     await client.events.subscribeEventsBatch({});
-    connectedPayload?.({ payload: { reason: 'ready' } });
-
-    expect(received).toHaveLength(1);
-    expect(received[0]).toMatchObject({
-      name: 'connected',
-      state: 'connected',
-      reason: 'ready',
+    statusPayload?.({
+      payload: {
+        phase: 'actionRequired', quality: null, accessPointId: 'ap-1', cellId: null, regionId: null,
+        protocol: 'ws', rttMs: null, attempt: 0, nextRetryAt: null, reason: 'kicked', developmentMode: false,
+      },
     });
+
+    expect(received).toEqual([{
+      phase: 'actionRequired',
+      accessPointId: 'ap-1',
+      protocol: 'ws',
+      attempt: 0,
+      reason: 'kicked',
+      developmentMode: false,
+    }]);
+  });
+
+  it('answers token refresh requests with the one host function', async () => {
+    const { FlareCoreSdk, CONNECT_TOKEN_REFRESH_EVENT } = await import('./index');
+    let refreshRequested: ((event: { payload: unknown }) => void) | undefined;
+    const unlisten = vi.fn();
+    tauri.listen.mockImplementation(async (channel: string, handler: (event: { payload: unknown }) => void) => {
+      if (channel === CONNECT_TOKEN_REFRESH_EVENT) refreshRequested = handler;
+      return unlisten;
+    });
+    const completed = new Promise<Record<string, unknown>>((resolve) => {
+      tauri.invoke.mockImplementation(async (command: string, args?: Record<string, unknown>) => {
+        if (command === 'sdk_ffi_contract_version') return { version: ffiContractVersion };
+        if (command === 'sdk_complete_connect_token_refresh') {
+          resolve(args ?? {});
+          return true;
+        }
+        return undefined;
+      });
+    });
+
+    const client = FlareCoreSdk.createClient();
+    const refresher = vi.fn(async () => 'fresh-token');
+    await client.setConnectTokenRefresher(refresher);
+
+    expect(tauri.invoke).toHaveBeenCalledWith('sdk_set_connect_token_refresher', { enabled: true });
+    refreshRequested?.({ payload: { requestId: 7 } });
+    await expect(completed).resolves.toEqual({ requestId: 7, token: 'fresh-token' });
+    expect(refresher).toHaveBeenCalledTimes(1);
+
+    await client.setConnectTokenRefresher(null);
+    expect(tauri.invoke).toHaveBeenCalledWith('sdk_set_connect_token_refresher', { enabled: false });
+    expect(unlisten).toHaveBeenCalledTimes(1);
+  });
+
+  it('answers without a token when the host function has none', async () => {
+    const { TauriNativeBridge, CONNECT_TOKEN_REFRESH_EVENT } = await import('./index');
+    let refreshRequested: ((event: { payload: unknown }) => void) | undefined;
+    tauri.listen.mockImplementation(async (channel: string, handler: (event: { payload: unknown }) => void) => {
+      if (channel === CONNECT_TOKEN_REFRESH_EVENT) refreshRequested = handler;
+      return vi.fn();
+    });
+    const completed = new Promise<Record<string, unknown>>((resolve) => {
+      tauri.invoke.mockImplementation(async (command: string, args?: Record<string, unknown>) => {
+        if (command === 'sdk_ffi_contract_version') return { version: ffiContractVersion };
+        if (command === 'sdk_complete_connect_token_refresh') resolve(args ?? {});
+        return undefined;
+      });
+    });
+
+    const bridge = new TauriNativeBridge();
+    await bridge.setConnectTokenRefresher(async () => null);
+    refreshRequested?.({ payload: { requestId: 8 } });
+    await expect(completed).resolves.toEqual({ requestId: 8 });
+  });
+
+  it('rejects an overloaded command with the typed error', async () => {
+    const { TauriNativeBridge, OverloadedError } = await import('./index');
+    const bridge = new TauriNativeBridge();
+    tauri.invoke.mockImplementation(async (command: string) => {
+      if (command === 'sdk_ffi_contract_version') return { version: ffiContractVersion };
+      throw { code: 'OVERLOADED', message: 'shedding load', retryable: true, retryAfterMs: 2500 };
+    });
+
+    const error = await bridge.invoke(NativeCallMap.accessGetStatus).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(OverloadedError);
+    expect(error).toMatchObject({ code: 'OVERLOADED', retryAfterMs: 2500, operation: 'access.get_status' });
   });
 });

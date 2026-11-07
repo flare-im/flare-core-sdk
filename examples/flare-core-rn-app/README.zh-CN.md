@@ -71,6 +71,12 @@ npm run ios
 npm run android
 ```
 
+连到哪里由 SDK 的 `access` 配置决定，打包时固定，登录页没有服务器设置。`start`、`ios`、`android`、`bundle:*`
+会先跑 `npm run sync:access-config`，把 `FLARE_ACCESS_JSON`（`access` 对象的 JSON）写进 `.generated/flare-access.json`
+（见 `src/config/access.ts`）。不给时开发包连本机默认栈（`ws://127.0.0.1:60051`、核心 API `http://127.0.0.1:50050`；
+Android 模拟器在 `FLARE_ACCESS_JSON` 里用 `10.0.2.2`，或用 `adb reverse`），发布包不提供登录。
+第二个接入点写进 `developmentEndpoints.accessPoints`。
+
 原生工程当前负责启动 RN app 和打包 Ant Design icon 字体。要让「初始化 SDK Client」连接真实核心能力，
 需要继续实现 RN native module `FlareImCoreSdk.invoke`，并在其中链接 `flare-core-sdk-engine/bindings/c`。
 

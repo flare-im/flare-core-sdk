@@ -1,6 +1,5 @@
 package com.flare.im.api.conversations
 
-import com.flare.im.api.ConnectionState
 import com.flare.im.callback.*
 import com.flare.im.listener.*
 import com.flare.im.model.catalog.*
@@ -12,6 +11,7 @@ import com.flare.im.model.common.error.*
 import com.flare.im.model.content.*
 import com.flare.im.model.entity.*
 import com.flare.im.model.event.*
+import com.flare.im.model.event.access.*
 import com.flare.im.model.event.connection.*
 import com.flare.im.model.event.conversation.*
 import com.flare.im.model.event.lifecycle.*
@@ -67,4 +67,6 @@ interface ConversationsApi {
     suspend fun updateConversationDraft(request: UpdateConversationDraftRequest): Unit
     /** clearLocalChatHistory maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.clear_local_chat_history`. */
     suspend fun clearLocalChatHistory(request: Map<String, Any?>): Unit
+    /** clearChatHistoryForSelf maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.clear_chat_history_for_self`. */
+    suspend fun clearChatHistoryForSelf(request: Map<String, Any?>): Unit
 }

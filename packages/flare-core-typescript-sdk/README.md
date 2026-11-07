@@ -60,6 +60,23 @@ import { SdkOperations, SdkEvents } from "@flare-im/sdk/contract";
 export operations, event listeners, data models, callbacks, the protocol
 contract, media, and lifecycle respectively.
 
+## Keeping earlier web builds
+
+A rollback or a staged rollout goes back to an older web build, so that build's
+`builds/<buildId>/` and hashed files must outlive later deployments. A deployment
+that replaces the site drops them. Between the build and the deployment, carry them
+over from what is deployed now:
+
+```bash
+npx flare-web-retain-builds --previous /srv/site --out dist --keep 3
+```
+
+`--keep` counts earlier builds and defaults to 3; the build in `--out` is not one of
+them. `--out` defaults to `dist`. The order is kept in `builds/history.json`, which
+has to deploy with the rest. A build that lost a file is dropped, with a warning, and
+the next older one takes its place. A first deployment passes `--first-deployment` instead of `--previous`;
+a `--previous` that does not exist is an error, so a wrong path cannot drop the earlier builds.
+
 ## A complete, runnable example
 
 This package is the SDK layer; running it needs the matching runtime bridge and

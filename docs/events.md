@@ -20,15 +20,10 @@ Method return values remain the primary success/failure contract for commands su
 | `onLoginFailed` | `lifecycle` | `login_failed` | `LifecycleEvent` | SDK login failed. |
 | `onLoggedOut` | `lifecycle` | `logged_out` | `LifecycleEvent` | The current SDK session logged out. |
 | `onDisposed` | `lifecycle` | `disposed` | `LifecycleEvent` | The SDK client has been disposed. |
-| `onConnecting` | `connection` | `connecting` | `ConnectionEvent` | SDK is connecting to the IM server. |
-| `onConnectSuccess` | `connection` | `connected` | `ConnectionEvent` | SDK connected to the IM server successfully. |
-| `onConnectReady` | `connection` | `ready` | `ConnectionEvent` | SDK connection is authenticated and ready for message traffic. |
-| `onConnectFailed` | `connection` | `server_error` | `ConnectionEvent` | SDK failed to connect to the IM server. |
-| `onDisconnected` | `connection` | `disconnected` | `ConnectionEvent` | SDK disconnected from the IM server. |
-| `onReconnecting` | `connection` | `reconnecting` | `ConnectionEvent` | SDK is attempting to reconnect to the IM server. |
-| `onReconnectFailed` | `connection` | `reconnect_failed` | `ConnectionEvent` | SDK reconnect attempt failed. |
-| `onKickedOffline` | `connection` | `kicked_off` | `ConnectionEvent` | The account logged in elsewhere and this device was kicked offline. |
-| `onUserTokenExpired` | `connection` | `token_expired` | `ConnectionEvent` | The login token expired and the app should renew credentials. |
+| `onConnectionStatusChanged` | `connection` | `status` | `ConnectionStatus` | The connection status changed (connection://status). Replace the held status whole and hand it to the Kit ConnectionNotice unchanged. |
+| `onAccessSwitched` | `access` | `switched` | `AccessSwitchedEvent` | The IM connection moved to another access point (access://switched). |
+| `onAccessChanged` | `access` | `changed` | `AccessChangedEvent` | A new access manifest was accepted (access://changed). |
+| `onUpdateState` | `update` | `state` | `UpdateStatus` | The update center state changed (update://state). Delivered with a session; before sign-in read update.getState. |
 | `onMessageReceived` | `message` | `received` | `MessageReceivedEvent` | A single message was received. |
 | `onMessageReceivedBatch` | `message` | `received_batch` | `MessageReceivedBatchEvent` | A batch of messages was received. |
 | `onMessageSendAck` | `message` | `send_ack` | `MessageSendAckEvent` | A message send operation was acknowledged. |
@@ -62,16 +57,18 @@ Method return values remain the primary success/failure contract for commands su
 
 | Domain | Names |
 |--------|-------|
-| `connection` | `connecting`, `reconnect_failed`, `ready`, `connected`, `disconnected`, `reconnecting`, `state_changed`, `sync_state_changed`, `server_error`, `kicked_off`, `token_expired` |
+| `access` | `switched`, `changed` |
+| `connection` | `status`, `sync_state_changed` |
 | `conversation` | `synced`, `created`, `updated`, `unread_count_changed`, `deleted` |
 | `extension` | `event` |
 | `lifecycle` | `initializing`, `initialized`, `init_failed`, `login_succeeded`, `login_failed`, `logged_out`, `disposed` |
 | `media` | `cache_changed`, `upload_progress`, `download_progress` |
 | `message` | `burn_scheduled`, `burned`, `hard_deleted`, `received`, `received_batch`, `send_ack`, `send_failed`, `recalled`, `typing`, `edited`, `reaction_changed`, `deleted`, `read_receipt`, `typing_aggregate`, `retention_scheduled`, `retention_expired`, `retention_purged`, `pinned`, `unpinned`, `marked`, `unmarked`, `presence_changed`, `custom`, `plugin_state_changed`, `read_summaries_changed` |
-| `notification` | `received` |
+| `notification` | `received`, `message_sound` |
 | `plugin` | `realtime`, `catalog_changed` |
 | `presence` | `changed` |
 | `sync` | `started`, `finished`, `failed`, `progress`, `task_completed`, `state_changed`, `resync_needed`, `readiness` |
+| `update` | `state` |
 | `view` | `updated` |
 
 Platform adapters should dispatch UI-facing callbacks on the platform's documented application/main context when required, while keeping native bridge callbacks non-blocking.

@@ -67,13 +67,25 @@
       "stability": "stable"
     },
     {
-      "name": "setHeartbeatAppState",
-      "operation": "sdk.set_heartbeat_app_state",
-      "transport": "contract-invoke-json",
-      "cApi": "flare_sdk_invoke_json",
-      "request": "SetHeartbeatAppStateRequest",
+      "name": "setConnectTokenRefresher",
+      "operation": "sdk.set_connect_token_refresher",
+      "transport": "ffi-symbol",
+      "cApi": "flare_sdk_set_connect_token_refresher",
+      "request": "SetConnectTokenRefresherRequest",
       "response": "Unit",
-      "stability": "stable"
+      "stability": "stable",
+      "description": "Installs (or, with null, removes) the host-managed connect token refresher: one async host function returning the new connect token, or null when none can be obtained. After the gateway rejects a connection on authentication the core asks once and waits at most 20 seconds. Every platform facade takes the function itself and hands it to its bridge's setConnectTokenRefresher hook; SDK-managed tokens (an auth block in the init config, even an empty one) need none."
+    },
+    {
+      "name": "completeConnectTokenRefresh",
+      "operation": "sdk.complete_connect_token_refresh",
+      "transport": "ffi-symbol",
+      "cApi": "flare_sdk_complete_connect_token_refresh",
+      "request": "CompleteConnectTokenRefreshRequest",
+      "response": "BooleanResponse",
+      "stability": "stable",
+      "visibility": "bridge",
+      "description": "Answers one refresh request with the new token, or without a token when none could be obtained. False when the request id is no longer pending. Bridge-level: platform bridges call it from their refresher trampoline; it is not part of any public facade."
     },
     {
       "name": "setHeartbeatNatTimeout",

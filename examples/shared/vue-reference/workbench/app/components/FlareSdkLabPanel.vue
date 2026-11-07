@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { ArrowBackOutline, CheckmarkCircleOutline, FlashOutline, RefreshOutline, TerminalOutline } from "@flare-im/vue-ui/icon-glyphs";
-import { FlareButton, FlareFilterTabs, FlareInput, FlareSelect, FlareSwitch } from "@flare-im/vue-ui/components";
+import { FlareButton, FlareFilterTabs, FlareInput, FlareSelect } from "@flare-im/vue-ui/components";
 import AppIcon from "./AppIcon.vue";
-import { NetworkInterfaceKind } from "@flare-im/sdk/web";
 import { useRouter } from "vue-router";
 import { useFlareSdk } from "../sdk/flareSdkContext";
 import { useFlareI18n } from "../shared/i18n";
@@ -20,10 +19,9 @@ const tabOptions = computed(() => [{ value: "diagnostics", label: t('sdkLab.diag
 const activeTab = ref("diagnostics");
 
 const activeRuntimeTone = computed(() => {
-  const state = sdk.connectionState.value;
-  if (state === "ready" || state === "connected") return "success";
-  if (state === "connecting" || state === "reconnecting") return "warning";
-  return "default";
+  const phase = sdk.connectionPhase.value;
+  if (phase === "online") return "success";
+  return phase === "idle" ? "default" : "warning";
 });
 
 const runtimeCards = computed(() => {
@@ -56,23 +54,11 @@ const runtimeCards = computed(() => {
     },
     {
       label: "Runtime Health",
-      value: String(runtimeHealth.state ?? sdk.connectionState.value),
+      value: String(runtimeHealth.state ?? sdk.connectionPhase.value),
       detail: `drops=${String(runtimeHealth.rawSubscriberDroppedTotal ?? 0)} metrics=${String(runtimeHealth.metricsEnabled ?? false)}`,
     },
   ];
 });
-
-const heartbeatStateOptions = [
-  { label: "Foreground", value: "foreground" },
-  { label: "Background", value: "background" },
-];
-
-const networkInterfaceOptions = [
-  { label: "Wi-Fi", value: NetworkInterfaceKind.Wifi },
-  { label: "Cellular", value: NetworkInterfaceKind.Cellular },
-  { label: "Ethernet", value: NetworkInterfaceKind.Ethernet },
-  { label: "Unknown", value: NetworkInterfaceKind.Unknown },
-];
 
 function back(): void {
   void router.push({ name: "conversations" });
@@ -92,7 +78,7 @@ function back(): void {
 
     <section class="sdk-lab-hero">
       <div class="sdk-lab-hero__status">
-        <span class="lab-chip" :data-tone="activeRuntimeTone">{{ sdk.connectionState.value }}</span>
+        <span class="lab-chip" :data-tone="activeRuntimeTone">{{ sdk.connectionPhase.value }}</span>
         <span class="lab-chip" :data-tone="sdk.sessionActive.value ? 'success' : 'default'">
           {{ sdk.sessionActive.value ? t("login.sessionActive") : t("login.sessionInactive") }}
         </span>
@@ -125,20 +111,19 @@ function back(): void {
       </section>
       <section v-show="activeTab === 'connection-session'" class="sdk-lab-pane">
         <div class="lab-field">
-          <span>Connection state</span>
+          <span>Connection status</span>
           <div class="lab-grid">
-            <FlareButton variant="secondary" :loading="sdk.labBusy.value" @click="sdk.runConnectionOperation('state')">Get state</FlareButton>
+            <FlareButton variant="secondary" :loading="sdk.labBusy.value" @click="sdk.runConnectionOperation('status')">Get status</FlareButton>
+            <FlareButton variant="secondary" :loading="sdk.labBusy.value" @click="sdk.runConnectionOperation('reconnect_now')">Reconnect now</FlareButton>
             <FlareButton variant="secondary" :loading="sdk.labBusy.value" @click="sdk.runConnectionOperation('disconnect')">Disconnect</FlareButton>
-            <FlareButton :loading="sdk.labBusy.value" @click="sdk.runConnectionOperation('network_change')">Notify network</FlareButton>
           </div>
-          <FlareSelect v-model="sdk.sdkLab.networkInterface" :options="networkInterfaceOptions" />
-          <div class="lab-switch-row">
-            <span>Available</span>
-            <FlareSwitch v-model="sdk.sdkLab.networkAvailable" />
-            <span>Expensive</span>
-            <FlareSwitch v-model="sdk.sdkLab.networkExpensive" />
-            <span>Metered</span>
-            <FlareSwitch v-model="sdk.sdkLab.networkMetered" />
+        </div>
+        <div class="lab-field">
+          <span>Access</span>
+          <div class="lab-grid">
+            <FlareButton variant="secondary" :loading="sdk.labBusy.value" @click="sdk.runConnectionOperation('access_status')">Access status</FlareButton>
+            <FlareButton variant="secondary" :loading="sdk.labBusy.value" @click="sdk.runConnectionOperation('access_points')">Access points</FlareButton>
+            <FlareButton variant="secondary" :loading="sdk.labBusy.value" @click="sdk.runConnectionOperation('access_diagnostics')">Export diagnostics</FlareButton>
           </div>
         </div>
         <div class="lab-field">
@@ -155,7 +140,6 @@ function back(): void {
         </div>
         <div class="lab-field">
           <span>Heartbeat / token</span>
-          <FlareSelect v-model="sdk.sdkLab.heartbeatAppState" :options="heartbeatStateOptions" />
           <FlareInput
             :model-value="String(sdk.sdkLab.heartbeatNatTimeoutSecs ?? '')"
             inputmode="numeric"
@@ -170,7 +154,6 @@ function back(): void {
           />
           <div class="lab-grid">
             <FlareButton variant="secondary" :loading="sdk.labBusy.value" @click="sdk.runSessionOperation('heartbeat_interval')">Effective interval</FlareButton>
-            <FlareButton variant="secondary" :loading="sdk.labBusy.value" @click="sdk.runSessionOperation('heartbeat_app_state')">Set app state</FlareButton>
             <FlareButton variant="secondary" :loading="sdk.labBusy.value" @click="sdk.runSessionOperation('heartbeat_nat_timeout')">Set NAT timeout</FlareButton>
             <FlareButton :loading="sdk.labBusy.value" @click="sdk.runSessionOperation('update_access_token')">Refresh token</FlareButton>
           </div>
@@ -184,7 +167,7 @@ function back(): void {
           <FlareInput v-model="sdk.sdkLab.messageText" :placeholder="t('sdklab.messagePlaceholder')" />
           <FlareInput
             v-model="sdk.sdkLab.jsonParams"
-            type="textarea"
+            multiline
             :placeholder="t('sdklab.jsonPlaceholder')"
             :autosize="{ minRows: 3, maxRows: 8 }"
           />
@@ -228,7 +211,7 @@ function back(): void {
           <FlareInput v-model="sdk.sdkLab.capabilityTargetUserId" placeholder="grant/revoke target user id" />
           <FlareInput
             v-model="sdk.sdkLab.jsonParams"
-            type="textarea"
+            multiline
             :placeholder="t('sdklab.capabilityPlaceholder')"
             :autosize="{ minRows: 3, maxRows: 8 }"
           />

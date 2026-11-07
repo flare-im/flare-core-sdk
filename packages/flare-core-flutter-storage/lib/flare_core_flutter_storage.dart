@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 abstract interface class CredentialStore {
@@ -19,19 +20,27 @@ class MobileCredentialStore implements CredentialStore {
     required this.key,
     required this.legacyKey,
     FlutterSecureStorage? storage,
-  }) : storage =
-           storage ??
-           const FlutterSecureStorage(
-             iOptions: IOSOptions(
-               accessibility: KeychainAccessibility.first_unlock_this_device,
-               synchronizable: false,
-               accountName: 'flare.session',
-             ),
-             aOptions: AndroidOptions(
-               resetOnError: false,
-               sharedPreferencesName: 'flare_credentials',
-             ),
-           );
+  }) : storage = storage ??
+            FlutterSecureStorage(
+              // Ad-hoc macOS debug builds have no provisioning identity for the
+              // data-protection keychain. Keep credentials in the OS login
+              // keychain, in a service scoped to this app and installation.
+              mOptions: MacOsOptions(
+                usesDataProtectionKeychain: !kDebugMode,
+                accountName: kDebugMode
+                    ? 'flare.debug.$key.$binding'
+                    : AppleOptions.defaultAccountName,
+              ),
+              iOptions: const IOSOptions(
+                accessibility: KeychainAccessibility.first_unlock_this_device,
+                synchronizable: false,
+                accountName: 'flare.session',
+              ),
+              aOptions: const AndroidOptions(
+                resetOnError: false,
+                sharedPreferencesName: 'flare_credentials',
+              ),
+            );
 
   final SharedPreferences preferences;
   final String binding;
@@ -99,41 +108,41 @@ class MobileCredentialStore implements CredentialStore {
 
   @override
   Future<String?> read() => _serial(() async {
-    if (preferences.getBool(_blocked) == true) {
-      await _erase();
-      return null;
-    }
-    try {
-      final raw = await storage.read(key: key);
-      if (raw != null) {
-        final record = jsonDecode(raw);
-        if (record is! Map ||
-            record['version'] != 2 ||
-            record['binding'] != binding ||
-            record['revision'] is! String ||
-            record['revision'] != preferences.getString(_revision) ||
-            record['value'] is! String) {
+        if (preferences.getBool(_blocked) == true) {
           await _erase();
           return null;
         }
-        await _removeLegacy();
-        return record['value'] as String;
-      }
-      if (preferences.containsKey(_revision)) {
-        await _erase();
-        return null;
-      }
-      final legacy = preferences.getString(legacyKey);
-      if (legacy == null) return null;
-      await _save(legacy);
-      return legacy;
-    } catch (_) {
-      // Locked/unavailable secure storage never enables a plaintext fallback.
-      await _block(true);
-      await _removeLegacy();
-      rethrow;
-    }
-  });
+        try {
+          final raw = await storage.read(key: key);
+          if (raw != null) {
+            final record = jsonDecode(raw);
+            if (record is! Map ||
+                record['version'] != 2 ||
+                record['binding'] != binding ||
+                record['revision'] is! String ||
+                record['revision'] != preferences.getString(_revision) ||
+                record['value'] is! String) {
+              await _erase();
+              return null;
+            }
+            await _removeLegacy();
+            return record['value'] as String;
+          }
+          if (preferences.containsKey(_revision)) {
+            await _erase();
+            return null;
+          }
+          final legacy = preferences.getString(legacyKey);
+          if (legacy == null) return null;
+          await _save(legacy);
+          return legacy;
+        } catch (_) {
+          // Locked/unavailable secure storage never enables a plaintext fallback.
+          await _block(true);
+          await _removeLegacy();
+          rethrow;
+        }
+      });
   @override
   Future<void> write(String value) => _serial(() => _save(value));
   @override

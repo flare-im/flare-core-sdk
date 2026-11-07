@@ -2,7 +2,7 @@
 import { NativeBridge, NativeCallMap } from '../../contract/bridge_contract';
 import type { CapabilitiesApi } from '../../api/modules/capabilities';
 import { PluginCommandRequest, PluginUiEvaluationRequest } from '../../model';
-import { invokeBool, invokeConnectionState, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError } from '../codec/nativeInvoke';
+import { invokeBool, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeList, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError, withoutNullFields } from '../codec/nativeInvoke';
 import { conversationFromJson, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, pluginCommandRequestToMap, pluginUiEvaluationRequestToMap, sendAckFromJson, sendMessageRequestToMap } from '../codec/wireCodec';
 
 export class DefaultCapabilitiesApi implements CapabilitiesApi {

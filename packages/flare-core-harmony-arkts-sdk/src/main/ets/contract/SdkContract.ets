@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-export const ffiContractVersion: string = 'flare-im-ffi/v1';
+export const ffiContractVersion: string = 'flare-im-ffi/v2';
 
 export const SdkOperations = {
   sdkCreate: 'sdk.create',
@@ -9,7 +9,8 @@ export const SdkOperations = {
   sdkPrepare: 'sdk.prepare',
   sdkConnect: 'sdk.connect',
   sdkUpdateAccessToken: 'sdk.update_access_token',
-  sdkSetHeartbeatAppState: 'sdk.set_heartbeat_app_state',
+  sdkSetConnectTokenRefresher: 'sdk.set_connect_token_refresher',
+  sdkCompleteConnectTokenRefresh: 'sdk.complete_connect_token_refresh',
   sdkSetHeartbeatNatTimeout: 'sdk.set_heartbeat_nat_timeout',
   sdkHeartbeatEffectiveInterval: 'sdk.heartbeat_effective_interval',
   sdkLogout: 'sdk.logout',
@@ -18,7 +19,14 @@ export const SdkOperations = {
   sdkCurrentUserId: 'sdk.current_user_id',
   sdkIsConnected: 'sdk.is_connected',
   sdkSessionActive: 'sdk.session_active',
-  connectionGetState: 'connection.get_state',
+  connectionGetStatus: 'connection.get_status',
+  connectionReconnectNow: 'connection.reconnect_now',
+  accessGetStatus: 'access.get_status',
+  accessListAccessPoints: 'access.list_access_points',
+  accessPin: 'access.pin',
+  accessUnpin: 'access.unpin',
+  accessExportDiagnostics: 'access.export_diagnostics',
+  lifecycleSetAppState: 'lifecycle.set_app_state',
   connectionDisconnect: 'connection.disconnect',
   conversationList: 'conversation.list',
   conversationListByQuery: 'conversation.list_by_query',
@@ -148,5 +156,8 @@ export const SdkErrorCodes = {
   storageUnavailable: 'storageUnavailable',
   operationCancelled: 'operationCancelled',
   capabilityUnavailable: 'capabilityUnavailable',
+  overloaded: 'overloaded',
+  upgradeRequired: 'upgradeRequired',
+  networkUncertain: 'networkUncertain',
   internal: 'internal',
 } as const;

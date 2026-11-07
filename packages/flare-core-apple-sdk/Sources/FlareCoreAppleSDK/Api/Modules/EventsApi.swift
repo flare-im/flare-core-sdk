@@ -16,15 +16,10 @@ public protocol EventsApiProtocol: AnyObject {
     func onLoginFailed(_ listener: @escaping EventCallback<LifecycleEvent>) -> any EventSubscription
     func onLoggedOut(_ listener: @escaping EventCallback<LifecycleEvent>) -> any EventSubscription
     func onDisposed(_ listener: @escaping EventCallback<LifecycleEvent>) -> any EventSubscription
-    func onConnecting(_ listener: @escaping EventCallback<ConnectionEvent>) -> any EventSubscription
-    func onConnectSuccess(_ listener: @escaping EventCallback<ConnectionEvent>) -> any EventSubscription
-    func onConnectReady(_ listener: @escaping EventCallback<ConnectionEvent>) -> any EventSubscription
-    func onConnectFailed(_ listener: @escaping EventCallback<ConnectionEvent>) -> any EventSubscription
-    func onDisconnected(_ listener: @escaping EventCallback<ConnectionEvent>) -> any EventSubscription
-    func onReconnecting(_ listener: @escaping EventCallback<ConnectionEvent>) -> any EventSubscription
-    func onReconnectFailed(_ listener: @escaping EventCallback<ConnectionEvent>) -> any EventSubscription
-    func onKickedOffline(_ listener: @escaping EventCallback<ConnectionEvent>) -> any EventSubscription
-    func onUserTokenExpired(_ listener: @escaping EventCallback<ConnectionEvent>) -> any EventSubscription
+    func onConnectionStatusChanged(_ listener: @escaping EventCallback<ConnectionStatus>) -> any EventSubscription
+    func onAccessSwitched(_ listener: @escaping EventCallback<AccessSwitchedEvent>) -> any EventSubscription
+    func onAccessChanged(_ listener: @escaping EventCallback<AccessChangedEvent>) -> any EventSubscription
+    func onUpdateState(_ listener: @escaping EventCallback<UpdateStatus>) -> any EventSubscription
     func onMessageReceived(_ listener: @escaping EventCallback<MessageReceivedEvent>) -> any EventSubscription
     func onMessageReceivedBatch(_ listener: @escaping EventCallback<MessageReceivedBatchEvent>) -> any EventSubscription
     func onMessageSendAck(_ listener: @escaping EventCallback<MessageSendAckEvent>) -> any EventSubscription

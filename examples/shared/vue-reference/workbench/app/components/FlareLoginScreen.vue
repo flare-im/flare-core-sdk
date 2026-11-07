@@ -1,31 +1,24 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "../ui/toast";
 import { FlareStatusBanner } from "@flare-im/vue-ui/components";
 import { AuthScreen } from "../ui/components";
-import {
-  appTransportSelectorProfile,
-  isAppTransportSelectorEnabled,
-} from "../infrastructure/transport/appTransportSelector";
-import { profileSupportsQuic } from "@flare-im/sdk/transport";
 import { useFlareSdk } from "../sdk/flareSdkContext";
 import { useFlareI18n } from "../shared/i18n";
+import { useFlareUpdates } from "../state/update";
 
 const sdk = useFlareSdk();
+const updates = useFlareUpdates();
 const router = useRouter();
 const message = useToast();
 const { t } = useFlareI18n();
-// Offer QUIC/protocol racing only when the runtime is available (host gate) AND its
-// capability profile physically supports QUIC.
-const showTransportSelector =
-  isAppTransportSelectorEnabled() && profileSupportsQuic(appTransportSelectorProfile());
 
 const sessionSummary = computed(() => ({
   userId: sdk.currentUserId.value || sdk.form.userId,
   sessionActive: sdk.sessionActive.value,
   isConnected: sdk.isConnected.value,
-  connectionState: sdk.connectionState.value,
+  connectionPhase: sdk.connectionPhase.value,
   runtime: sdk.sdkRuntimeStatus.value,
 }));
 
@@ -33,14 +26,18 @@ const runtimeUnavailable = computed(
   () => sdk.sdkRuntimeStatus.value === "browser-unavailable" && !sdk.loggedIn.value,
 );
 
+// A forced update has to reach this page, and nobody here has to sign in for the core to tell.
+onMounted(() => {
+  void sdk.initBeforeSignIn().then((ready) => (ready ? updates.start() : undefined));
+});
+
 async function login(): Promise<void> {
   try {
     await sdk.initializeAndLogin();
-    if (sdk.transportFallbackNotice.value) {
-      message.warning(sdk.transportFallbackNotice.value);
-    }
     await router.replace({ name: "sync" });
   } catch (error) {
+    // A build the server refuses has no session and so no event: the prompt needs this read.
+    updates.refresh();
     const detail = error instanceof Error ? error.message : String(error);
     message.error(detail || t("login.failed"));
   }
@@ -50,32 +47,23 @@ async function login(): Promise<void> {
 
 <template>
   <div class="auth-route">
-    <FlareStatusBanner v-if="runtimeUnavailable" tone="danger" :text="`${t('login.runtimeUnavailable')}: ${t('login.runtimeUnavailableHint')}`" />
+    <!-- Where this build connects is set when it is built; without it there is nothing to sign in to. -->
     <FlareStatusBanner
-      v-else-if="sdk.transportFallbackNotice.value && !sdk.loggedIn.value"
-      tone="warning"
-      :text="sdk.transportFallbackNotice.value"
+      v-if="sdk.accessConfigError.value"
+      tone="danger"
+      :text="`${t('login.accessConfigMissing')}: ${sdk.accessConfigError.value}`"
     />
+    <FlareStatusBanner v-else-if="runtimeUnavailable" tone="danger" :text="`${t('login.runtimeUnavailable')}: ${t('login.runtimeUnavailableHint')}`" />
     <AuthScreen
       v-model:user-id="sdk.form.userId"
-      v-model:token="sdk.form.token"
-      v-model:transport-mode="sdk.form.transportMode"
-      v-model:ws-url="sdk.form.wsUrl"
-      v-model:quic-url="sdk.form.quicUrl"
-      v-model:tls-ca-cert-path="sdk.form.tlsCaCertPath"
-      v-model:http-url="sdk.form.httpUrl"
-      v-model:data-url="sdk.form.dataUrl"
-      v-model:tenant-id="sdk.form.tenantId"
-      :show-transport-selector="showTransportSelector"
-      :server-fields="['websocket', 'http']"
-      hide-token
       :loading="sdk.busy.value"
+      :disabled="Boolean(sdk.accessConfigError.value)"
       @login="login"
     />
     <section v-if="sdk.initialized.value || sdk.events.value.length" class="auth-session-strip">
       <FlareStatusBanner
         :tone="sessionSummary.isConnected ? 'success' : 'warning'"
-        :text="`${sessionSummary.sessionActive ? t('login.sessionActive') : t('login.sessionInactive')} · ${sessionSummary.isConnected ? t('login.connected') : t('login.disconnected')} · ${sessionSummary.userId} · ${sessionSummary.connectionState} · runtime=${sessionSummary.runtime}`"
+        :text="`${sessionSummary.sessionActive ? t('login.sessionActive') : t('login.sessionInactive')} · ${sessionSummary.isConnected ? t('login.connected') : t('login.disconnected')} · ${sessionSummary.userId} · ${sessionSummary.connectionPhase} · runtime=${sessionSummary.runtime}`"
       />
     </section>
   </div>

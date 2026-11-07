@@ -23,4 +23,5 @@ public protocol ConversationsApiProtocol: AnyObject {
     func deleteConversation(_ request: [String: AnySendable]) async throws -> Void
     func updateConversationDraft(_ request: UpdateConversationDraftRequest) async throws -> Void
     func clearLocalChatHistory(_ request: [String: AnySendable]) async throws -> Void
+    func clearChatHistoryForSelf(_ request: [String: AnySendable]) async throws -> Void
 }

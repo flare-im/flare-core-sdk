@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-const String kFlareFfiContractVersion = 'flare-im-ffi/v1';
+const String kFlareFfiContractVersion = 'flare-im-ffi/v2';
 
 abstract final class SdkOperations {
   const SdkOperations._();
@@ -10,7 +10,8 @@ abstract final class SdkOperations {
   static const String sdkPrepare = 'sdk.prepare';
   static const String sdkConnect = 'sdk.connect';
   static const String sdkUpdateAccessToken = 'sdk.update_access_token';
-  static const String sdkSetHeartbeatAppState = 'sdk.set_heartbeat_app_state';
+  static const String sdkSetConnectTokenRefresher = 'sdk.set_connect_token_refresher';
+  static const String sdkCompleteConnectTokenRefresh = 'sdk.complete_connect_token_refresh';
   static const String sdkSetHeartbeatNatTimeout =
       'sdk.set_heartbeat_nat_timeout';
   static const String sdkHeartbeatEffectiveInterval =
@@ -21,7 +22,26 @@ abstract final class SdkOperations {
   static const String sdkCurrentUserId = 'sdk.current_user_id';
   static const String sdkIsConnected = 'sdk.is_connected';
   static const String sdkSessionActive = 'sdk.session_active';
-  static const String connectionGetState = 'connection.get_state';
+  static const String connectionGetStatus = 'connection.get_status';
+  static const String connectionReconnectNow = 'connection.reconnect_now';
+  static const String accessGetStatus = 'access.get_status';
+  static const String accessListAccessPoints = 'access.list_access_points';
+  static const String accessPin = 'access.pin';
+  static const String accessUnpin = 'access.unpin';
+  static const String accessRefresh = 'access.refresh';
+  static const String accessImportRecovery = 'access.import_recovery';
+  static const String accessExportDiagnostics = 'access.export_diagnostics';
+  static const String updateGetState = 'update.get_state';
+  static const String updateCheck = 'update.check';
+  static const String updateDownload = 'update.download';
+  static const String updateInstall = 'update.install';
+  static const String updateReportInstall = 'update.report_install';
+  static const String updateDefer = 'update.defer';
+  static const String updateSkip = 'update.skip';
+  static const String updateMarkPrompted = 'update.mark_prompted';
+  static const String updateSetLocale = 'update.set_locale';
+  static const String updateGetResources = 'update.get_resources';
+  static const String lifecycleSetAppState = 'lifecycle.set_app_state';
   static const String connectionDisconnect = 'connection.disconnect';
   static const String conversationList = 'conversation.list';
   static const String conversationListByQuery = 'conversation.list_by_query';
@@ -190,5 +210,8 @@ abstract final class SdkErrorCodes {
   static const String storageUnavailable = 'storageUnavailable';
   static const String operationCancelled = 'operationCancelled';
   static const String capabilityUnavailable = 'capabilityUnavailable';
+  static const String overloaded = 'overloaded';
+  static const String upgradeRequired = 'upgradeRequired';
+  static const String networkUncertain = 'networkUncertain';
   static const String internal = 'internal';
 }

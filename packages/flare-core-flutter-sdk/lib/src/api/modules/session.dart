@@ -1,6 +1,7 @@
 // GENERATED. Do not edit by hand.
 // Module API: `session` — SDK lifecycle, authenticated session and process-level utilities.
 import '../../model/model.dart';
+import '../../contract/bridge_contract.dart' show ConnectTokenRefresher;
 
 /// SDK lifecycle, authenticated session and process-level utilities.
 abstract interface class SessionApi {
@@ -18,8 +19,8 @@ abstract interface class SessionApi {
   Future<void> connect(Map<String, Object?> request);
   /// updateAccessToken maps to `flare_sdk_update_access_token` via `ffi-symbol`. Operation: `sdk.update_access_token`.
   Future<void> updateAccessToken(Map<String, Object?> request);
-  /// setHeartbeatAppState maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.set_heartbeat_app_state`.
-  Future<void> setHeartbeatAppState(SetHeartbeatAppStateRequest request);
+  /// Installs (or, with null, removes) the host-managed connect token refresher: an async function returning the new connect token, or null when none can be obtained. The core calls it once after the gateway rejects a connection on authentication and waits at most 20 seconds. Not needed with SDK-managed tokens (an auth block in the init config, even an empty one).
+  Future<void> setConnectTokenRefresher(ConnectTokenRefresher? refresher);
   /// setHeartbeatNatTimeout maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.set_heartbeat_nat_timeout`.
   Future<void> setHeartbeatNatTimeout(SetHeartbeatNatTimeoutRequest request);
   /// heartbeatEffectiveInterval maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.heartbeat_effective_interval`.

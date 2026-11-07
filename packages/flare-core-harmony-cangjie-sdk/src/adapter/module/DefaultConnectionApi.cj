@@ -12,9 +12,13 @@ public class DefaultConnectionApi <: ConnectionApi {
         this.bridge = bridge
     }
 
-    public func getConnectionState(): ConnectionState {
-        let raw = bridge.invoke(descriptor: NativeCallMap.connectionGetState, requestJson: wireEncodeRequest("{}"))
-        return connectionStateFromWire(raw)
+    public func getStatus(): ConnectionStatus {
+        let raw = bridge.invoke(descriptor: NativeCallMap.connectionGetStatus, requestJson: wireEncodeRequest("{}"))
+        return connectionStatusFromJson(raw)
+    }
+
+    public func reconnectNow(): Unit {
+        let _ignored = bridge.invoke(descriptor: NativeCallMap.connectionReconnectNow, requestJson: wireEncodeRequest("{}"))
     }
 
     public func disconnect(): Unit {
@@ -26,8 +30,7 @@ public class DefaultConnectionApi <: ConnectionApi {
         return serverClockResponseFromJson(raw)
     }
 
-    public func notifyNetworkChange(request: NetworkChangeRequest): NetworkChangeResponse {
-        let raw = bridge.invoke(descriptor: NativeCallMap.connectionNotifyNetworkChange, requestJson: wireEncodeRequest(networkChangeRequestToJson(request)))
-        return networkChangeResponseFromJson(raw)
+    public func notifyNetworkChange(request: NetworkChangeRequest): Unit {
+        let _ignored = bridge.invoke(descriptor: NativeCallMap.connectionNotifyNetworkChange, requestJson: wireEncodeRequest(networkChangeRequestToJson(request)))
     }
 }

@@ -1,6 +1,9 @@
 // GENERATED. Do not edit by hand.
 export type { SessionApi } from './modules/session';
 export type { ConnectionApi } from './modules/connection';
+export type { AccessApi } from './modules/access';
+export type { LifecycleApi } from './modules/lifecycle';
+export type { UpdateApi } from './modules/update';
 export type { ConversationsApi } from './modules/conversations';
 export type { MessageBuilderApi } from './modules/message_builder';
 export type { MessagesApi } from './modules/messages';
@@ -13,4 +16,3 @@ export type { ViewsApi } from './modules/views';
 export type { EventsApi } from './modules/events';
 export type { DiagnosticsApi } from './modules/diagnostics';
 export type { FlareImClient } from './client';
-export type { ConnectionState } from './client';

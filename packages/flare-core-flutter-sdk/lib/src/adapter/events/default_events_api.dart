@@ -60,22 +60,22 @@ final class DefaultEventsApi implements EventsApi {
   }
 
   void emitLifecycle(LifecycleEvent event) => _emit(event);
-  void emitConnection(ConnectionEvent event) => _emit(event);
   void emitMessageSendAck(MessageSendAckEvent event) => _emit(event);
   void emitMessageSendFailed(MessageSendFailedEvent event) => _emit(event);
 
   void _handleNativeEvent(int eventType, Object? payload) {
     final eventPayload = payload is Map ? payload : const <Object?, Object?>{};
     switch (eventType) {
-      case EventCode.connectionConnected:
-      case EventCode.connectionDisconnected:
-      case EventCode.connectionReconnecting:
-      case EventCode.connectionStateChanged:
+      case EventCode.connectionStatus:
+        _emit(connectionStatusFromJson(eventPayload));
       case EventCode.connectionSyncStateChanged:
-      case EventCode.connectionServerError:
-      case EventCode.connectionKickedOff:
-      case EventCode.connectionTokenExpired:
-        _emit(connectionEventFromCode(eventType, eventPayload));
+        _emit(connectionSyncStateEventFromJson(eventPayload));
+      case EventCode.accessSwitched:
+        _emit(accessSwitchedEventFromJson(eventPayload));
+      case EventCode.accessChanged:
+        _emit(accessChangedEventFromJson(eventPayload));
+      case EventCode.updateState:
+        _emit(updateStatusFromJson(eventPayload));
       case EventCode.messageSendAck:
         final rawAck = eventPayload['ack'];
         _emit(MessageSendAckEvent(
@@ -291,44 +291,25 @@ final class DefaultEventsApi implements EventsApi {
   EventSubscription onDisposed(EventCallback<LifecycleEvent> listener) =>
       _addWhere(listener, (event) => event.name == LifecycleEventName.disposed);
   @override
-  EventSubscription onConnecting(EventCallback<ConnectionEvent> listener) =>
-      _addWhere(
-          listener, (event) => event.name == ConnectionEventName.connecting);
-  @override
-  EventSubscription onConnectSuccess(EventCallback<ConnectionEvent> listener) =>
-      _addWhere(
-          listener, (event) => event.name == ConnectionEventName.connected);
-  @override
-  EventSubscription onConnectReady(EventCallback<ConnectionEvent> listener) =>
-      _addWhere(listener, (event) => event.name == ConnectionEventName.ready);
-  @override
-  EventSubscription onConnectFailed(EventCallback<ConnectionEvent> listener) =>
-      _addWhere(
-          listener, (event) => event.name == ConnectionEventName.serverError);
-  @override
-  EventSubscription onDisconnected(EventCallback<ConnectionEvent> listener) =>
-      _addWhere(
-          listener, (event) => event.name == ConnectionEventName.disconnected);
-  @override
-  EventSubscription onReconnecting(EventCallback<ConnectionEvent> listener) =>
-      _addWhere(
-          listener, (event) => event.name == ConnectionEventName.reconnecting);
-  @override
-  EventSubscription onReconnectFailed(
-    EventCallback<ConnectionEvent> listener,
+  EventSubscription onConnectionStatusChanged(
+    EventCallback<ConnectionStatus> listener,
   ) =>
-      _addWhere(listener,
-          (event) => event.name == ConnectionEventName.reconnectFailed);
+      _addTyped(listener);
   @override
-  EventSubscription onKickedOffline(EventCallback<ConnectionEvent> listener) =>
-      _addWhere(
-          listener, (event) => event.name == ConnectionEventName.kickedOff);
-  @override
-  EventSubscription onUserTokenExpired(
-    EventCallback<ConnectionEvent> listener,
+  EventSubscription onAccessSwitched(
+    EventCallback<AccessSwitchedEvent> listener,
   ) =>
-      _addWhere(
-          listener, (event) => event.name == ConnectionEventName.tokenExpired);
+      _addTyped(listener);
+  @override
+  EventSubscription onAccessChanged(
+    EventCallback<AccessChangedEvent> listener,
+  ) =>
+      _addTyped(listener);
+  @override
+  EventSubscription onUpdateState(
+    EventCallback<UpdateStatus> listener,
+  ) =>
+      _addTyped(listener);
   @override
   EventSubscription onMessageReceived(
     EventCallback<MessageReceivedEvent> listener,
@@ -540,8 +521,14 @@ final class _ListenerHandler {
     switch (event) {
       case LifecycleEvent():
         _dispatchLifecycle(event);
-      case ConnectionEvent():
-        _dispatchConnection(event);
+      case ConnectionStatus():
+        listener.onConnectionStatusChanged(event);
+      case AccessSwitchedEvent():
+        listener.onAccessSwitched(event);
+      case AccessChangedEvent():
+        listener.onAccessChanged(event);
+      case UpdateStatus():
+        listener.onUpdateState(event);
       case MessageReceivedEvent():
         listener.onMessageReceived(event);
       case MessageReceivedBatchEvent():
@@ -612,32 +599,6 @@ final class _ListenerHandler {
         listener.onLoggedOut(event);
       case LifecycleEventName.disposed:
         listener.onDisposed(event);
-    }
-  }
-
-  void _dispatchConnection(ConnectionEvent event) {
-    switch (event.name) {
-      case ConnectionEventName.connecting:
-        listener.onConnecting(event);
-      case ConnectionEventName.connected:
-        listener.onConnectSuccess(event);
-      case ConnectionEventName.ready:
-        listener.onConnectReady(event);
-      case ConnectionEventName.serverError:
-        listener.onConnectFailed(event);
-      case ConnectionEventName.disconnected:
-        listener.onDisconnected(event);
-      case ConnectionEventName.reconnecting:
-        listener.onReconnecting(event);
-      case ConnectionEventName.reconnectFailed:
-        listener.onReconnectFailed(event);
-      case ConnectionEventName.kickedOff:
-        listener.onKickedOffline(event);
-      case ConnectionEventName.tokenExpired:
-        listener.onUserTokenExpired(event);
-      case ConnectionEventName.stateChanged:
-      case ConnectionEventName.syncStateChanged:
-        break;
     }
   }
 
@@ -717,85 +678,6 @@ MessageMutationEvent messageMutationFromPayload(
   );
 }
 
-ConnectionEvent connectionEventFromCode(
-    int eventType, Map<dynamic, dynamic> json) {
-  final name = _connectionEventNameFromCode(eventType, json);
-  return ConnectionEvent(
-    name: name,
-    state: _connectionStateForEvent(name, json['state']),
-    reason: _optionalEventString(json['reason'], 'reason'),
-    attempt: _optionalEventInt(json['attempt'], 'attempt'),
-    error: sdkErrorPayloadFromJson(json['error']),
-  );
-}
-
-ConnectionEventName _connectionEventNameFromCode(
-  int eventType,
-  Map<dynamic, dynamic> json,
-) {
-  if (eventType == EventCode.connectionStateChanged) {
-    return switch (_connectionStateFromWire(json['state'])) {
-      SdkConnectionState.connecting => ConnectionEventName.connecting,
-      SdkConnectionState.connected => ConnectionEventName.connected,
-      SdkConnectionState.ready => ConnectionEventName.ready,
-      SdkConnectionState.reconnecting => ConnectionEventName.reconnecting,
-      SdkConnectionState.disconnected => ConnectionEventName.disconnected,
-    };
-  }
-  return switch (eventType) {
-    EventCode.connectionConnected => ConnectionEventName.connected,
-    EventCode.connectionDisconnected => ConnectionEventName.disconnected,
-    EventCode.connectionReconnecting => ConnectionEventName.reconnecting,
-    EventCode.connectionSyncStateChanged =>
-      ConnectionEventName.syncStateChanged,
-    EventCode.connectionServerError => ConnectionEventName.serverError,
-    EventCode.connectionKickedOff => ConnectionEventName.kickedOff,
-    EventCode.connectionTokenExpired => ConnectionEventName.tokenExpired,
-    _ => throw FormatException(
-        'invalid connection event type: $eventType',
-        eventType,
-      ),
-  };
-}
-
-SdkConnectionState _connectionStateForEvent(
-  ConnectionEventName name,
-  Object? state,
-) {
-  if (state != null) return _connectionStateFromWire(state);
-  return switch (name) {
-    ConnectionEventName.connecting => SdkConnectionState.connecting,
-    ConnectionEventName.connected => SdkConnectionState.connected,
-    ConnectionEventName.ready => SdkConnectionState.ready,
-    ConnectionEventName.reconnecting => SdkConnectionState.reconnecting,
-    ConnectionEventName.syncStateChanged => SdkConnectionState.ready,
-    ConnectionEventName.serverError => SdkConnectionState.connected,
-    ConnectionEventName.disconnected ||
-    ConnectionEventName.reconnectFailed ||
-    ConnectionEventName.kickedOff ||
-    ConnectionEventName.tokenExpired =>
-      SdkConnectionState.disconnected,
-    ConnectionEventName.stateChanged => throw const FormatException(
-        'missing connection state for state_changed event',
-      ),
-  };
-}
-
-SdkConnectionState _connectionStateFromWire(Object? value) {
-  final raw = _requiredEventString(value, 'state').trim().toLowerCase();
-  return switch (raw) {
-    'connecting' => SdkConnectionState.connecting,
-    'connected' => SdkConnectionState.connected,
-    'ready' => SdkConnectionState.ready,
-    'reconnecting' => SdkConnectionState.reconnecting,
-    'disconnected' => SdkConnectionState.disconnected,
-    _ => throw FormatException(
-        'invalid connection state: ${raw.isEmpty ? '<empty>' : raw}',
-        value,
-      ),
-  };
-}
-
 ConversationEvent conversationEventFromCode(
   int eventType,
   Map<dynamic, dynamic> json,
@@ -839,13 +721,6 @@ SyncEvent syncEventFromCode(int eventType, Map<dynamic, dynamic> json) {
         ? sdkErrorPayloadFromJson(json['error'])
         : null,
   );
-}
-
-List<String> stringList(Object? value) {
-  if (value is Iterable) {
-    return value.map((item) => item.toString()).toList(growable: false);
-  }
-  return const [];
 }
 
 Never _invalidEventField(String field, String expected) {

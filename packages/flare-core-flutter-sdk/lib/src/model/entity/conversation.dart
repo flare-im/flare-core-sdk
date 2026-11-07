@@ -30,6 +30,8 @@ final class Conversation {
   final Map<String, String> ext;
   /// wire: `isArchived`. 
   final bool isArchived;
+  /// wire: `isMentionOnly`. Notification preference. None means the sync source did not supply it.
+  final bool? isMentionOnly;
   /// wire: `isMuted`. 
   final bool isMuted;
   /// wire: `isPinned`. 
@@ -98,6 +100,7 @@ final class Conversation {
     this.draft,
     this.ext = const {},
     this.isArchived = false,
+    this.isMentionOnly,
     this.isMuted = false,
     this.isPinned = false,
     this.lastMessage,

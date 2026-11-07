@@ -1,19 +1,17 @@
 /**
  * GENERATED. Do not edit by hand.
  *
- * Contract constants (operations, events, connection states, errors).
+ * Contract constants (operations, events, errors).
  */
-export const ffiContractVersion = 'flare-im-ffi/v1' as const;
+export const ffiContractVersion = 'flare-im-ffi/v2' as const;
 /** Canonical SDK module keys. */
-export type SdkModule = 'session' | 'connection' | 'conversations' | 'message_builder' | 'messages' | 'sync' | 'presence' | 'media' | 'capabilities' | 'events' | 'diagnostics';
+export type SdkModule = 'session' | 'connection' | 'access' | 'update' | 'lifecycle' | 'conversations' | 'message_builder' | 'messages' | 'sync' | 'user' | 'presence' | 'media' | 'capabilities' | 'views' | 'events' | 'diagnostics';
 /** Canonical operation identifiers shared by every platform SDK. */
-export type SdkOperation = 'sdk.create' | 'sdk.init' | 'sdk.uninit' | 'sdk.login' | 'sdk.prepare' | 'sdk.connect' | 'sdk.update_access_token' | 'sdk.set_heartbeat_app_state' | 'sdk.set_heartbeat_nat_timeout' | 'sdk.heartbeat_effective_interval' | 'sdk.logout' | 'sdk.dispose' | 'sdk.hard_reset' | 'sdk.current_user_id' | 'sdk.is_connected' | 'sdk.session_active' | 'connection.get_state' | 'connection.disconnect' | 'connection.notify_network_change' | 'conversation.list' | 'conversation.list_by_query' | 'conversation.list_including_archived' | 'conversation.get' | 'conversation.get_one' | 'conversation.get_group_by_user_ids' | 'conversation.get_multiple' | 'conversation.list_paginated' | 'conversation.list_raw' | 'conversation.bootstrap_home' | 'conversation.open_timeline' | 'conversation.mark_read' | 'conversation.set_pinned' | 'conversation.set_muted' | 'conversation.set_archived' | 'conversation.mark_unread' | 'conversation.delete' | 'conversation.update_draft' | 'conversation.clear_local_chat_history' | 'message_builder.list_catalog' | 'rich_doc_v2.normalize_from_markdown' | 'rich_doc_v2.normalize_from_html' | 'rich_doc_v2.normalize_from_doc_json' | 'message_builder.create_announcement' | 'message_builder.create_audio' | 'message_builder.create_card' | 'message_builder.create_custom' | 'message_builder.create_emoji' | 'message_builder.create_file' | 'message_builder.create_forward' | 'message_builder.create_image' | 'message_builder.create_image_group' | 'message_builder.create_link_card' | 'message_builder.create_location' | 'message_builder.create_mini_program' | 'message_builder.create_notification' | 'message_builder.create_placeholder' | 'message_builder.create_quote' | 'message_builder.create_rich_doc' | 'message_builder.create_schedule' | 'message_builder.create_sticker' | 'message_builder.create_system' | 'message_builder.create_task' | 'message_builder.create_text' | 'message_builder.create_thread_reply' | 'message_builder.create_video' | 'message_builder.create_vote' | 'message_builder.create_with_content' | 'message.create_text' | 'message.dispatch' | 'message.send_no_oss' | 'message.send' | 'message.list' | 'message.recall' | 'message.edit_text_by_message_id' | 'message.delete' | 'message.delete_for_self' | 'message.delete_for_everyone' | 'message.mark_read_and_burn' | 'message.add_reaction' | 'message.remove_reaction' | 'message.pin' | 'message.unpin' | 'message.pin_by_message_id' | 'message.unpin_by_message_id' | 'message.mark' | 'message.mark_with_color' | 'message.unmark' | 'message.mark_by_message_id' | 'message.unmark_by_message_id' | 'message.get' | 'message.get_raw' | 'message.search' | 'message.search_by_query' | 'message.search_in_conversation' | 'message.edit_rich_doc_by_message_id' | 'message.typing' | 'sync.conversation_summaries' | 'sync.conversation_summaries_with_versions' | 'sync.conversation' | 'sync.messages' | 'sync.conversation_history_backfill' | 'presence.get' | 'presence.batch_get' | 'presence.subscribe' | 'media.upload_file' | 'media.upload_image' | 'media.upload_video' | 'media.upload_bytes' | 'media.delete_file' | 'media.get_url' | 'media.temp_download_url' | 'media.resolve_access' | 'media.cache_remote' | 'media.cache_stats' | 'media.set_cache_max_bytes' | 'media.set_cache_root' | 'media.clear_cache' | 'media.user_download_get_subfolder' | 'media.user_download_set_subfolder' | 'media.user_download_get_saved_path' | 'media.user_download_delete_record' | 'media.cancel_user_file_download' | 'media.download_file_to_downloads' | 'capability.list' | 'capability.list_user' | 'capability.dispatch' | 'capability.grant' | 'capability.revoke' | 'event.subscribe' | 'event.subscribe_batch' | 'event.unsubscribe' | 'event.unsubscribe_all' | 'diagnostics.sdk_version' | 'diagnostics.ffi_contract_version' | 'diagnostics.data_root' | 'diagnostics.runtime_health';
+export type SdkOperation = 'sdk.create' | 'sdk.init' | 'sdk.uninit' | 'sdk.login' | 'sdk.prepare' | 'sdk.connect' | 'sdk.update_access_token' | 'sdk.set_connect_token_refresher' | 'sdk.complete_connect_token_refresh' | 'sdk.set_heartbeat_nat_timeout' | 'sdk.heartbeat_effective_interval' | 'sdk.logout' | 'sdk.dispose' | 'sdk.hard_reset' | 'sdk.current_user_id' | 'sdk.is_connected' | 'sdk.session_active' | 'sdk.update_push_token' | 'sdk.clear_push_token' | 'sdk.set_push_permission' | 'sdk.reconcile_push' | 'sdk.push_status' | 'connection.get_status' | 'connection.reconnect_now' | 'connection.disconnect' | 'connection.server_clock' | 'connection.notify_network_change' | 'access.get_status' | 'access.list_access_points' | 'access.pin' | 'access.unpin' | 'access.refresh' | 'access.import_recovery' | 'access.export_diagnostics' | 'update.get_state' | 'update.check' | 'update.download' | 'update.install' | 'update.report_install' | 'update.defer' | 'update.skip' | 'update.mark_prompted' | 'update.set_locale' | 'update.get_resources' | 'lifecycle.set_app_state' | 'conversation.list' | 'conversation.list_by_query' | 'conversation.list_including_archived' | 'conversation.get' | 'conversation.get_one' | 'conversation.get_group_by_user_ids' | 'conversation.get_multiple' | 'conversation.list_paginated' | 'conversation.list_raw' | 'conversation.total_unread' | 'conversation.bootstrap_home' | 'conversation.open_timeline' | 'conversation.mark_read' | 'conversation.set_pinned' | 'conversation.set_muted' | 'conversation.set_archived' | 'conversation.mark_unread' | 'conversation.delete' | 'conversation.update_draft' | 'conversation.clear_local_chat_history' | 'conversation.clear_chat_history_for_self' | 'message_builder.list_catalog' | 'rich_doc_v2.normalize_from_markdown' | 'rich_doc_v2.normalize_from_html' | 'rich_doc_v2.normalize_from_doc_json' | 'message_builder.create_announcement' | 'message_builder.create_audio' | 'message_builder.create_card' | 'message_builder.create_custom' | 'message_builder.create_emoji' | 'message_builder.create_file' | 'message_builder.create_forward' | 'message_builder.create_image' | 'message_builder.create_image_group' | 'message_builder.create_link_card' | 'message_builder.create_location' | 'message_builder.create_mini_program' | 'message_builder.create_notification' | 'message_builder.create_placeholder' | 'message_builder.create_quote' | 'message_builder.create_rich_doc' | 'message_builder.create_schedule' | 'message_builder.create_sticker' | 'message_builder.create_system' | 'message_builder.create_task' | 'message_builder.create_text' | 'message_builder.create_thread_reply' | 'message_builder.create_video' | 'message_builder.create_vote' | 'message_builder.create_with_content' | 'message.create_text' | 'message.dispatch' | 'message.send_no_oss' | 'message.send' | 'message.list' | 'message.recall' | 'message.edit_text_by_message_id' | 'message.delete' | 'message.delete_for_self' | 'message.delete_for_everyone' | 'message.mark_read_and_burn' | 'message.add_reaction' | 'message.remove_reaction' | 'message.pin' | 'message.unpin' | 'message.pin_by_message_id' | 'message.unpin_by_message_id' | 'message.mark' | 'message.mark_with_color' | 'message.unmark' | 'message.mark_by_message_id' | 'message.unmark_by_message_id' | 'message.get' | 'message.get_raw' | 'message.search' | 'message.search_by_query' | 'message.search_in_conversation' | 'message.read_receipt_members' | 'message.edit_rich_doc_by_message_id' | 'message.typing' | 'sync.conversation_summaries' | 'sync.conversation_summaries_with_versions' | 'sync.bootstrap_startup_home' | 'sync.conversation_history_backfill' | 'sync.conversation' | 'sync.messages' | 'user.upsert_profiles' | 'presence.get' | 'presence.batch_get' | 'presence.subscribe' | 'media.upload_file' | 'media.upload_image' | 'media.upload_video' | 'media.upload_bytes' | 'media.delete_file' | 'media.get_url' | 'media.temp_download_url' | 'media.resolve_access' | 'media.cache_remote' | 'media.cache_stats' | 'media.set_cache_max_bytes' | 'media.set_cache_root' | 'media.clear_cache' | 'media.user_download_get_subfolder' | 'media.user_download_set_subfolder' | 'media.user_download_get_saved_path' | 'media.user_download_delete_record' | 'media.user_download_get_directory' | 'media.user_download_set_directory' | 'media.download_to_user_directory' | 'media.cancel_user_file_download' | 'media.download_file_to_downloads' | 'capability.prepare_plugin_command' | 'capability.pending_plugin_command' | 'capability.reconcile_plugin_command' | 'capability.submit_plugin_command' | 'capability.acknowledge_plugin_command' | 'capability.plugin_ui_invoke' | 'capability.plugin_ui_present' | 'capability.plugin_ui_action' | 'capability.plugin_ui_resolve' | 'capability.plugin_ui_catalog' | 'capability.plugin_composer_actions' | 'capability.plugin_detail' | 'capability.plugin_page' | 'capability.plugin_account_entries' | 'capability.plugin_catalog_invalidate' | 'capability.list' | 'capability.list_user' | 'capability.dispatch' | 'capability.grant' | 'capability.revoke' | 'view.timeline.open' | 'view.timeline.load_older' | 'view.timeline.load_newer' | 'view.timeline.jump_to_latest' | 'view.timeline.snapshot' | 'view.conversation_list.open' | 'view.close' | 'event.subscribe' | 'event.subscribe_batch' | 'event.unsubscribe' | 'event.unsubscribe_all' | 'diagnostics.sdk_version' | 'diagnostics.ffi_contract_version' | 'diagnostics.data_root' | 'diagnostics.runtime_health';
 /** Stable machine-readable SDK error codes. */
-export type SdkErrorCode = 'invalidParameter' | 'notInitialized' | 'notConnected' | 'unauthorized' | 'permissionDenied' | 'timeout' | 'networkUnavailable' | 'storageUnavailable' | 'operationCancelled' | 'capabilityUnavailable' | 'internal';
-/** Public connection states exposed by client.connection. */
-export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'ready' | 'reconnecting';
+export type SdkErrorCode = 'capabilityUnavailable' | 'ffiPanic' | 'internal' | 'invalidHandle' | 'invalidParameter' | 'jsonParse' | 'networkUnavailable' | 'networkUncertain' | 'notConnected' | 'notInitialized' | 'nullPointer' | 'operationCancelled' | 'overloaded' | 'permissionDenied' | 'storageUnavailable' | 'timeout' | 'tokenExpired' | 'unauthorized' | 'upgradeRequired';
 /** Event names emitted by the typed event stream. */
-export type SdkEventName = 'burn_scheduled' | 'burned' | 'cache_changed' | 'catalog_changed' | 'changed' | 'connected' | 'connecting' | 'created' | 'custom' | 'deleted' | 'disconnected' | 'disposed' | 'download_progress' | 'edited' | 'event' | 'failed' | 'finished' | 'hard_deleted' | 'init_failed' | 'initialized' | 'initializing' | 'kicked_off' | 'logged_out' | 'login_failed' | 'login_succeeded' | 'marked' | 'pinned' | 'presence_changed' | 'progress' | 'reaction_changed' | 'read_receipt' | 'ready' | 'realtime' | 'recalled' | 'received' | 'received_batch' | 'reconnect_failed' | 'reconnecting' | 'resync_needed' | 'retention_expired' | 'retention_purged' | 'retention_scheduled' | 'send_ack' | 'send_failed' | 'server_error' | 'started' | 'state_changed' | 'sync_state_changed' | 'synced' | 'task_completed' | 'token_expired' | 'typing' | 'unmarked' | 'unpinned' | 'unread_count_changed' | 'updated' | 'upload_progress';
+export type SdkEventName = 'burn_scheduled' | 'burned' | 'cache_changed' | 'catalog_changed' | 'changed' | 'created' | 'custom' | 'deleted' | 'disposed' | 'download_progress' | 'edited' | 'event' | 'failed' | 'finished' | 'hard_deleted' | 'init_failed' | 'initialized' | 'initializing' | 'logged_out' | 'login_failed' | 'login_succeeded' | 'marked' | 'message_sound' | 'pinned' | 'plugin_state_changed' | 'presence_changed' | 'progress' | 'reaction_changed' | 'read_receipt' | 'read_summaries_changed' | 'readiness' | 'realtime' | 'recalled' | 'received' | 'received_batch' | 'resync_needed' | 'retention_expired' | 'retention_purged' | 'retention_scheduled' | 'send_ack' | 'send_failed' | 'started' | 'state_changed' | 'status' | 'switched' | 'sync_state_changed' | 'synced' | 'task_completed' | 'typing' | 'typing_aggregate' | 'unmarked' | 'unpinned' | 'unread_count_changed' | 'updated' | 'upload_progress';
 
 /** Shared error envelope preserved across platform adapters. */
 export interface FlareSdkError {
@@ -34,7 +32,8 @@ export const SdkOperations = {
   sdkPrepare: 'sdk.prepare',
   sdkConnect: 'sdk.connect',
   sdkUpdateAccessToken: 'sdk.update_access_token',
-  sdkSetHeartbeatAppState: 'sdk.set_heartbeat_app_state',
+  sdkSetConnectTokenRefresher: 'sdk.set_connect_token_refresher',
+  sdkCompleteConnectTokenRefresh: 'sdk.complete_connect_token_refresh',
   sdkSetHeartbeatNatTimeout: 'sdk.set_heartbeat_nat_timeout',
   sdkHeartbeatEffectiveInterval: 'sdk.heartbeat_effective_interval',
   sdkLogout: 'sdk.logout',
@@ -43,7 +42,26 @@ export const SdkOperations = {
   sdkCurrentUserId: 'sdk.current_user_id',
   sdkIsConnected: 'sdk.is_connected',
   sdkSessionActive: 'sdk.session_active',
-  connectionGetState: 'connection.get_state',
+  connectionGetStatus: 'connection.get_status',
+  connectionReconnectNow: 'connection.reconnect_now',
+  accessGetStatus: 'access.get_status',
+  accessListAccessPoints: 'access.list_access_points',
+  accessPin: 'access.pin',
+  accessUnpin: 'access.unpin',
+  accessRefresh: 'access.refresh',
+  accessImportRecovery: 'access.import_recovery',
+  accessExportDiagnostics: 'access.export_diagnostics',
+  updateGetState: 'update.get_state',
+  updateCheck: 'update.check',
+  updateDownload: 'update.download',
+  updateInstall: 'update.install',
+  updateReportInstall: 'update.report_install',
+  updateDefer: 'update.defer',
+  updateSkip: 'update.skip',
+  updateMarkPrompted: 'update.mark_prompted',
+  updateSetLocale: 'update.set_locale',
+  updateGetResources: 'update.get_resources',
+  lifecycleSetAppState: 'lifecycle.set_app_state',
   connectionDisconnect: 'connection.disconnect',
   connectionNotifyNetworkChange: 'connection.notify_network_change',
   conversationList: 'conversation.list',
@@ -174,17 +192,11 @@ export const SdkEvents = {
   lifecycleLoginFailed: 'login_failed',
   lifecycleLoggedOut: 'logged_out',
   lifecycleDisposed: 'disposed',
-  connectionConnecting: 'connecting',
-  connectionConnected: 'connected',
-  connectionDisconnected: 'disconnected',
-  connectionReconnecting: 'reconnecting',
-  connectionReconnectFailed: 'reconnect_failed',
-  connectionReady: 'ready',
-  connectionStateChanged: 'state_changed',
+  connectionStatus: 'status',
   connectionSyncStateChanged: 'sync_state_changed',
-  connectionServerError: 'server_error',
-  connectionKickedOff: 'kicked_off',
-  connectionTokenExpired: 'token_expired',
+  accessSwitched: 'switched',
+  accessChanged: 'changed',
+  updateState: 'state',
   messageReceived: 'received',
   messageReceivedBatch: 'received_batch',
   messageSendAck: 'send_ack',

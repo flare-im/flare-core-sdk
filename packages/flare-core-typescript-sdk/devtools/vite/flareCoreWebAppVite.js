@@ -2,8 +2,17 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { promises as fsPromises } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { flareWebUpdateBuild, resolveWebBuildId, writeWebUpdateFiles } from "./flareWebUpdateVite.js";
 const wasmBindingPublicPath = "/flare-core-wasm/";
 const wasmBindingFiles = /* @__PURE__ */ new Set(["flare_im_core_sdk.js", "flare_im_core_sdk_bg.wasm"]);
+// wasm-bindgen puts every crate's inline JS (`#[wasm_bindgen(module = ...)]`) under
+// snippets/<crate>-<hash>/ and the glue imports it relative to itself, so the whole tree ships
+// beside the two entry files. Which crates contribute snippets changes with the engine build.
+const wasmBindingSnippetsDir = "snippets";
+// This helper ships inside @flare-im/sdk (devtools/vite): the SDK sources are always two levels
+// up from here, wherever the app lives and however the package was linked or installed.
+const sdkPackageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const vueImUiAssetPublicPath = "/flare-im-ui-assets/";
 const devMediaApiProxyPrefix = "/__flare-media-api";
 const devStorageProxyPrefix = "/__flare-storage";
@@ -22,6 +31,25 @@ function pickEnvList(env, key, fallback) {
   const value = env[key];
   if (typeof value !== "string" || !value.trim()) return [...fallback];
   return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+/**
+ * Build-time app identity for CONNECT: the app's package.json version and an integer build number
+ * from VITE_FLARE_APP_BUILD. The web bridge reads them as __FLARE_APP_VERSION__ / __FLARE_APP_BUILD__.
+ */
+function appIdentityDefines(appDir, env) {
+  let version = "";
+  try {
+    const manifest = JSON.parse(fs.readFileSync(path.join(appDir, "package.json"), "utf8"));
+    version = typeof manifest.version === "string" ? manifest.version.trim() : "";
+  } catch {
+    version = "";
+  }
+  const build = Number(pickEnv(env, "VITE_FLARE_APP_BUILD", ""));
+  return {
+    __FLARE_APP_VERSION__: version ? JSON.stringify(version) : "undefined",
+    __FLARE_APP_BUILD__: Number.isSafeInteger(build) && build >= 0 && pickEnv(env, "VITE_FLARE_APP_BUILD", "") ? String(build) : "undefined",
+    __FLARE_APP_CHANNEL__: pickEnv(env, "VITE_FLARE_APP_CHANNEL", "") ? JSON.stringify(pickEnv(env, "VITE_FLARE_APP_CHANNEL", "")) : "undefined"
+  };
 }
 function createMediaProxyTable(env) {
   const apiPrefix = pickEnv(env, "VITE_MEDIA_API_PROXY_PREFIX", devMediaApiProxyPrefix).replace(/\/$/, "");
@@ -45,15 +73,53 @@ function createMediaProxyTable(env) {
 // "wasm.__wasm_bindgen_func_elem_NNNN is not a function"（生产实测）。
 // 这里按两个文件的内容算一个构建 id 注入 import.meta.env.VITE_FLARE_WASM_BUILD_ID，
 // 加载端把它挂进查询串，缓存键随内容变，旧缓存自然失效。
+function listFilesUnder(root, prefix = "") {
+  let entries;
+  try {
+    entries = fs.readdirSync(path.join(root, prefix), { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  return entries.flatMap((entry) => {
+    const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) return listFilesUnder(root, relativePath);
+    return entry.isFile() ? [relativePath] : [];
+  });
+}
+/** Every file the app serves from the wasm-bindgen output: the two entry files and all snippets. */
+function wasmBindingAssetFiles(wasmBindingRoot) {
+  const snippets = listFilesUnder(path.join(wasmBindingRoot, wasmBindingSnippetsDir))
+    .map((relativePath) => `${wasmBindingSnippetsDir}/${relativePath}`);
+  return [...wasmBindingFiles, ...snippets].sort();
+}
 function wasmBindingBuildId(wasmBindingRoot) {
   const hash = crypto.createHash("sha1");
-  for (const fileName of Array.from(wasmBindingFiles).sort()) {
+  for (const fileName of wasmBindingAssetFiles(wasmBindingRoot)) {
     const filePath = path.join(wasmBindingRoot, fileName);
     if (!fs.existsSync(filePath)) return "";
     hash.update(fileName);
     hash.update(fs.readFileSync(filePath));
   }
   return hash.digest("hex").slice(0, 12);
+}
+/** The query the page asks for the two entry files with; snippets are imported relative to them, without one. */
+function wasmBindingAssetQueries(buildId) {
+  if (!buildId) return {};
+  const directory = wasmBindingPublicPath.replace(/^\//, "");
+  return Object.fromEntries([...wasmBindingFiles].map((fileName) => [`${directory}${fileName}`, `?v=${encodeURIComponent(buildId)}`]));
+}
+/** The file behind a request under /flare-core-wasm/, or null when it is not a binding asset. */
+function resolveWasmBindingAsset(wasmBindingRoot, fileName) {
+  if (wasmBindingFiles.has(fileName)) return path.join(wasmBindingRoot, fileName);
+  if (!fileName.startsWith(`${wasmBindingSnippetsDir}/`)) return null;
+  const snippetsRoot = path.resolve(wasmBindingRoot, wasmBindingSnippetsDir);
+  const resolved = path.resolve(snippetsRoot, fileName.slice(wasmBindingSnippetsDir.length + 1));
+  return resolved.startsWith(`${snippetsRoot}${path.sep}`) ? resolved : null;
+}
+function contentTypeForWasmBindingAsset(fileName) {
+  if (fileName.endsWith(".wasm")) return "application/wasm";
+  if (fileName.endsWith(".js") || fileName.endsWith(".mjs")) return "text/javascript; charset=utf-8";
+  return "application/octet-stream";
 }
 function flareWasmBindingAssets(wasmBindingRoot, appDir) {
   return {
@@ -65,17 +131,19 @@ function flareWasmBindingAssets(wasmBindingRoot, appDir) {
           next();
           return;
         }
-        const fileName = decodeURIComponent(requestPath.slice(wasmBindingPublicPath.length));
-        if (!wasmBindingFiles.has(fileName)) {
+        let fileName = "";
+        try {
+          fileName = decodeURIComponent(requestPath.slice(wasmBindingPublicPath.length));
+        } catch {
+          fileName = "";
+        }
+        const filePath = fileName ? resolveWasmBindingAsset(wasmBindingRoot, fileName) : null;
+        if (!filePath) {
           response.statusCode = 404;
           response.end("Unknown Flare WASM binding asset");
           return;
         }
-        const filePath = path.join(wasmBindingRoot, fileName);
-        response.setHeader(
-          "Content-Type",
-          fileName.endsWith(".wasm") ? "application/wasm" : "text/javascript; charset=utf-8"
-        );
+        response.setHeader("Content-Type", contentTypeForWasmBindingAsset(fileName));
         response.setHeader("Cache-Control", "no-cache");
         fs.createReadStream(filePath).on("error", (error) => {
           response.statusCode = error.code === "ENOENT" ? 404 : 500;
@@ -87,11 +155,13 @@ function flareWasmBindingAssets(wasmBindingRoot, appDir) {
       const outputDir = options.dir ? path.resolve(options.dir) : path.resolve(appDir, "dist");
       const targetDir = path.join(outputDir, wasmBindingPublicPath.replace(/^\/|\/$/g, ""));
       await fsPromises.mkdir(targetDir, { recursive: true });
+      await fsPromises.rm(path.join(targetDir, wasmBindingSnippetsDir), { force: true, recursive: true });
       await Promise.all(
-        Array.from(
-          wasmBindingFiles,
-          (fileName) => fsPromises.copyFile(path.join(wasmBindingRoot, fileName), path.join(targetDir, fileName))
-        )
+        wasmBindingAssetFiles(wasmBindingRoot).map(async (fileName) => {
+          const target = path.join(targetDir, fileName);
+          await fsPromises.mkdir(path.dirname(target), { recursive: true });
+          await fsPromises.copyFile(path.join(wasmBindingRoot, fileName), target);
+        })
       );
     }
   };
@@ -213,11 +283,33 @@ function nodeModuleChunk(id) {
   }
   return fallbackVendorChunk(normalized);
 }
+function realPath(target) {
+  try {
+    return fs.realpathSync(target);
+  } catch {
+    return path.resolve(target);
+  }
+}
+/** The nearest directory above `start` holding the engine checkout, or null outside a workspace. */
+function findWorkspaceRoot(start) {
+  for (let dir = path.resolve(start); ; dir = path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, "flare-core-sdk-engine/bindings/wasm"))) return dir;
+    if (path.dirname(dir) === dir) return null;
+  }
+}
 function createFlareCoreWebAppViteConfig(options) {
   const appDir = options.appDir;
-  const repoRoot = path.resolve(appDir, "../../..");
-  const wasmBindingRoot = path.resolve(repoRoot, "flare-core-sdk-engine/bindings/wasm/pkg");
-  const typeScriptSdkRoot = path.resolve(appDir, "../../packages/flare-core-typescript-sdk/src");
+  const sdkRoot = realPath(sdkPackageRoot);
+  // The workspace holds the engine (wasm binding) and flare-im-design next to flare-core-sdk.
+  // Found from the SDK package first (a linked or source SDK sits inside it), then from the app;
+  // the app's own depth in the tree does not matter.
+  const repoRoot = path.resolve(
+    options.workspaceRoot ?? findWorkspaceRoot(sdkRoot) ?? findWorkspaceRoot(appDir) ?? appDir
+  );
+  const wasmBindingRoot = path.resolve(
+    options.wasmBindingRoot ?? path.join(repoRoot, "flare-core-sdk-engine/bindings/wasm/pkg")
+  );
+  const typeScriptSdkRoot = path.resolve(options.sdkSourceRoot ?? path.join(sdkRoot, "src"));
   const vueImUiRoot = path.resolve(repoRoot, "flare-im-design/packages/vue-im-ui/src");
   // Emoji/sticker resources are centralized at the flare-im-design top level
   // (single cross-platform source), served here at /flare-im-ui-assets/.
@@ -282,14 +374,22 @@ function createFlareCoreWebAppViteConfig(options) {
       ];
   return options.defineConfig(({ mode }) => {
     const env = options.loadEnv(mode, appDir, "VITE_");
+    const wasmBuildId = wasmBindingBuildId(wasmBindingRoot);
     return {
       plugins: [
         options.vuePlugin(),
         flareWasmBindingAssets(wasmBindingRoot, appDir),
-        flareVueImUiAssets(vueImUiAssetRoot, appDir)
+        flareVueImUiAssets(vueImUiAssetRoot, appDir),
+        ...(options.webUpdate ? [flareWebUpdateBuild({
+          ...options.webUpdate,
+          buildId: resolveWebBuildId(env),
+          pinned: [wasmBindingPublicPath.replace(/^\/|\/$/g, "")],
+          assetQueries: wasmBindingAssetQueries(wasmBuildId)
+        })] : [])
       ],
       define: {
-        "import.meta.env.VITE_FLARE_WASM_BUILD_ID": JSON.stringify(wasmBindingBuildId(wasmBindingRoot)),
+        "import.meta.env.VITE_FLARE_WASM_BUILD_ID": JSON.stringify(wasmBuildId),
+        ...appIdentityDefines(appDir, env),
         ...(options.extraDefine ?? {})
       },
       resolve: {
@@ -323,7 +423,7 @@ function createFlareCoreWebAppViteConfig(options) {
         port: options.serverPort,
         strictPort: false,
         fs: {
-          allow: [repoRoot]
+          allow: Array.from(new Set([repoRoot, path.dirname(typeScriptSdkRoot), path.resolve(appDir)]))
         },
         proxy: createMediaProxyTable(env)
       },
@@ -359,5 +459,8 @@ function createFlareCoreWebAppViteConfig(options) {
   });
 }
 export {
-  createFlareCoreWebAppViteConfig
+  createFlareCoreWebAppViteConfig,
+  flareWebUpdateBuild,
+  resolveWebBuildId,
+  writeWebUpdateFiles
 };

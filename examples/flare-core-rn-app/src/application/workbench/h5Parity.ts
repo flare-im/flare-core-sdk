@@ -88,7 +88,15 @@ export const RN_CAPABILITY_OPERATIONS = [
 
 export type RnCapabilityOperation = (typeof RN_CAPABILITY_OPERATIONS)[number];
 
-export const RN_CONNECTION_OPERATIONS = ['state', 'disconnect', 'network_change'] as const;
+// Network and foreground reports are not lab operations: the SDK's platform lifecycle owns them.
+export const RN_CONNECTION_OPERATIONS = [
+  'status',
+  'reconnect_now',
+  'disconnect',
+  'access_status',
+  'access_points',
+  'access_diagnostics',
+] as const;
 export type RnConnectionOperation = (typeof RN_CONNECTION_OPERATIONS)[number];
 
 export const RN_SESSION_OPERATIONS = [
@@ -96,7 +104,6 @@ export const RN_SESSION_OPERATIONS = [
   'session_active',
   'runtime_health',
   'heartbeat_interval',
-  'heartbeat_app_state',
   'heartbeat_nat_timeout',
   'update_access_token',
 ] as const;

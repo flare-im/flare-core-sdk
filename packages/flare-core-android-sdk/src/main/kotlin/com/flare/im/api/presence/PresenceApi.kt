@@ -1,6 +1,5 @@
 package com.flare.im.api.presence
 
-import com.flare.im.api.ConnectionState
 import com.flare.im.callback.*
 import com.flare.im.listener.*
 import com.flare.im.model.catalog.*
@@ -12,6 +11,7 @@ import com.flare.im.model.common.error.*
 import com.flare.im.model.content.*
 import com.flare.im.model.entity.*
 import com.flare.im.model.event.*
+import com.flare.im.model.event.access.*
 import com.flare.im.model.event.connection.*
 import com.flare.im.model.event.conversation.*
 import com.flare.im.model.event.lifecycle.*

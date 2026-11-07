@@ -1,9 +1,9 @@
 // GENERATED. Do not edit by hand.
-import { NativeBridge, NativeCallMap } from '../contract/BridgeContract';
-import type { ConversationsApi } from '../api/modules/conversations';
-import { BootstrapHomeTimelineRequest, Conversation, ConversationListQuery, ConversationTimelineSnapshot, ConversationTotalUnreadResponse, HomeTimelineSnapshot, ListConversationsResponse, OpenConversationTimelineRequest } from '../model';
-import { invokeBool, invokeConnectionState, invokeConversation, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError } from './NativeInvoke';
-import { bootstrapHomeTimelineRequestToMap, conversationFromJson, conversationListQueryToMap, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, openConversationTimelineRequestToMap, sendAckFromJson, sendMessageRequestToMap, updateConversationDraftRequestToMap } from './WireCodec';
+import { NativeBridge, NativeCallMap } from '../../contract/BridgeContract';
+import type { ConversationsApi } from '../../api/modules/conversations';
+import { BootstrapHomeTimelineRequest, Conversation, ConversationListQuery, ConversationTimelineSnapshot, ConversationTotalUnreadResponse, HomeTimelineSnapshot, ListConversationsResponse, OpenConversationTimelineRequest } from '../../model';
+import { invokeBool, invokeConversation, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError } from '../codec/NativeInvoke';
+import { bootstrapHomeTimelineRequestToMap, conversationFromJson, conversationListQueryToMap, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, openConversationTimelineRequestToMap, sendAckFromJson, sendMessageRequestToMap, updateConversationDraftRequestToMap } from '../codec/WireCodec';
 
 export class DefaultConversationsApi implements ConversationsApi {
   constructor(private readonly bridge: NativeBridge) {}
@@ -86,5 +86,9 @@ export class DefaultConversationsApi implements ConversationsApi {
 
   async clearLocalChatHistory(request: Record<string, Object>): Promise<void> {
     await invokeVoid(this.bridge, NativeCallMap.conversationClearLocalChatHistory, request);
+  }
+
+  async clearChatHistoryForSelf(request: Record<string, Object>): Promise<void> {
+    await invokeVoid(this.bridge, NativeCallMap.conversationClearChatHistoryForSelf, request);
   }
 }

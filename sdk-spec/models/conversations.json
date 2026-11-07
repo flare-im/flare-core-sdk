@@ -401,6 +401,13 @@
           "description": "Whether current user muted the conversation."
         },
         {
+          "name": "isMentionOnly",
+          "wireName": "isMentionOnly",
+          "type": "Boolean",
+          "required": false,
+          "description": "Whether alerts are limited to mentions of the current user. Omitted by older servers."
+        },
+        {
           "name": "isArchived",
           "wireName": "isArchived",
           "type": "Boolean",

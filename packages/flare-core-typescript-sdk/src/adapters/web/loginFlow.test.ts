@@ -48,10 +48,13 @@ describe("web login flow (raw SDK)", () => {
     const raw = new WebFlareImClient(bridge);
 
     await raw.init({
-      wsUrl: "ws://127.0.0.1:50051",
+      access: {
+        trustMode: "development",
+        developmentEndpoints: { wsUrl: "ws://127.0.0.1:50051", coreApiUrl: "http://127.0.0.1:50050" },
+      },
       dataUrl: "idb://flare-core-web-app",
       tenantId: "0",
-      httpUrl: "http://127.0.0.1:50050",
+      installPlatformLifecycle: false,
     });
     await raw.events.subscribeEvents({
       sources: ["lifecycle", "connection", "message", "conversation", "sync", "presence", "media", "capability"],
@@ -64,7 +67,7 @@ describe("web login flow (raw SDK)", () => {
       raw.currentUserId(),
       raw.sessionActive(),
       raw.isConnected(),
-      raw.connection.getConnectionState(),
+      raw.connection.getStatus(),
     ]);
 
     const ops = operations(bridge.calls);
@@ -75,7 +78,17 @@ describe("web login flow (raw SDK)", () => {
     expect(ops).toContain("sdk.current_user_id");
     expect(ops).toContain("sdk.session_active");
     expect(ops).toContain("sdk.is_connected");
-    expect(ops).toContain("connection.get_state");
+    expect(ops).toContain("connection.get_status");
+    expect(bridge.calls[0]?.request).not.toHaveProperty("installPlatformLifecycle");
+    await expect(raw.connection.getStatus()).resolves.toEqual({
+      phase: "online",
+      quality: "good",
+      accessPointId: "development",
+      protocol: "ws",
+      rttMs: 12,
+      attempt: 0,
+      developmentMode: true,
+    });
   });
 });
 
@@ -110,9 +123,12 @@ describe.skipIf(!wasmPkgAvailable())("web login flow (wasm integration)", () => 
     const raw = new WebFlareImClient(new WasmNativeBridge({ runtime }));
     await expect(
       raw.init({
-        wsUrl: "ws://127.0.0.1:50051",
-        httpUrl: "http://127.0.0.1:50050",
+        access: {
+          trustMode: "development",
+          developmentEndpoints: { wsUrl: "ws://127.0.0.1:50051", coreApiUrl: "http://127.0.0.1:50050" },
+        },
         tenantId: "0",
+        installPlatformLifecycle: false,
       }),
     ).resolves.toBeUndefined();
   });
@@ -137,12 +153,14 @@ describe.skipIf(!wasmPkgAvailable())("web login flow (wasm integration)", () => 
     expect(outcome).not.toContain("binding operation is not implemented");
   });
 
+  // Link failures the core recovers from (offline, unreachable access points, overload) never
+  // fail login; only terminal errors such as a configuration error reach the caller.
   it("wasm bridge surfaces runtime login errors instead of dropping them", async () => {
     const raw = new WebFlareImClient(new WasmNativeBridge({
       runtime: {
         invoke(operation) {
           if (operation === "sdk.login") {
-            throw new Error("CONNECTION_FAILED: WebSocket unavailable");
+            throw new Error("CONFIGURATION_ERROR: access is not configured");
           }
           return null;
         },
@@ -151,6 +169,6 @@ describe.skipIf(!wasmPkgAvailable())("web login flow (wasm integration)", () => 
     }));
     await expect(
       raw.login({ userId: "hugo", token: "probe-token" }),
-    ).rejects.toThrow(/CONNECTION_FAILED|sdk\.error|WebSocket/i);
+    ).rejects.toThrow(/CONFIGURATION_ERROR|sdk\.error|access is not configured/i);
   });
 });

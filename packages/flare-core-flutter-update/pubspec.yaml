@@ -1,0 +1,35 @@
+name: flare_core_flutter_update
+description: >-
+  Flutter host side of the Flare update center: runs the engine's install plans
+  through the native installers and opens links on the desktop. The update flow
+  itself lives in the engine and in the controller of flare_core_flutter_sdk.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flare_core_flutter_sdk:
+    path: ../flare-core-flutter-sdk
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.flare.im.update.flutter
+        pluginClass: FlareCoreFlutterUpdatePlugin
+      ios:
+        pluginClass: FlareCoreFlutterUpdatePlugin
+        sharedDarwinSource: true
+      macos:
+        pluginClass: FlareCoreFlutterUpdatePlugin
+        sharedDarwinSource: true

@@ -60,6 +60,7 @@ SDK 层会话类型：内部统一使用，从 proto ConversationSummary 获取�
 | `draft` | `draft` | `String` | no |  |
 | `ext` | `ext` | `StringMap` | yes | 扩展键值（与 proto ext 对应） |
 | `isArchived` | `isArchived` | `Boolean` | yes |  |
+| `isMentionOnly` | `isMentionOnly` | `Boolean` | no | Notification preference. None means the sync source did not supply it. |
 | `isMuted` | `isMuted` | `Boolean` | yes |  |
 | `isPinned` | `isPinned` | `Boolean` | yes |  |
 | `lastMessage` | `lastMessage` | `MessagePreview` | no |  |
@@ -331,18 +332,6 @@ First usable home snapshot plus diagnostics about the startup sync path.
 
 Session utility request and response models.
 
-### Enums
-
-- `HeartbeatAppState`: Application visibility state used by adaptive heartbeat scheduling. Values: `foreground`, `background`
-
-### SetHeartbeatAppStateRequest
-
-Runtime app visibility update for adaptive heartbeat scheduling.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `appState` | `appState` | `HeartbeatAppState` | yes | Current application visibility state. |
-
 ### SetHeartbeatNatTimeoutRequest
 
 Runtime NAT timeout hint for adaptive heartbeat scheduling. Omit or pass null to clear the hint.
@@ -361,17 +350,38 @@ Currently effective heartbeat interval for diagnostics and platform observabilit
 | `intervalMs` | `intervalMs` | `UInt64` | no | Effective heartbeat interval in milliseconds when connected. |
 | `intervalSecs` | `intervalSecs` | `UInt64` | no | Effective heartbeat interval in seconds when connected. |
 
+### SetConnectTokenRefresherRequest
+
+Installs or removes the host's connect token refresher at the native boundary. Platform packages build it from their one host function; hosts do not send it themselves.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `enabled` | `enabled` | `Boolean` | yes | Whether a refresher is installed. |
+
+### CompleteConnectTokenRefreshRequest
+
+Answer to one connect token refresh request.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `requestId` | `requestId` | `UInt64` | yes | Request id the core asked with. |
+| `token` | `token` | `String` | no | The new connect token; omitted or empty when none could be obtained. |
+
 ## Connection
 
-Connection lifecycle requests and responses.
+Connection status, network-change notifications and the server clock.
 
 ### Enums
 
-- `NetworkInterfaceKind`: Standardized platform network interface kind for active reconnect hints. Values: `unknown`, `wifi`, `cellular`, `ethernet`, `other`
+- `NetworkInterfaceKind`: Standardized platform network interface kind, part of the local network fingerprint. Values: `unknown`, `wifi`, `cellular`, `ethernet`, `other`
+
+- `ConnectionPhase`: Where the link supervisor is: the one connection state hosts and the Kit ConnectionNotice read. Values: `idle`, `connecting`, `syncing`, `online`, `switching`, `reconnecting`, `waitingForNetwork`, `serviceUnavailable`, `actionRequired`
+
+- `ConnectionQuality`: Line quality while online. Neither value shows a banner; poor shows on the diagnostics page. Values: `good`, `poor`
 
 ### NetworkChangeRequest
 
-Platform network-change notification used to trigger active reconnect.
+Platform network-change notification. The link supervisor alone decides whether and how to reconnect.
 
 | Field | Wire name | Type | Required | Description |
 |-------|-----------|------|----------|-------------|
@@ -380,14 +390,25 @@ Platform network-change notification used to trigger active reconnect.
 | `expensive` | `expensive` | `Boolean` | no | Whether the active route is considered expensive by the platform. |
 | `metered` | `metered` | `Boolean` | no | Whether the active route is metered. |
 | `reason` | `reason` | `String` | no | Optional platform reason string for diagnostics. |
+| `fingerprintHint` | `fingerprintHint` | `String` | no | Coarse network identity (native: Wi-Fi gateway prefix or cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID. |
 
-### NetworkChangeResponse
+### ConnectionStatus
 
-Result of handling a platform network-change notification.
+Payload of connection://status and the value of connection.getStatus. Every field is present (null without a value): hosts replace their copy whole on every event and hand it to the Kit ConnectionNotice unchanged.
 
 | Field | Wire name | Type | Required | Description |
 |-------|-----------|------|----------|-------------|
-| `reconnected` | `reconnected` | `Boolean` | yes | Whether the SDK had an active session and attempted reconnect. |
+| `phase` | `phase` | `ConnectionPhase` | yes | Where the link supervisor is. |
+| `quality` | `quality` | `ConnectionQuality` | no | Line quality; set only while online. |
+| `accessPointId` | `accessPointId` | `String` | no | Current (or connecting) access point. |
+| `cellId` | `cellId` | `String` | no | Cell of the current access point. |
+| `regionId` | `regionId` | `String` | no | Region of the current access point. |
+| `protocol` | `protocol` | `String` | no | Transport of the current connection: quic or ws. |
+| `rttMs` | `rttMs` | `UInt32` | no | Latest heartbeat round trip (the handshake time before the first sample). |
+| `attempt` | `attempt` | `UInt32` | yes | Which round of the current recovery this is; zero once online. |
+| `nextRetryAt` | `nextRetryAt` | `Int64` | no | When the next round starts: Unix milliseconds on the device clock (not the server clock, not a delay). |
+| `reason` | `reason` | `String` | no | actionRequired: kicked, expired, upgradeRequired or tenantUnavailable. switching: failure, drain, failback, manual or manifest. |
+| `developmentMode` | `developmentMode` | `Boolean` | yes | Endpoints come from development-mode configuration: the Kit shows its development badge in every phase. |
 
 ### ServerClockResponse
 
@@ -397,6 +418,376 @@ The core's estimate of how far the server clock is from this device's.
 |-------|-----------|------|----------|-------------|
 | `offsetMs` | `offsetMs` | `Int64` | yes | Server clock minus device clock, in milliseconds; 0 until estimated. |
 | `estimated` | `estimated` | `Boolean` | yes | Whether the offset rests on a server frame received this session. |
+
+## Access
+
+Access directory status, access point health, manual pinning, manifest refresh, recovery links and access events.
+
+### AccessPin
+
+A manual access point pin.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `accessPointId` | `accessPointId` | `String` | yes | The pinned access point. |
+| `expiresAtMs` | `expiresAtMs` | `Int64` | yes | When the pin lapses, Unix milliseconds; an app restart also clears it. |
+
+### AccessPinRequest
+
+Pins one access point of the home cell.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `accessPointId` | `accessPointId` | `String` | yes | Access point to pin, as listed by access.listAccessPoints. |
+
+### AccessConnectAck
+
+Diagnostics the gateway returned in CONNECT_ACK for the current connection; shown only, nothing acts on them.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `gatewayId` | `gatewayId` | `String` | no | Gateway instance serving the connection. |
+| `accessPointId` | `accessPointId` | `String` | no | Access point the server reports for the connection, when its gateway is configured with one. |
+| `accessSerial` | `accessSerial` | `UInt64` | no | Newest access manifest serial the server knows. |
+| `heartbeatIntervalHintSec` | `heartbeatIntervalHintSec` | `UInt32` | no | Gateway heartbeat interval in seconds; the heartbeat itself follows the access policy. |
+| `accessPointMismatch` | `accessPointMismatch` | `Boolean` | yes | The server reports a different access point than the client chose; logged and counted, the connection stays up. |
+
+### AccessStatus
+
+Access directory and current link summary for the diagnostics page.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `loaded` | `loaded` | `Boolean` | yes | Whether the directory holds a usable manifest. False means there is no access point to connect to until bootstrap or a recovery link brings one. |
+| `serial` | `serial` | `UInt64` | yes | Serial of the loaded access manifest; 0 before loading. |
+| `source` | `source` | `String` | no | Where the manifest came from: seed, https:<mirror base>, wellKnown:<apId>, recovery, development, or none when the directory is empty. A restart keeps the original source. |
+| `stale` | `stale` | `Boolean` | yes | Whether the manifest is past expiresAtMs: it still connects, and refresh retries every 10 minutes. |
+| `developmentMode` | `developmentMode` | `Boolean` | yes | Endpoints come from development-mode configuration. |
+| `issuedAtMs` | `issuedAtMs` | `Int64` | no | When the manifest was issued, Unix milliseconds; absent with an empty directory. |
+| `expiresAtMs` | `expiresAtMs` | `Int64` | no | When the manifest expires, Unix milliseconds; absent with an empty directory. |
+| `fetchedAtMs` | `fetchedAtMs` | `Int64` | no | When the manifest reached this device, Unix milliseconds; absent for a seed or development mode. |
+| `regionId` | `regionId` | `String` | no | Home region. |
+| `cellId` | `cellId` | `String` | no | Home cell. |
+| `keystateSerial` | `keystateSerial` | `UInt64` | no | Serial of the loaded signing key state. |
+| `accessPointId` | `accessPointId` | `String` | no | Access point the IM connection is on. |
+| `protocol` | `protocol` | `String` | no | Transport of the IM connection: quic or ws. |
+| `pinned` | `pinned` | `AccessPin` | no | The manual pin, when one is in force. |
+| `connectAck` | `connectAck` | `AccessConnectAck` | no | CONNECT_ACK diagnostics of the current connection; absent without one. |
+| `refresh` | `refresh` | `AccessRefreshStatus` | no | Manifest refresh progress; absent in development mode. |
+| `recovering` | `recovering` | `AccessRecoveringStatus` | no | Present only while every access point has failed and recovery is running. |
+
+### AccessRefreshStatus
+
+Progress of the periodic manifest refresh.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `lastAttemptAtMs` | `lastAttemptAtMs` | `Int64` | no | When the last round ran, Unix milliseconds. |
+| `lastSuccessAtMs` | `lastSuccessAtMs` | `Int64` | no | When a source last gave a trusted answer, Unix milliseconds. |
+| `lastOutcome` | `lastOutcome` | `String` | no | Outcome of the last round: adopted, upToDate, oldValues or failed; absent before the first round. |
+| `nextAtMs` | `nextAtMs` | `Int64` | no | When the next round runs, Unix milliseconds; absent while recovering without a network. |
+
+### AccessRecoveringStatus
+
+Recovery state while every access point has failed.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `sinceMs` | `sinceMs` | `Int64` | yes | When recovery began, Unix milliseconds. |
+| `rounds` | `rounds` | `UInt32` | yes | Bootstrap rounds run so far. |
+| `nextRoundAtMs` | `nextRoundAtMs` | `Int64` | no | When the next round runs, Unix milliseconds; absent while the device has no network. |
+
+### AccessRefreshAttempt
+
+One source tried during a refresh round. Sources the round never reached are not listed.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `source` | `source` | `String` | yes | The source: https:<base>, wellKnown:<apId> or doh:<resolver>. |
+| `tier` | `tier` | `String` | yes | Tier: mirror, wellKnown, pointer (a mirror resolved through DoH) or resolver (the DoH resolver itself). |
+| `document` | `document` | `String` | yes | Document fetched: access, keys or pointer. |
+| `result` | `result` | `String` | yes | Result: adopted, notModified, sameSerial, olderSerial, rejected, failed or resolved. |
+| `code` | `code` | `String` | no | Stable cross-platform code of a rejection or failure: badSignature, rollback, keyCert.expired, revoked, wrongPayloadType, wrongBootstrapId, tooLarge, malformedEnvelope, invalidPayload, unknownKey, unsupportedSchema, noNetwork, unreachable, tls, timeout, cancelled or http.<status>. |
+| `serial` | `serial` | `UInt64` | no | Serial of the document, when one was read. |
+
+### AccessRefreshReport
+
+Result of one refresh round.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `outcome` | `outcome` | `String` | yes | adopted (a new manifest was taken), upToDate (a source confirmed there is no update), oldValues (notified mode only got old values; a manual refresh never reports it), failed (no source gave a trusted answer) or skipped (development mode). |
+| `mode` | `mode` | `String` | yes | Round mode: background, notified or recovering. |
+| `serial` | `serial` | `UInt64` | yes | Directory serial when the round ended. |
+| `source` | `source` | `String` | no | Source of the adopted manifest, in the form of AccessStatus.source; absent when nothing was adopted. |
+| `keystateSerial` | `keystateSerial` | `UInt64` | no | Serial of the current key state document. |
+| `attempts` | `attempts` | `AccessRefreshAttemptList` | yes | Every source tried, in order. |
+
+### AccessImportRecoveryRequest
+
+Imports a recovery link.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `link` | `link` | `String` | yes | The flare-recover:// deep link or QR code content, verbatim. |
+
+### AccessRecoveryImport
+
+Result of importing a recovery link.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `outcome` | `outcome` | `String` | yes | adopted, unchanged (this link was already imported) or rejected. |
+| `code` | `code` | `String` | no | Why a link was rejected: a code of AccessRefreshAttempt.code or developmentMode. Commonly rollback (the link is older than this device's manifest) or badSignature. |
+| `serial` | `serial` | `UInt64` | yes | Directory serial after the import. |
+
+### AccessPointInfo
+
+One access point of the home cell with its health on the current network.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `accessPointId` | `accessPointId` | `String` | yes | Access point id. |
+| `regionId` | `regionId` | `String` | yes | Region the access point is in. |
+| `host` | `host` | `String` | yes | Host name shown on the diagnostics page. |
+| `status` | `status` | `String` | yes | Manifest status: active, draining, disabled or unknown. |
+| `rttMs` | `rttMs` | `Double` | no | Smoothed round trip on the current network, when measured. |
+| `breaker` | `breaker` | `String` | yes | Circuit breaker state: closed, open or halfOpen. |
+| `protocolWinner` | `protocolWinner` | `String` | no | Protocol that last won the race on this network: quic or ws. |
+| `pinned` | `pinned` | `Boolean` | yes | Whether this access point is manually pinned. |
+| `current` | `current` | `Boolean` | yes | Whether the IM connection is on this access point. |
+
+### AccessEndpoint
+
+One side of an access point switch.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `ap` | `ap` | `String` | yes | Access point id. |
+| `protocol` | `protocol` | `String` | yes | Transport: quic or ws. |
+
+### AccessSwitchedEvent
+
+Payload of access://switched: the IM connection moved to another access point (sent once, when the new connection is ready).
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `from` | `from` | `AccessEndpoint` | yes | Where the connection was. |
+| `to` | `to` | `AccessEndpoint` | yes | Where the connection is now. |
+| `reason` | `reason` | `String` | yes | Why: failure, drain, failback, manual or manifest. |
+
+### AccessChanges
+
+What a newly accepted access manifest changed.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `accessPointsAdded` | `accessPointsAdded` | `StringList` | yes | Access points that appeared. |
+| `accessPointsRemoved` | `accessPointsRemoved` | `StringList` | yes | Access points that disappeared. |
+| `policyChanged` | `policyChanged` | `Boolean` | yes | Whether the client link policy changed. |
+
+### AccessChangedEvent
+
+Payload of access://changed: a new access manifest was accepted. Sent for every adoption; a periodic re-signature has empty changes.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `serial` | `serial` | `UInt64` | yes | Serial of the accepted manifest. |
+| `source` | `source` | `String` | yes | Where it came from, in the form of AccessStatus.source. |
+| `stale` | `stale` | `Boolean` | yes | Whether it is past its expiry. |
+| `developmentMode` | `developmentMode` | `Boolean` | yes | Endpoints come from development-mode configuration. |
+| `changes` | `changes` | `AccessChanges` | yes | What changed against the previous manifest. |
+
+## Lifecycle
+
+Platform lifecycle signals.
+
+### Enums
+
+- `AppState`: Whether the app is in the foreground or the background. Values: `foreground`, `background`
+
+### SetAppStateRequest
+
+Foreground and background notification from the platform lifecycle.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `appState` | `appState` | `AppState` | yes | Current application state. |
+
+## Update
+
+Update center status, install plans and update.* requests.
+
+### UpdateGetStateRequest
+
+Reads the update state.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `foreground` | `foreground` | `Boolean` | no | The app just returned to the foreground: count that first. |
+
+### UpdateCheckRequest
+
+Checks for an update.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `manual` | `manual` | `Boolean` | yes | The user asked: no frequency limit, and a failure lands in UpdateStatus.error. |
+
+### UpdateDownloadRequest
+
+Downloads the package of the offered release.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `allowMetered` | `allowMetered` | `Boolean` | yes | The user agreed to download on a metered network. |
+
+### UpdateReportInstallRequest
+
+What the platform package did with the install plan.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `outcome` | `outcome` | `String` | yes | started, completed, cancelled or failed. |
+| `code` | `code` | `String` | no | update.* code when outcome is failed. |
+
+### UpdateSkipRequest
+
+Skips one optional version.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `build` | `build` | `UInt64` | yes | Build to skip. |
+
+### UpdateMarkPromptedRequest
+
+A prompt really appeared.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `build` | `build` | `UInt64` | no | Build the prompt is about; absent when a forced update has no release yet. |
+| `form` | `form` | `String` | yes | sheet, modal or fullscreen. |
+
+### UpdateSetLocaleRequest
+
+Chooses the language of the release notes and blockReason.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `locale` | `locale` | `String` | yes | BCP 47 tag, for example zh-Hant-TW. |
+
+### UpdateGetResourcesRequest
+
+Reads the resource packs of this run.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+
+### UpdateResourcePack
+
+One verified resource pack. Data only; the Kit and the host interpret it.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `id` | `id` | `String` | yes | Pack id. |
+| `kind` | `kind` | `String` | yes | strings, tokens, emoji or help. |
+| `packVersion` | `packVersion` | `UInt64` | yes | Pack version. |
+| `contentJson` | `contentJson` | `String` | yes | The pack file as text, a flare.resource.v1 document. |
+
+### UpdateResources
+
+The answer of update.getResources.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `packs` | `packs` | `UpdateResourcePackList` | yes | Packs of this run, sorted by id. |
+
+### UpdateCurrentApp
+
+The running app.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `version` | `version` | `String` | no | Display version. |
+| `build` | `build` | `UInt64` | no | Build number. |
+| `channel` | `channel` | `String` | yes | Update channel. |
+| `distribution` | `distribution` | `String` | no | Distribution channel. |
+
+### UpdateReleaseSummary
+
+The release on offer.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `releaseId` | `releaseId` | `String` | yes | Release id. |
+| `version` | `version` | `String` | yes | Display version. |
+| `build` | `build` | `UInt64` | yes | Build number. |
+| `notes` | `notes` | `StringList` | yes | Release notes, already in the chosen language. |
+| `sizeBytes` | `sizeBytes` | `UInt64` | no | Size to download; absent for a store. |
+| `mandatory` | `mandatory` | `Boolean` | yes | Forced update. |
+| `recommended` | `recommended` | `Boolean` | yes | Recommended update. |
+| `kind` | `kind` | `String` | yes | store, package, webBundle or desktop. |
+
+### UpdateProgress
+
+Download progress.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `received` | `received` | `UInt64` | yes | Bytes received. |
+| `total` | `total` | `UInt64` | yes | Bytes in all. |
+
+### UpdateErrorInfo
+
+Why the last update action did not go through.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `code` | `code` | `String` | yes | update.* code. |
+| `retryable` | `retryable` | `Boolean` | yes | Retrying can help. |
+| `fallbackUrl` | `fallbackUrl` | `String` | no | Page to send the user to; absent on the web. |
+
+### UpdateStatus
+
+Update center state: the update://state payload and the answer of every update.* call but install.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `state` | `state` | `String` | yes | idle, checking, upToDate, available, required, downloading, verifying, readyToInstall, installing or failed. |
+| `current` | `current` | `UpdateCurrentApp` | yes | The running app. |
+| `release` | `release` | `UpdateReleaseSummary` | no | The release on offer. Can be absent in required: the server rejected this build and no manifest arrived yet. |
+| `progress` | `progress` | `UpdateProgress` | no | Present while downloading. |
+| `prompt` | `prompt` | `String` | yes | none, badge, sheet, modal or fullscreen. The core keeps it through the whole flow; bind to it directly. |
+| `blockUi` | `blockUi` | `Boolean` | yes | A forced update blocks the interface. |
+| `readOnly` | `readOnly` | `Boolean` | yes | The connection was refused with UPGRADE_REQUIRED or REST answered 426. |
+| `lastCheckedAt` | `lastCheckedAt` | `Int64` | no | Last successful check, Unix milliseconds. |
+| `error` | `error` | `UpdateErrorInfo` | no | Why the last action did not go through. |
+| `blockReason` | `blockReason` | `String` | no | Why this build is blocked, in the chosen language. Present when the current build falls in blockedBuilds and the range gives a reason; a forced prompt shows it ahead of the fixed text. |
+
+### UpdateInstallPlan
+
+What the platform package has to do. kind selects the fields that apply.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `kind` | `kind` | `String` | yes | openStore, installPackage, activateWebBundle or desktopUpdater. |
+| `store` | `store` | `String` | no | openStore: play, appstore, testflight, appgallery or a store channel name. |
+| `url` | `url` | `String` | no | openStore: the store page. |
+| `packageName` | `packageName` | `String` | no | openStore: package name. |
+| `appId` | `appId` | `String` | no | openStore: app id in the store. |
+| `immediate` | `immediate` | `Boolean` | no | openStore: the Play immediate flow. |
+| `path` | `path` | `String` | no | installPackage: the verified file. |
+| `sha256` | `sha256` | `String` | no | installPackage and desktopUpdater: lowercase hex. |
+| `signingCertSha256` | `signingCertSha256` | `String` | no | installPackage: expected signing certificate. |
+| `build` | `build` | `UInt64` | no | installPackage: build number. |
+| `sizeBytes` | `sizeBytes` | `UInt64` | no | installPackage: file size. |
+| `buildId` | `buildId` | `String` | no | activateWebBundle: target build. |
+| `assetManifestUrls` | `assetManifestUrls` | `StringList` | no | activateWebBundle: asset manifest addresses. |
+| `assetManifestSha256` | `assetManifestSha256` | `String` | no | activateWebBundle: asset manifest hash. |
+| `mandatory` | `mandatory` | `Boolean` | no | activateWebBundle: forced update. |
+| `blockUi` | `blockUi` | `Boolean` | no | activateWebBundle: blocks the interface. |
+| `version` | `version` | `String` | no | desktopUpdater: target version. |
+| `target` | `target` | `String` | no | desktopUpdater: desktop target. |
 
 ## Diagnostics
 
@@ -1247,13 +1638,15 @@ Typed SDK event and notification models for cross-platform subscriptions.
 
 ### Enums
 
-- `SdkEventKind`: Top-level event domain. Values: `lifecycle`, `connection`, `message`, `notification`, `conversation`, `sync`, `extension`, `extension_event`, `presence`, `media`, `plugin`, `view`
+- `SdkEventKind`: Top-level event domain. Values: `lifecycle`, `connection`, `access`, `update`, `message`, `notification`, `conversation`, `sync`, `extension`, `extension_event`, `presence`, `media`, `plugin`, `view`
 
 - `LifecycleEventName`: Client SDK lifecycle notification name. Values: `initializing`, `initialized`, `init_failed`, `login_succeeded`, `login_failed`, `logged_out`, `disposed`
 
-- `SdkConnectionState`: Connection state exposed by event payloads. Values: `disconnected`, `connecting`, `connected`, `ready`, `reconnecting`
+- `ConnectionEventName`: Connection event name: the one status event, and the coarse sync state hint. Values: `status`, `sync_state_changed`
 
-- `ConnectionEventName`: Connection event notification name. Values: `connecting`, `connected`, `ready`, `disconnected`, `reconnecting`, `reconnect_failed`, `state_changed`, `sync_state_changed`, `server_error`, `kicked_off`, `token_expired`
+- `AccessEventName`: Access event name. Values: `switched`, `changed`
+
+- `UpdateEventName`: Update event name. Values: `state`
 
 - `MessageEventName`: Message event notification name. Values: `received`, `received_batch`, `send_ack`, `send_failed`, `recalled`, `typing`, `typing_aggregate`, `edited`, `reaction_changed`, `deleted`, `read_receipt`, `burn_scheduled`, `burned`, `hard_deleted`, `pinned`, `unpinned`, `marked`, `unmarked`, `retention_scheduled`, `retention_expired`, `retention_purged`, `presence_changed`, `custom`, `plugin_state_changed`, `read_summaries_changed`
 
@@ -1303,17 +1696,13 @@ Lifecycle notification. Method return values remain the primary success/failure 
 | `sessionId` | `sessionId` | `String` | no | SDK session id when available. |
 | `error` | `error` | `SdkErrorPayload` | no | Failure details for *_failed events. |
 
-### ConnectionEvent
+### ConnectionSyncStateEvent
 
-Connection notification payload.
+Payload of the coarse sync state hint (connection.sync_state_changed). Connection status itself arrives as ConnectionStatus.
 
 | Field | Wire name | Type | Required | Description |
 |-------|-----------|------|----------|-------------|
-| `name` | `name` | `ConnectionEventName` | yes | Connection event name. |
-| `state` | `state` | `SdkConnectionState` | yes | Connection state after this event. |
-| `reason` | `reason` | `String` | no | Disconnect, kicked-off, or token-expired reason. |
-| `attempt` | `attempt` | `UInt32` | no | Reconnect attempt number. |
-| `error` | `error` | `SdkErrorPayload` | no | Server or reconnect failure details. |
+| `state` | `state` | `String` | yes | The core sync state name. |
 
 ### MessageReceivedEvent
 

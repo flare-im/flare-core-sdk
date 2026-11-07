@@ -1,0 +1,77 @@
+{
+  "key": "access",
+  "facade": "client.access",
+  "description": "Access directory, access point health, manual pinning, manifest refresh and recovery links for the network diagnostics page.",
+  "methods": [
+    {
+      "name": "getStatus",
+      "operation": "access.get_status",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "Unit",
+      "response": "AccessStatus",
+      "stability": "stable",
+      "description": "Directory serial and source, manifest timestamps, staleness, development mode, the current region, cell, access point and protocol, the manual pin, refresh progress and recovery state."
+    },
+    {
+      "name": "listAccessPoints",
+      "operation": "access.list_access_points",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "Unit",
+      "response": "AccessPointInfoList",
+      "stability": "stable",
+      "description": "Every access point of the home cell with its RTT on the current network, breaker state, and whether it is current or pinned."
+    },
+    {
+      "name": "pin",
+      "operation": "access.pin",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "AccessPinRequest",
+      "response": "AccessPin",
+      "stability": "stable",
+      "description": "Pins one access point (24 hours, cleared on app restart) and switches to it at once when it is not current, without signing in again."
+    },
+    {
+      "name": "unpin",
+      "operation": "access.unpin",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "Unit",
+      "response": "Unit",
+      "stability": "stable",
+      "description": "Clears the manual pin; automatic selection decides at the next natural boundary."
+    },
+    {
+      "name": "refresh",
+      "operation": "access.refresh",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "Unit",
+      "response": "AccessRefreshReport",
+      "stability": "stable",
+      "description": "Runs one manifest refresh round now (or waits for the round in flight) and reports every source it tried. During recovery the round tries every tier."
+    },
+    {
+      "name": "importRecovery",
+      "operation": "access.import_recovery",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "AccessImportRecoveryRequest",
+      "response": "AccessRecoveryImport",
+      "stability": "stable",
+      "description": "Imports a recovery link or QR code. A bad link is an expected result carried in outcome and code, not an error; only a configuration problem throws."
+    },
+    {
+      "name": "exportDiagnostics",
+      "operation": "access.export_diagnostics",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "Unit",
+      "response": "JsonValue",
+      "stability": "stable",
+      "description": "Diagnostics JSON for support: access status, access point health, the locally hashed network fingerprint and warnings. Holds no tokens, users or message content."
+    }
+  ]
+}

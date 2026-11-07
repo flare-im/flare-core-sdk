@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { ConnectionEvent, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, ViewUpdate } from '../../model';
+import { AccessChangedEvent, AccessSwitchedEvent, CloseViewRequest, CloseViewResponse, ConnectionStatus, ConversationEvent, LifecycleEvent, LoadNewerTimelineViewRequest, LoadOlderTimelineViewRequest, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, OpenConversationListViewRequest, OpenTimelineViewRequest, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TimelineViewPageResponse, TimelineViewRequest, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewOpenResponse, ViewUpdate } from '../../model';
 
 /** Core observable message/conversation views. */
 export interface ViewsApi {

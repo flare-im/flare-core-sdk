@@ -923,46 +923,103 @@ void main() {
     test('event fan-out isolates listener failures', () async {
       final bridge = _RecordingBridge();
       final client = FlareCoreSdk.createClientWithBridge(bridge);
-      final ready = <ConnectionEvent>[];
+      final statuses = <ConnectionStatus>[];
 
-      client.events.onConnectReady((_) => throw StateError('listener broke'));
-      client.events.onConnectReady(ready.add);
+      client.events
+          .onConnectionStatusChanged((_) => throw StateError('listener broke'));
+      client.events.onConnectionStatusChanged(statuses.add);
 
       await client.events.subscribeEvents(const {});
 
-      bridge.emitEvent(EventCode.connectionStateChanged, {'state': 'Ready'});
+      bridge.emitEvent(EventCode.connectionStatus, _statusPayload('online'));
 
-      expect(ready, hasLength(1));
-      expect(ready.single.state, SdkConnectionState.ready);
+      expect(statuses, hasLength(1));
+      expect(statuses.single.phase, ConnectionPhase.online);
     });
 
-    test('connection state changed dispatches ready and connected callbacks',
+    test('connection status decodes every field and replaces the held copy',
         () async {
       final bridge = _RecordingBridge();
       final client = FlareCoreSdk.createClientWithBridge(bridge);
-      final ready = <ConnectionEvent>[];
-      final connected = <ConnectionEvent>[];
-      final disconnected = <ConnectionEvent>[];
-      client.events.onConnectReady(ready.add);
-      client.events.onConnectSuccess(connected.add);
-      client.events.onDisconnected(disconnected.add);
+      final statuses = <ConnectionStatus>[];
+      final objectListener = _ConnectionListener();
+      client.events.onConnectionStatusChanged(statuses.add);
+      client.events.addEventListener(objectListener);
 
       await client.events.subscribeEvents(const {});
 
-      bridge.emitEvent(EventCode.connectionStateChanged, {'state': 'Ready'});
-      bridge
-          .emitEvent(EventCode.connectionStateChanged, {'state': 'Connected'});
+      bridge.emitEvent(EventCode.connectionStatus, {
+        // The C ABI adds its own envelope keys; the decoder ignores them.
+        'type': 'connection',
+        'event': 'status',
+        'phase': 'reconnecting',
+        'quality': null,
+        'accessPointId': 'ap-sg-1',
+        'cellId': 'cell-sg-a',
+        'regionId': 'sg',
+        'protocol': 'quic',
+        'rttMs': null,
+        'attempt': 2,
+        'nextRetryAt': 1762250000000,
+        'reason': null,
+        'developmentMode': false,
+      });
+      bridge.emitEvent(EventCode.connectionStatus, {
+        ..._statusPayload('online'),
+        'quality': 'poor',
+        'rttMs': 420,
+        'developmentMode': true,
+      });
 
-      expect(ready, hasLength(1));
-      expect(ready.single.name, ConnectionEventName.ready);
-      expect(ready.single.state, SdkConnectionState.ready);
-      expect(connected, hasLength(1));
-      expect(connected.single.name, ConnectionEventName.connected);
-      expect(connected.single.state, SdkConnectionState.connected);
-      expect(disconnected, isEmpty);
+      expect(statuses, hasLength(2));
+      final reconnecting = statuses.first;
+      expect(reconnecting.phase, ConnectionPhase.reconnecting);
+      expect(reconnecting.quality, isNull);
+      expect(reconnecting.accessPointId, 'ap-sg-1');
+      expect(reconnecting.cellId, 'cell-sg-a');
+      expect(reconnecting.regionId, 'sg');
+      expect(reconnecting.protocol, 'quic');
+      expect(reconnecting.rttMs, isNull);
+      expect(reconnecting.attempt, 2);
+      expect(reconnecting.nextRetryAt, 1762250000000);
+      expect(reconnecting.reason, isNull);
+      expect(reconnecting.developmentMode, isFalse);
+      final online = statuses.last;
+      expect(online.phase, ConnectionPhase.online);
+      expect(online.quality, ConnectionQuality.poor);
+      expect(online.rttMs, 420);
+      expect(online.developmentMode, isTrue);
+      expect(objectListener.statuses.map((status) => status.phase),
+          [ConnectionPhase.reconnecting, ConnectionPhase.online]);
     });
 
-    test('connection state changed rejects unknown wire state', () async {
+    test('connection status carries the action required reason', () async {
+      final bridge = _RecordingBridge();
+      final client = FlareCoreSdk.createClientWithBridge(bridge);
+      final statuses = <ConnectionStatus>[];
+      client.events.onConnectionStatusChanged(statuses.add);
+
+      await client.events.subscribeEvents(const {});
+
+      for (final reason in [
+        'kicked',
+        'expired',
+        'upgradeRequired',
+        'tenantUnavailable',
+      ]) {
+        bridge.emitEvent(EventCode.connectionStatus, {
+          ..._statusPayload('actionRequired'),
+          'reason': reason,
+        });
+      }
+
+      expect(statuses.map((status) => status.phase).toSet(),
+          {ConnectionPhase.actionRequired});
+      expect(statuses.map((status) => status.reason),
+          ['kicked', 'expired', 'upgradeRequired', 'tenantUnavailable']);
+    });
+
+    test('connection status rejects an unknown phase', () async {
       final bridge = _RecordingBridge();
       final client = FlareCoreSdk.createClientWithBridge(bridge);
 
@@ -970,17 +1027,95 @@ void main() {
 
       expect(
         () => bridge.emitEvent(
-          EventCode.connectionStateChanged,
-          {'state': 'half_open'},
+          EventCode.connectionStatus,
+          _statusPayload('half_open'),
         ),
         throwsA(
           isA<FormatException>().having(
             (error) => error.message,
             'message',
-            'invalid connection state: half_open',
+            'invalid connection phase: half_open',
           ),
         ),
       );
+    });
+
+    test('access switched and changed reach typed and object listeners',
+        () async {
+      final bridge = _RecordingBridge();
+      final client = FlareCoreSdk.createClientWithBridge(bridge);
+      final switched = <AccessSwitchedEvent>[];
+      final changed = <AccessChangedEvent>[];
+      final objectListener = _ConnectionListener();
+      client.events.onAccessSwitched(switched.add);
+      client.events.onAccessChanged(changed.add);
+      client.events.addEventListener(objectListener);
+
+      await client.events.subscribeEvents(const {});
+
+      bridge.emitEvent(EventCode.accessSwitched, {
+        'from': {'ap': 'ap-sg-1', 'protocol': 'quic'},
+        'to': {'ap': 'ap-sg-2', 'protocol': 'ws'},
+        'reason': 'failure',
+      });
+      bridge.emitEvent(EventCode.accessChanged, {
+        'serial': 42,
+        'source': 'lkg',
+        'stale': false,
+        'developmentMode': false,
+        'changes': {
+          'accessPointsAdded': ['ap-sg-3'],
+          'accessPointsRemoved': <String>[],
+          'policyChanged': true,
+        },
+      });
+      // The coarse sync state hint has no listener and reaches none of these.
+      bridge.emitEvent(EventCode.connectionSyncStateChanged, {'state': 'idle'});
+
+      expect(switched.single.from.ap, 'ap-sg-1');
+      expect(switched.single.from.protocol, 'quic');
+      expect(switched.single.to.ap, 'ap-sg-2');
+      expect(switched.single.to.protocol, 'ws');
+      expect(switched.single.reason, 'failure');
+      expect(changed.single.serial, 42);
+      expect(changed.single.source, 'lkg');
+      expect(changed.single.changes.accessPointsAdded, ['ap-sg-3']);
+      expect(changed.single.changes.accessPointsRemoved, isEmpty);
+      expect(changed.single.changes.policyChanged, isTrue);
+      expect(objectListener.switched, hasLength(1));
+      expect(objectListener.changed, hasLength(1));
+      expect(objectListener.statuses, isEmpty);
+    });
+
+    test('connection getStatus and reconnectNow use the unified invoke route',
+        () async {
+      final bridge = _RecordingBridge();
+      final client = FlareCoreSdk.createClientWithBridge(bridge);
+
+      final status = await client.connection.getStatus();
+      expect(bridge.lastOperation, 'connection.get_status');
+      expect(bridge.lastTransport, 'contract-invoke-json');
+      expect(status.phase, ConnectionPhase.idle);
+
+      await client.connection.reconnectNow();
+      expect(bridge.lastOperation, 'connection.reconnect_now');
+
+      await client.connection.notifyNetworkChange(const NetworkChangeRequest(
+        available: true,
+        interface: NetworkInterfaceKind.wifi,
+        fingerprintHint: '192.168.1',
+      ));
+      expect(bridge.lastOperation, 'connection.notify_network_change');
+      expect(bridge.lastRequest, {
+        'available': true,
+        'interface': 'wifi',
+        'fingerprintHint': '192.168.1',
+      });
+
+      await client.lifecycle
+          .setAppState(const SetAppStateRequest(appState: AppState.background));
+      expect(bridge.lastOperation, 'lifecycle.set_app_state');
+      expect(bridge.lastRequest, {'appState': 'background'});
     });
 
     test('subscribeEventsBatch dispatches received batch events', () async {
@@ -1093,6 +1228,12 @@ final class _RecordingBridge implements NativeBridge {
         } as T;
       case 'event.unsubscribe':
         return null as T;
+      case 'connection.get_status':
+        return _statusPayload('idle') as T;
+      case 'connection.reconnect_now':
+      case 'connection.notify_network_change':
+      case 'lifecycle.set_app_state':
+        return null as T;
       default:
         throw UnimplementedError(descriptor.operation);
     }
@@ -1110,6 +1251,38 @@ final class _TypingAggregateListener extends FlareImEventListener {
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
 }
+
+final class _ConnectionListener extends FlareImEventListener {
+  final statuses = <ConnectionStatus>[];
+  final switched = <AccessSwitchedEvent>[];
+  final changed = <AccessChangedEvent>[];
+
+  @override
+  void onConnectionStatusChanged(ConnectionStatus event) => statuses.add(event);
+
+  @override
+  void onAccessSwitched(AccessSwitchedEvent event) => switched.add(event);
+
+  @override
+  void onAccessChanged(AccessChangedEvent event) => changed.add(event);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+Map<String, Object?> _statusPayload(String phase) => {
+      'phase': phase,
+      'quality': phase == 'online' ? 'good' : null,
+      'accessPointId': null,
+      'cellId': null,
+      'regionId': null,
+      'protocol': null,
+      'rttMs': null,
+      'attempt': 0,
+      'nextRetryAt': null,
+      'reason': null,
+      'developmentMode': false,
+    };
 
 Map<String, Object?> _goldenMap(String name) {
   final file = File('../../sdk-spec/golden/responses/$name');

@@ -1,6 +1,7 @@
 import {
   configureAppPlatform,
   configureProductionAppClientFactory,
+  configureProductionAppHost,
   sdkMediaProxyFields,
 } from "./workbench/app";
 import { configureMediaProxy } from "@flare-im/vue-ui/utils";
@@ -37,6 +38,13 @@ export function configureReferenceApp(runtime: ReferenceRuntime): void {
     registerFlareMessages(locale, missingMessages(flareMessages[locale], messages));
   }
   configureProductionAppClientFactory(runtime.createClient);
+  configureProductionAppHost({
+    sdkConfig: runtime.sdkConfig,
+    runtimeStatus: runtime.runtimeStatus,
+    createUpdateInstaller: runtime.createUpdateInstaller,
+    openUrl: runtime.openUrl,
+    followRecoveryLinks: runtime.followRecoveryLinks,
+  });
   configureAppPlatform(runtime.platform);
   configureMediaProxy(sdkMediaProxyFields());
   applyFlareColorScheme("violet", false);

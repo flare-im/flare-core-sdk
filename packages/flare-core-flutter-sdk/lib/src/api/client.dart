@@ -5,8 +5,14 @@ typedef JsonObject = Map<String, Object?>;
 
 /// Root SDK client. Create one instance per app/session boundary.
 abstract interface class FlareImClient implements SessionApi {
-  /// Connection state and manual network lifecycle.
+  /// Connection status and manual network lifecycle.
   ConnectionApi get connection;
+  /// Access directory, access point health, manual pinning, manifest refresh and recovery links for the network diagnostics page.
+  AccessApi get access;
+  /// Platform lifecycle signals the core needs (foreground and background).
+  LifecycleApi get lifecycle;
+  /// Update center: release evaluation, download and the install plan. Works before sign-in and with every IM node down; the release manifest comes from the access mirrors.
+  UpdateApi get update;
   /// Conversation query and local conversation state.
   ConversationsApi get conversations;
   /// Typed quick-build APIs for all supported message content kinds. Prefer these over raw JSON in adapters.

@@ -1,17 +1,8 @@
 package flare_core_harmony_cangjie_sdk.model.event.connection
 
 // GENERATED. Do not edit by hand.
-// Connection event notification name.
+// Connection event name: the one status event, and the coarse sync state hint.
 public enum ConnectionEventName {
-    | Connecting
-    | Connected
-    | Ready
-    | Disconnected
-    | Reconnecting
-    | ReconnectFailed
-    | StateChanged
+    | Status
     | SyncStateChanged
-    | ServerError
-    | KickedOff
-    | TokenExpired
 }

@@ -1,0 +1,515 @@
+{
+  "group": "update",
+  "description": "Update center status, install plans and update.* requests.",
+  "enums": [],
+  "models": [
+    {
+      "name": "UpdateGetStateRequest",
+      "description": "Reads the update state.",
+      "fields": [
+        {
+          "name": "foreground",
+          "wireName": "foreground",
+          "type": "Boolean",
+          "required": false,
+          "description": "The app just returned to the foreground: count that first."
+        }
+      ]
+    },
+    {
+      "name": "UpdateCheckRequest",
+      "description": "Checks for an update.",
+      "fields": [
+        {
+          "name": "manual",
+          "wireName": "manual",
+          "type": "Boolean",
+          "required": true,
+          "description": "The user asked: no frequency limit, and a failure lands in UpdateStatus.error."
+        }
+      ]
+    },
+    {
+      "name": "UpdateDownloadRequest",
+      "description": "Downloads the package of the offered release.",
+      "fields": [
+        {
+          "name": "allowMetered",
+          "wireName": "allowMetered",
+          "type": "Boolean",
+          "required": true,
+          "description": "The user agreed to download on a metered network."
+        }
+      ]
+    },
+    {
+      "name": "UpdateReportInstallRequest",
+      "description": "What the platform package did with the install plan.",
+      "fields": [
+        {
+          "name": "outcome",
+          "wireName": "outcome",
+          "type": "String",
+          "required": true,
+          "description": "started, completed, cancelled or failed."
+        },
+        {
+          "name": "code",
+          "wireName": "code",
+          "type": "String",
+          "required": false,
+          "description": "update.* code when outcome is failed."
+        }
+      ]
+    },
+    {
+      "name": "UpdateSkipRequest",
+      "description": "Skips one optional version.",
+      "fields": [
+        {
+          "name": "build",
+          "wireName": "build",
+          "type": "UInt64",
+          "required": true,
+          "description": "Build to skip."
+        }
+      ]
+    },
+    {
+      "name": "UpdateMarkPromptedRequest",
+      "description": "A prompt really appeared.",
+      "fields": [
+        {
+          "name": "build",
+          "wireName": "build",
+          "type": "UInt64",
+          "required": false,
+          "description": "Build the prompt is about; absent when a forced update has no release yet."
+        },
+        {
+          "name": "form",
+          "wireName": "form",
+          "type": "String",
+          "required": true,
+          "description": "sheet, modal or fullscreen."
+        }
+      ]
+    },
+    {
+      "name": "UpdateSetLocaleRequest",
+      "description": "Chooses the language of the release notes and blockReason.",
+      "fields": [
+        {
+          "name": "locale",
+          "wireName": "locale",
+          "type": "String",
+          "required": true,
+          "description": "BCP 47 tag, for example zh-Hant-TW."
+        }
+      ]
+    },
+    {
+      "name": "UpdateGetResourcesRequest",
+      "description": "Reads the resource packs of this run.",
+      "fields": []
+    },
+    {
+      "name": "UpdateResourcePack",
+      "description": "One verified resource pack. Data only; the Kit and the host interpret it.",
+      "fields": [
+        {
+          "name": "id",
+          "wireName": "id",
+          "type": "String",
+          "required": true,
+          "description": "Pack id."
+        },
+        {
+          "name": "kind",
+          "wireName": "kind",
+          "type": "String",
+          "required": true,
+          "description": "strings, tokens, emoji or help."
+        },
+        {
+          "name": "packVersion",
+          "wireName": "packVersion",
+          "type": "UInt64",
+          "required": true,
+          "description": "Pack version."
+        },
+        {
+          "name": "contentJson",
+          "wireName": "contentJson",
+          "type": "String",
+          "required": true,
+          "description": "The pack file as text, a flare.resource.v1 document."
+        }
+      ]
+    },
+    {
+      "name": "UpdateResources",
+      "description": "The answer of update.getResources.",
+      "fields": [
+        {
+          "name": "packs",
+          "wireName": "packs",
+          "type": "UpdateResourcePackList",
+          "required": true,
+          "description": "Packs of this run, sorted by id."
+        }
+      ]
+    },
+    {
+      "name": "UpdateCurrentApp",
+      "description": "The running app.",
+      "fields": [
+        {
+          "name": "version",
+          "wireName": "version",
+          "type": "String",
+          "required": false,
+          "description": "Display version."
+        },
+        {
+          "name": "build",
+          "wireName": "build",
+          "type": "UInt64",
+          "required": false,
+          "description": "Build number."
+        },
+        {
+          "name": "channel",
+          "wireName": "channel",
+          "type": "String",
+          "required": true,
+          "description": "Update channel."
+        },
+        {
+          "name": "distribution",
+          "wireName": "distribution",
+          "type": "String",
+          "required": false,
+          "description": "Distribution channel."
+        }
+      ]
+    },
+    {
+      "name": "UpdateReleaseSummary",
+      "description": "The release on offer.",
+      "fields": [
+        {
+          "name": "releaseId",
+          "wireName": "releaseId",
+          "type": "String",
+          "required": true,
+          "description": "Release id."
+        },
+        {
+          "name": "version",
+          "wireName": "version",
+          "type": "String",
+          "required": true,
+          "description": "Display version."
+        },
+        {
+          "name": "build",
+          "wireName": "build",
+          "type": "UInt64",
+          "required": true,
+          "description": "Build number."
+        },
+        {
+          "name": "notes",
+          "wireName": "notes",
+          "type": "StringList",
+          "required": true,
+          "description": "Release notes, already in the chosen language."
+        },
+        {
+          "name": "sizeBytes",
+          "wireName": "sizeBytes",
+          "type": "UInt64",
+          "required": false,
+          "description": "Size to download; absent for a store."
+        },
+        {
+          "name": "mandatory",
+          "wireName": "mandatory",
+          "type": "Boolean",
+          "required": true,
+          "description": "Forced update."
+        },
+        {
+          "name": "recommended",
+          "wireName": "recommended",
+          "type": "Boolean",
+          "required": true,
+          "description": "Recommended update."
+        },
+        {
+          "name": "kind",
+          "wireName": "kind",
+          "type": "String",
+          "required": true,
+          "description": "store, package, webBundle or desktop."
+        }
+      ]
+    },
+    {
+      "name": "UpdateProgress",
+      "description": "Download progress.",
+      "fields": [
+        {
+          "name": "received",
+          "wireName": "received",
+          "type": "UInt64",
+          "required": true,
+          "description": "Bytes received."
+        },
+        {
+          "name": "total",
+          "wireName": "total",
+          "type": "UInt64",
+          "required": true,
+          "description": "Bytes in all."
+        }
+      ]
+    },
+    {
+      "name": "UpdateErrorInfo",
+      "description": "Why the last update action did not go through.",
+      "fields": [
+        {
+          "name": "code",
+          "wireName": "code",
+          "type": "String",
+          "required": true,
+          "description": "update.* code."
+        },
+        {
+          "name": "retryable",
+          "wireName": "retryable",
+          "type": "Boolean",
+          "required": true,
+          "description": "Retrying can help."
+        },
+        {
+          "name": "fallbackUrl",
+          "wireName": "fallbackUrl",
+          "type": "String",
+          "required": false,
+          "description": "Page to send the user to; absent on the web."
+        }
+      ]
+    },
+    {
+      "name": "UpdateStatus",
+      "description": "Update center state: the update://state payload and the answer of every update.* call but install.",
+      "fields": [
+        {
+          "name": "state",
+          "wireName": "state",
+          "type": "String",
+          "required": true,
+          "description": "idle, checking, upToDate, available, required, downloading, verifying, readyToInstall, installing or failed."
+        },
+        {
+          "name": "current",
+          "wireName": "current",
+          "type": "UpdateCurrentApp",
+          "required": true,
+          "description": "The running app."
+        },
+        {
+          "name": "release",
+          "wireName": "release",
+          "type": "UpdateReleaseSummary",
+          "required": false,
+          "description": "The release on offer. Can be absent in required: the server rejected this build and no manifest arrived yet."
+        },
+        {
+          "name": "progress",
+          "wireName": "progress",
+          "type": "UpdateProgress",
+          "required": false,
+          "description": "Present while downloading."
+        },
+        {
+          "name": "prompt",
+          "wireName": "prompt",
+          "type": "String",
+          "required": true,
+          "description": "none, badge, sheet, modal or fullscreen. The core keeps it through the whole flow; bind to it directly."
+        },
+        {
+          "name": "blockUi",
+          "wireName": "blockUi",
+          "type": "Boolean",
+          "required": true,
+          "description": "A forced update blocks the interface."
+        },
+        {
+          "name": "readOnly",
+          "wireName": "readOnly",
+          "type": "Boolean",
+          "required": true,
+          "description": "The connection was refused with UPGRADE_REQUIRED or REST answered 426."
+        },
+        {
+          "name": "lastCheckedAt",
+          "wireName": "lastCheckedAt",
+          "type": "Int64",
+          "required": false,
+          "description": "Last successful check, Unix milliseconds."
+        },
+        {
+          "name": "error",
+          "wireName": "error",
+          "type": "UpdateErrorInfo",
+          "required": false,
+          "description": "Why the last action did not go through."
+        },
+        {
+          "name": "blockReason",
+          "wireName": "blockReason",
+          "type": "String",
+          "required": false,
+          "description": "Why this build is blocked, in the chosen language. Present when the current build falls in blockedBuilds and the range gives a reason; a forced prompt shows it ahead of the fixed text."
+        }
+      ]
+    },
+    {
+      "name": "UpdateInstallPlan",
+      "description": "What the platform package has to do. kind selects the fields that apply.",
+      "fields": [
+        {
+          "name": "kind",
+          "wireName": "kind",
+          "type": "String",
+          "required": true,
+          "description": "openStore, installPackage, activateWebBundle or desktopUpdater."
+        },
+        {
+          "name": "store",
+          "wireName": "store",
+          "type": "String",
+          "required": false,
+          "description": "openStore: play, appstore, testflight, appgallery or a store channel name."
+        },
+        {
+          "name": "url",
+          "wireName": "url",
+          "type": "String",
+          "required": false,
+          "description": "openStore: the store page."
+        },
+        {
+          "name": "packageName",
+          "wireName": "packageName",
+          "type": "String",
+          "required": false,
+          "description": "openStore: package name."
+        },
+        {
+          "name": "appId",
+          "wireName": "appId",
+          "type": "String",
+          "required": false,
+          "description": "openStore: app id in the store."
+        },
+        {
+          "name": "immediate",
+          "wireName": "immediate",
+          "type": "Boolean",
+          "required": false,
+          "description": "openStore: the Play immediate flow."
+        },
+        {
+          "name": "path",
+          "wireName": "path",
+          "type": "String",
+          "required": false,
+          "description": "installPackage: the verified file."
+        },
+        {
+          "name": "sha256",
+          "wireName": "sha256",
+          "type": "String",
+          "required": false,
+          "description": "installPackage and desktopUpdater: lowercase hex."
+        },
+        {
+          "name": "signingCertSha256",
+          "wireName": "signingCertSha256",
+          "type": "String",
+          "required": false,
+          "description": "installPackage: expected signing certificate."
+        },
+        {
+          "name": "build",
+          "wireName": "build",
+          "type": "UInt64",
+          "required": false,
+          "description": "installPackage: build number."
+        },
+        {
+          "name": "sizeBytes",
+          "wireName": "sizeBytes",
+          "type": "UInt64",
+          "required": false,
+          "description": "installPackage: file size."
+        },
+        {
+          "name": "buildId",
+          "wireName": "buildId",
+          "type": "String",
+          "required": false,
+          "description": "activateWebBundle: target build."
+        },
+        {
+          "name": "assetManifestUrls",
+          "wireName": "assetManifestUrls",
+          "type": "StringList",
+          "required": false,
+          "description": "activateWebBundle: asset manifest addresses."
+        },
+        {
+          "name": "assetManifestSha256",
+          "wireName": "assetManifestSha256",
+          "type": "String",
+          "required": false,
+          "description": "activateWebBundle: asset manifest hash."
+        },
+        {
+          "name": "mandatory",
+          "wireName": "mandatory",
+          "type": "Boolean",
+          "required": false,
+          "description": "activateWebBundle: forced update."
+        },
+        {
+          "name": "blockUi",
+          "wireName": "blockUi",
+          "type": "Boolean",
+          "required": false,
+          "description": "activateWebBundle: blocks the interface."
+        },
+        {
+          "name": "version",
+          "wireName": "version",
+          "type": "String",
+          "required": false,
+          "description": "desktopUpdater: target version."
+        },
+        {
+          "name": "target",
+          "wireName": "target",
+          "type": "String",
+          "required": false,
+          "description": "desktopUpdater: desktop target."
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import type { FlareImClient, SdkConfig } from '@flare-im/sdk/api';
 import type {
+  ConnectionStatus,
   Conversation,
   ImageGroupContentPayload,
   Message,
@@ -7,7 +8,8 @@ import type {
   MessageContent,
   SendMessageResponse,
 } from '@flare-im/sdk/model';
-import { HeartbeatAppState, MessageBuildOp, MessageContentType, NetworkInterfaceKind } from '@flare-im/sdk/model';
+import { MessageBuildOp, MessageContentType } from '@flare-im/sdk/model';
+import { buildAccessConfig } from '../../config/access';
 import {
   RN_CAPABILITY_OPERATIONS,
   RN_CONNECTION_OPERATIONS,
@@ -25,19 +27,19 @@ import type {
   ConversationItem,
   HomeSyncProgress,
   LoginFormState,
-  LoginTransportMode,
   SdkLabInputs,
   TimelineMessage,
 } from '../../types';
 import { conversationToItem, messagesToTimeline } from '../mappers/sdkViewModels';
 
-type DiagnosticsSnapshot = Record<'sdkVersion' | 'ffiContract' | 'dataRoot' | 'runtimeHealth' | 'connectionState', string>;
+type DiagnosticsSnapshot = Record<'sdkVersion' | 'ffiContract' | 'dataRoot' | 'runtimeHealth' | 'connectionPhase', string>;
 
 type LoginSnapshot = {
   currentUserId: string;
   diagnostics: DiagnosticsSnapshot;
   messageBuildCatalog: MessageBuildCatalogEntry[];
-  connectionState: string;
+  /** `connection.getStatus` right after sign-in; the core keeps reporting it as `connection://status`. */
+  connectionStatus: ConnectionStatus;
 };
 
 type HomeSyncSnapshot = {
@@ -82,7 +84,7 @@ export type RnWorkbenchSdkService = {
   ): Promise<TimelineMessage[]>;
   runMediaQuery(op: RnMediaLabOperation, input: SdkLabInputs): Promise<string>;
   runCapabilityOperation(op: RnCapabilityOperation, input: SdkLabInputs, currentUserId: string): Promise<string>;
-  runConnectionOperation(op: RnConnectionOperation, input: SdkLabInputs): Promise<string>;
+  runConnectionOperation(op: RnConnectionOperation): Promise<string>;
   runSessionOperation(op: RnSessionOperation, input: SdkLabInputs, form: LoginFormState): Promise<string>;
   subscribeWorkbenchEvents(): Promise<string>;
 };
@@ -99,11 +101,6 @@ export type DispatchInput = {
 export const defaultLoginForm: LoginFormState = {
   userId: '11',
   token: '',
-  transportMode: 'websocket',
-  wsUrl: 'ws://127.0.0.1:60051/ws',
-  quicUrl: 'quic://127.0.0.1:60052',
-  tlsCaCertPath: '',
-  httpUrl: 'http://127.0.0.1:60051',
   dataUrl: '',
   tenantId: '0',
 };
@@ -134,11 +131,6 @@ export const defaultSdkLabInputs: SdkLabInputs = {
   sourcePath: '',
   sourceUrl: '',
   remoteFileId: '',
-  networkAvailable: true,
-  networkInterface: 'wifi',
-  networkExpensive: false,
-  networkMetered: false,
-  heartbeatAppState: 'foreground',
   heartbeatNatTimeoutSecs: 60,
   tokenTtlSecs: 3600,
   draft: '',
@@ -148,6 +140,7 @@ export const defaultSdkLabInputs: SdkLabInputs = {
 const sdkEventSources = [
   'lifecycle',
   'connection',
+  'access',
   'message',
   'conversation',
   'sync',
@@ -164,28 +157,22 @@ export function createRnWorkbenchSdkService(client: FlareImClient): RnWorkbenchS
 
     async initializeAndLogin(form) {
       const identity = normalizeLoginIdentity(form);
-      // 应用托管：登录表单粘贴了现成 token 就原样用；SDK 托管：留空，核心向网关签发并自动刷新。
+      // 应用托管：登录表单带了现成 token 就原样用；SDK 托管：留空，SDK 签发并自动刷新。
       // 客户端不再本地签发（那等于把签名密钥打进 App）。
       const explicitToken = form.token.trim();
-      await client.init({
-        ...buildNativeTransportConfig(form),
-        httpUrl: form.httpUrl,
-        dataUrl: form.dataUrl,
-        tenantId: identity.tenantId,
-        resourceProfile: 'mobile',
-        ...(explicitToken ? {} : { auth: { tokenEndpoint: form.httpUrl } }),
-      });
+      await client.init(coreSdkConfig(form, identity.tenantId, explicitToken));
       await client.events.subscribeEvents({ sources: [...sdkEventSources] });
       await client.login(explicitToken ? { userId: identity.userId, token: explicitToken } : { userId: identity.userId });
-      const [diagnostics, catalog] = await Promise.all([
+      const [diagnostics, catalog, connectionStatus] = await Promise.all([
         refreshDiagnostics(client),
         client.messageBuilder.listSupportedBuildOperations(),
+        client.connection.getStatus(),
       ]);
       return {
         currentUserId: identity.userId,
         diagnostics,
         messageBuildCatalog: [...catalog.entries],
-        connectionState: diagnostics.connectionState,
+        connectionStatus,
       };
     },
 
@@ -355,35 +342,26 @@ export function createRnWorkbenchSdkService(client: FlareImClient): RnWorkbenchS
       }));
     },
 
-    async runConnectionOperation(op, input) {
+    async runConnectionOperation(op) {
       assertKnownOperation(op, RN_CONNECTION_OPERATIONS, 'connection');
+      if (op === 'reconnect_now') {
+        await client.connection.reconnectNow();
+        return compactJson({ reconnecting: true, status: await client.connection.getStatus() });
+      }
       if (op === 'disconnect') {
         await client.connection.disconnect();
-        return compactJson({ disconnected: true, state: await client.connection.getConnectionState() });
+        return compactJson({ disconnected: true, status: await client.connection.getStatus() });
       }
-      if (op === 'network_change') {
-        const response = await client.connection.notifyNetworkChange({
-          available: input.networkAvailable,
-          interface: networkInterfaceKind(input.networkInterface),
-          expensive: input.networkExpensive,
-          metered: input.networkMetered,
-          reason: 'rn-sdk-lab',
-        });
-        return compactJson({ ...asRecord(response), state: await client.connection.getConnectionState() });
-      }
-      return compactJson({ state: await client.connection.getConnectionState() });
+      if (op === 'access_status') return compactJson(await client.access.getStatus());
+      if (op === 'access_points') return compactJson(await client.access.listAccessPoints());
+      if (op === 'access_diagnostics') return compactJson(await client.access.exportDiagnostics());
+      return compactJson(await client.connection.getStatus());
     },
 
     async runSessionOperation(op, input, form) {
       assertKnownOperation(op, RN_SESSION_OPERATIONS, 'session');
       if (op === 'runtime_health') return compactJson(await client.diagnostics.getRuntimeHealth());
       if (op === 'heartbeat_interval') return compactJson(await client.heartbeatEffectiveInterval());
-      if (op === 'heartbeat_app_state') {
-        await client.setHeartbeatAppState({
-          appState: input.heartbeatAppState === 'background' ? HeartbeatAppState.Background : HeartbeatAppState.Foreground,
-        });
-        return compactJson(await client.heartbeatEffectiveInterval());
-      }
       if (op === 'heartbeat_nat_timeout') {
         await client.setHeartbeatNatTimeout({
           natTimeoutSecs: input.heartbeatNatTimeoutSecs > 0 ? input.heartbeatNatTimeoutSecs : undefined,
@@ -417,74 +395,35 @@ export function createRnWorkbenchSdkService(client: FlareImClient): RnWorkbenchS
   };
 }
 
-export function buildNativeTransportConfig(
-  form: Pick<LoginFormState, 'transportMode' | 'wsUrl' | 'quicUrl' | 'tlsCaCertPath'>,
-): Pick<SdkConfig, 'wsUrl' | 'quicUrl' | 'tlsCaCertPath' | 'transportPolicy' | 'defaultTransport' | 'protocolRaceOrder'> {
-  const wsUrl = requiredText(form.wsUrl, 'WebSocket URL');
-  const quicUrl = form.quicUrl.trim();
-  const tlsCaCertPath = form.tlsCaCertPath.trim();
-  const tlsConfig = tlsCaCertPath ? { tlsCaCertPath } : {};
-  const mode = normalizeTransportMode(form.transportMode);
-
-  if (mode === 'websocket') {
-    return {
-      wsUrl,
-      ...tlsConfig,
-      transportPolicy: 'websocket_only',
-      defaultTransport: 'websocket',
-    };
-  }
-
-  if (!quicUrl) {
-    throw new Error('QUIC URL is required for selected transport');
-  }
-
-  if (mode === 'quic') {
-    return {
-      wsUrl,
-      quicUrl,
-      ...tlsConfig,
-      transportPolicy: 'auto',
-      defaultTransport: 'quic',
-      protocolRaceOrder: ['quic'],
-    };
-  }
-
+/**
+ * The init request: where to connect is the bundle's access configuration (src/config/access.ts), never a field of
+ * the sign-in form; the tenant and data root are the account's. Without a connect token of the host's the SDK
+ * issues and renews one itself (SDK-managed).
+ */
+export function coreSdkConfig(form: Pick<LoginFormState, 'dataUrl'>, tenantId: string, token: string): SdkConfig {
   return {
-    wsUrl,
-    quicUrl,
-    ...tlsConfig,
-    transportPolicy: 'protocol_race',
-    defaultTransport: 'quic',
-    protocolRaceOrder: ['quic', 'websocket'],
+    access: buildAccessConfig(),
+    dataUrl: form.dataUrl,
+    tenantId,
+    resourceProfile: 'mobile',
+    ...(token ? {} : { auth: {} }),
   };
 }
 
-function normalizeTransportMode(mode: LoginTransportMode): LoginTransportMode {
-  if (mode === 'quic' || mode === 'race') return mode;
-  return 'websocket';
-}
-
-function requiredText(value: string, label: string): string {
-  const text = value.trim();
-  if (!text) throw new Error(`${label} is required`);
-  return text;
-}
-
 async function refreshDiagnostics(client: FlareImClient): Promise<DiagnosticsSnapshot> {
-  const [sdkVersion, ffiContract, dataRoot, runtimeHealth, state] = await Promise.all([
+  const [sdkVersion, ffiContract, dataRoot, runtimeHealth, status] = await Promise.all([
     client.diagnostics.getSdkVersion(),
     client.diagnostics.getFfiContractVersion(),
     client.diagnostics.getDataRoot(),
     client.diagnostics.getRuntimeHealth(),
-    client.connection.getConnectionState(),
+    client.connection.getStatus(),
   ]);
   return {
     sdkVersion: compactJson(sdkVersion),
     ffiContract: compactJson(ffiContract),
     dataRoot: compactJson(dataRoot),
     runtimeHealth: compactJson(runtimeHealth),
-    connectionState: state,
+    connectionPhase: status.phase,
   };
 }
 
@@ -831,13 +770,6 @@ function arrayParam<T>(source: Record<string, unknown>, field: string, fallback:
 
 function asciiBytes(value: string): number[] {
   return Array.from(value).map((char) => char.charCodeAt(0) & 0xff);
-}
-
-function networkInterfaceKind(value: SdkLabInputs['networkInterface']): NetworkInterfaceKind {
-  if (value === 'cellular') return NetworkInterfaceKind.Cellular;
-  if (value === 'ethernet') return NetworkInterfaceKind.Ethernet;
-  if (value === 'unknown') return NetworkInterfaceKind.Unknown;
-  return NetworkInterfaceKind.Wifi;
 }
 
 function assertKnownOperation<T extends readonly string[]>(value: string, allowed: T, label: string): asserts value is T[number] {

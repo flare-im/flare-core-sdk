@@ -17,7 +17,7 @@ const contracts = [
   // runtime still uses configureAppMediaPathPicker; Tauri wires the adapter.
   ["../flare-core-examples/apps/flare-core-tauri-app/src/integration/referenceRuntime.ts", ["FlareCoreSdk.createClient", "createTauriPlatformAdapter", "setUnreadCount"]],
   ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/shell/workbench_shell.dart", ["FlareIMAppKit"]],
-  ["../flare-core-examples/apps/flare-core-flutter-app/lib/infrastructure/sdk/flare_core_sdk_wrapper.dart", ["core.FlareCoreSdk.createClient", "sendMessage"]],
+  ["../flare-core-examples/apps/flare-core-flutter-app/lib/infrastructure/sdk/flare_core_sdk_wrapper.dart", ["FlareCoreFlutter.createClient", "sendMessage"]],
   ["../flare-core-examples/apps/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/features/shell/FlareApp.kt", ["IMAppKit"]],
   ["../flare-core-examples/apps/flare-core-android-app/app/src/main/kotlin/com/flare/im/app/core/session/AppSession.kt", ["FlareImClient", "sdk.connect", "subscribeEvents"]],
   ["../flare-core-examples/apps/flare-core-ios-app/Sources/FlareImApp/Features/Shell/RootWorkbenchView.swift", ["IMAppKitView"]],

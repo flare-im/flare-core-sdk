@@ -22,10 +22,13 @@ uni-app adapter 按运行时自动分流(`src/main.ts` 的 `configureProductionA
 | **H5 / web** | WASM | WebSocket | IndexedDB |
 | **App(Android / iOS)** | FFI(`bindings/c` TurboModule)→ 原生 core | WebSocket + QUIC 协议竞速 | SQLite |
 
-- 仅在 App 原生运行时(`isUniNativeTransportRuntime()`)启用 QUIC/竞速传输选择器;H5 保持 WebSocket。
+- 没有传输选择器:原生运行时由核心按接入点在 QUIC 与 WebSocket 间竞速;H5 只有 WebSocket。
+- 连到哪里由 SDK 的 `access` 配置(签名清单或开发模式端点)决定,不是登录页设置。
 - App 端依赖原生插件把 `bindings/c` 暴露为 `globalThis.__FLARE_IM_CORE_NATIVE__`(TurboModule)。
-- 竞速算法与 SQLite 引擎归 Rust core,客户端只传 `SdkConfig`(`protocolRaceOrder` 等)。详见
+- 竞速算法与 SQLite 引擎归 Rust core。详见
   [docs/design/transport-storage-multiruntime.md](../../docs/design/transport-storage-multiruntime.md)。
+- 这个脚手架仍挂载已发布 `@flare-im/vue-ui` 1.0.9 的工作台(`@flare-im/vue-ui/app`),它早于接入配置,
+  还没有接上新的连接链路。
 
 ## 目录结构
 

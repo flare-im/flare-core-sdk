@@ -97,6 +97,30 @@
         "code": 11,
         "meaning": "panic was caught at the FFI boundary",
         "name": "FLARE_ERR_FFI_PANIC"
+      },
+      {
+        "code": 12,
+        "coreCodes": [
+          "Overloaded"
+        ],
+        "meaning": "the server is shedding load; retry after details retryAfterMs on the same access point, never treat it as an access point failure",
+        "name": "FLARE_ERR_OVERLOADED"
+      },
+      {
+        "code": 13,
+        "coreCodes": [
+          "UpgradeRequired"
+        ],
+        "meaning": "the client build is below the server minimum; the session stays terminated until the user upgrades",
+        "name": "FLARE_ERR_UPGRADE_REQUIRED"
+      },
+      {
+        "code": 14,
+        "coreCodes": [
+          "NetworkUncertain"
+        ],
+        "meaning": "a non-idempotent request may or may not have reached the server; reconcile with the same Idempotency-Key before retrying",
+        "name": "FLARE_ERR_NETWORK_UNCERTAIN"
       }
     ],
     "errorStruct": "FlareError { code: i32, message: FlareString, details_json: FlareString }",
@@ -111,15 +135,18 @@
     "invalidParameter",
     "jsonParse",
     "networkUnavailable",
+    "networkUncertain",
     "notConnected",
     "notInitialized",
     "nullPointer",
     "operationCancelled",
+    "overloaded",
     "permissionDenied",
     "storageUnavailable",
     "timeout",
     "tokenExpired",
-    "unauthorized"
+    "unauthorized",
+    "upgradeRequired"
   ],
   "errorShape": {
     "fields": [

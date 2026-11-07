@@ -53,6 +53,19 @@ import { SdkOperations, SdkEvents } from "@flare-im/sdk/contract";
 `api` / `listener` / `model` / `callback` / `contract` / `media` / `lifecycle`
 分别导出操作、事件监听、数据模型、回调、协议契约、媒体与生命周期。
 
+## 保留旧的 Web 版本
+
+回滚和灰度会退回旧的 Web 版本，所以旧版本的 `builds/<buildId>/` 和带哈希的文件要留过后面的部署。
+整站替换式的部署会把它们删掉。在构建和部署之间，从线上正在用的产物里把它们带过来：
+
+```bash
+npx flare-web-retain-builds --previous /srv/site --out dist --keep 3
+```
+
+`--keep` 数的是旧版本，默认 3，`--out` 里的当前版本不算。`--out` 默认 `dist`。先后顺序记在
+`builds/history.json`，它要随产物一起部署。缺文件的版本会被丢弃并给出警告，由更早的版本补上。
+首次部署用 `--first-deployment` 代替 `--previous`；`--previous` 的目录不存在时直接报错，路径写错不会把旧版本丢掉。
+
 ## 可运行的完整示例
 
 本包是 SDK 层，跑起来需要配套的运行时桥与服务端。完整可运行的应用见仓库

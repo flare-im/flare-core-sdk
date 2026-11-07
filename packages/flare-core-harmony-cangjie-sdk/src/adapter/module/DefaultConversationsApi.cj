@@ -107,4 +107,8 @@ public class DefaultConversationsApi <: ConversationsApi {
         let _ignored = bridge.invoke(descriptor: NativeCallMap.conversationClearLocalChatHistory, requestJson: wireEncodeRequest(requestJson))
     }
 
+    public func clearChatHistoryForSelf(requestJson: String): Unit {
+        let _ignored = bridge.invoke(descriptor: NativeCallMap.conversationClearChatHistoryForSelf, requestJson: wireEncodeRequest(requestJson))
+    }
+
 }

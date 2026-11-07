@@ -1,14 +1,11 @@
 // GENERATED. Do not edit by hand.
 final class EventCode {
   const EventCode._();
-  static const int connectionConnected = 1001;
-  static const int connectionDisconnected = 1002;
-  static const int connectionReconnecting = 1003;
-  static const int connectionStateChanged = 1004;
   static const int connectionSyncStateChanged = 1005;
-  static const int connectionServerError = 1006;
-  static const int connectionKickedOff = 1007;
-  static const int connectionTokenExpired = 1008;
+  static const int connectionStatus = 1010;
+  static const int accessSwitched = 1011;
+  static const int accessChanged = 1012;
+  static const int updateState = 1013;
   static const int messageReceived = 2001;
   static const int messageReceivedBatch = 2002;
   static const int messageSendAck = 2003;
@@ -37,6 +34,7 @@ final class EventCode {
   static const int conversationUnreadCountChanged = 3004;
   static const int conversationDeleted = 3005;
   static const int notificationReceived = 3501;
+  static const int notificationMessageSound = 3502;
   static const int syncStarted = 4001;
   static const int syncFinished = 4002;
   static const int syncFailed = 4003;

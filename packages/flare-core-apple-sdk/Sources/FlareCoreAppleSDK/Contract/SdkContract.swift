@@ -2,7 +2,7 @@ import Foundation
 
 /// GENERATED. Do not edit by hand.
 public enum SdkContract {
-    public static let ffiContractVersion = "flare-im-ffi/v1"
+    public static let ffiContractVersion = "flare-im-ffi/v2"
 }
 
 public enum SdkOperations {
@@ -13,7 +13,8 @@ public enum SdkOperations {
     public static let sdkPrepare = "sdk.prepare"
     public static let sdkConnect = "sdk.connect"
     public static let sdkUpdateAccessToken = "sdk.update_access_token"
-    public static let sdkSetHeartbeatAppState = "sdk.set_heartbeat_app_state"
+    public static let sdkSetConnectTokenRefresher = "sdk.set_connect_token_refresher"
+    public static let sdkCompleteConnectTokenRefresh = "sdk.complete_connect_token_refresh"
     public static let sdkSetHeartbeatNatTimeout = "sdk.set_heartbeat_nat_timeout"
     public static let sdkHeartbeatEffectiveInterval = "sdk.heartbeat_effective_interval"
     public static let sdkLogout = "sdk.logout"
@@ -22,7 +23,26 @@ public enum SdkOperations {
     public static let sdkCurrentUserId = "sdk.current_user_id"
     public static let sdkIsConnected = "sdk.is_connected"
     public static let sdkSessionActive = "sdk.session_active"
-    public static let connectionGetState = "connection.get_state"
+    public static let connectionGetStatus = "connection.get_status"
+    public static let connectionReconnectNow = "connection.reconnect_now"
+    public static let accessGetStatus = "access.get_status"
+    public static let accessListAccessPoints = "access.list_access_points"
+    public static let accessPin = "access.pin"
+    public static let accessUnpin = "access.unpin"
+    public static let accessRefresh = "access.refresh"
+    public static let accessImportRecovery = "access.import_recovery"
+    public static let accessExportDiagnostics = "access.export_diagnostics"
+    public static let updateGetState = "update.get_state"
+    public static let updateCheck = "update.check"
+    public static let updateDownload = "update.download"
+    public static let updateInstall = "update.install"
+    public static let updateReportInstall = "update.report_install"
+    public static let updateDefer = "update.defer"
+    public static let updateSkip = "update.skip"
+    public static let updateMarkPrompted = "update.mark_prompted"
+    public static let updateSetLocale = "update.set_locale"
+    public static let updateGetResources = "update.get_resources"
+    public static let lifecycleSetAppState = "lifecycle.set_app_state"
     public static let connectionDisconnect = "connection.disconnect"
     public static let conversationList = "conversation.list"
     public static let conversationListByQuery = "conversation.list_by_query"
@@ -152,5 +172,8 @@ public enum SdkErrorCodes {
     public static let storageUnavailable = "storageUnavailable"
     public static let operationCancelled = "operationCancelled"
     public static let capabilityUnavailable = "capabilityUnavailable"
+    public static let overloaded = "overloaded"
+    public static let upgradeRequired = "upgradeRequired"
+    public static let networkUncertain = "networkUncertain"
     public static let `internal` = "internal"
 }

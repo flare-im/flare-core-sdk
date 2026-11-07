@@ -14,8 +14,10 @@ void main() {
       await client.init({
         'dataUrl': directory.uri.toString(),
         'tenantId': '201',
-        'httpUrl': gateway!,
-        'wsUrl': 'ws://127.0.0.1:1'
+        'access': {
+          'trustMode': 'development',
+          'developmentEndpoints': {'coreApiUrl': gateway!},
+        },
       });
       await client.prepare({'userId': 'u1'});
       final message = <String, Object?>{

@@ -3,7 +3,8 @@
  *
  * Module API: `session` — SDK lifecycle, authenticated session and process-level utilities.
  */
-import type { ClearPushTokenRequest, HeartbeatEffectiveIntervalResponse, PushLifecycleStatus, PushTokenInput, SetHeartbeatAppStateRequest, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest } from '../../model';
+import type { ConnectTokenRefresher } from '../../contract';
+import type { ClearPushTokenRequest, HeartbeatEffectiveIntervalResponse, PushLifecycleStatus, PushTokenInput, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest } from '../../model';
 import type { CreateClientRequest, CreateClientResponse, CurrentUserIdResponse, LoginRequest, SdkConfig, UpdateAccessTokenRequest } from '../types';
 
 /** SDK lifecycle, authenticated session and process-level utilities. */
@@ -22,8 +23,8 @@ export interface SessionApi {
   connect(request: LoginRequest): Promise<void>;
   /** updateAccessToken maps to `flare_sdk_update_access_token` via `ffi-symbol`. Operation: `sdk.update_access_token`. */
   updateAccessToken(request: UpdateAccessTokenRequest): Promise<void>;
-  /** setHeartbeatAppState maps to `flare_sdk_invoke_json`. Operation: `sdk.set_heartbeat_app_state`. */
-  setHeartbeatAppState(request: SetHeartbeatAppStateRequest): Promise<void>;
+  /** setConnectTokenRefresher maps to `flare_sdk_set_connect_token_refresher` via `ffi-symbol`. Operation: `sdk.set_connect_token_refresher`. */
+  setConnectTokenRefresher(refresher: ConnectTokenRefresher | null): Promise<void>;
   /** setHeartbeatNatTimeout maps to `flare_sdk_invoke_json`. Operation: `sdk.set_heartbeat_nat_timeout`. */
   setHeartbeatNatTimeout(request: SetHeartbeatNatTimeoutRequest): Promise<void>;
   /** heartbeatEffectiveInterval maps to `flare_sdk_invoke_json`. Operation: `sdk.heartbeat_effective_interval`. */

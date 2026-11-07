@@ -4,15 +4,7 @@ package flare_core_harmony_cangjie_sdk.contract
 // Constants generated from sdk-spec modules.
 
 public class SdkContract {
-    public static let ffiContractVersion: String = "flare-im-ffi/v1"
-}
-
-public enum ConnectionState {
-    | Disconnected
-    | Connecting
-    | Connected
-    | Ready
-    | Reconnecting
+    public static let ffiContractVersion: String = "flare-im-ffi/v2"
 }
 
 public class SdkOperations {
@@ -23,7 +15,8 @@ public class SdkOperations {
     public static let sdkPrepare: String = "sdk.prepare"
     public static let sdkConnect: String = "sdk.connect"
     public static let sdkUpdateAccessToken: String = "sdk.update_access_token"
-    public static let sdkSetHeartbeatAppState: String = "sdk.set_heartbeat_app_state"
+    public static let sdkSetConnectTokenRefresher: String = "sdk.set_connect_token_refresher"
+    public static let sdkCompleteConnectTokenRefresh: String = "sdk.complete_connect_token_refresh"
     public static let sdkSetHeartbeatNatTimeout: String = "sdk.set_heartbeat_nat_timeout"
     public static let sdkHeartbeatEffectiveInterval: String = "sdk.heartbeat_effective_interval"
     public static let sdkLogout: String = "sdk.logout"
@@ -32,7 +25,14 @@ public class SdkOperations {
     public static let sdkCurrentUserId: String = "sdk.current_user_id"
     public static let sdkIsConnected: String = "sdk.is_connected"
     public static let sdkSessionActive: String = "sdk.session_active"
-    public static let connectionGetState: String = "connection.get_state"
+    public static let connectionGetStatus: String = "connection.get_status"
+    public static let connectionReconnectNow: String = "connection.reconnect_now"
+    public static let accessGetStatus: String = "access.get_status"
+    public static let accessListAccessPoints: String = "access.list_access_points"
+    public static let accessPin: String = "access.pin"
+    public static let accessUnpin: String = "access.unpin"
+    public static let accessExportDiagnostics: String = "access.export_diagnostics"
+    public static let lifecycleSetAppState: String = "lifecycle.set_app_state"
     public static let connectionDisconnect: String = "connection.disconnect"
     public static let conversationList: String = "conversation.list"
     public static let conversationListByQuery: String = "conversation.list_by_query"
@@ -162,5 +162,8 @@ public class SdkErrorCodes {
     public static let storageUnavailable: String = "storageUnavailable"
     public static let operationCancelled: String = "operationCancelled"
     public static let capabilityUnavailable: String = "capabilityUnavailable"
+    public static let overloaded: String = "overloaded"
+    public static let upgradeRequired: String = "upgradeRequired"
+    public static let networkUncertain: String = "networkUncertain"
     public static let internal: String = "internal"
 }

@@ -3,8 +3,16 @@ package flare_core_harmony_cangjie_sdk.listener
 import flare_core_harmony_cangjie_sdk.model.*
 
 // GENERATED. Do not edit by hand.
-public interface ConnectionEventCallback {
-    func handle(event: ConnectionEvent): Unit
+public interface AccessChangedEventCallback {
+    func handle(event: AccessChangedEvent): Unit
+}
+
+public interface AccessSwitchedEventCallback {
+    func handle(event: AccessSwitchedEvent): Unit
+}
+
+public interface ConnectionStatusCallback {
+    func handle(event: ConnectionStatus): Unit
 }
 
 public interface ConversationEventCallback {
@@ -65,6 +73,10 @@ public interface TypingAggregateEventCallback {
 
 public interface TypingEventCallback {
     func handle(event: TypingEvent): Unit
+}
+
+public interface UpdateStatusCallback {
+    func handle(event: UpdateStatus): Unit
 }
 
 public interface ViewUpdateCallback {

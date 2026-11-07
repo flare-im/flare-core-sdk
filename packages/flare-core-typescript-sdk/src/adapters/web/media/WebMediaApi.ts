@@ -328,7 +328,12 @@ export class WebMediaApi implements MediaApi {
       let url = sourceUrl;
       if (!blob) {
         if (!url) {
-          const access = await this.inner.getTempDownloadUrl({ fileId, expiresIn: 3600 });
+          const access = await this.inner.getTempDownloadUrl({
+            fileId, expiresIn: 3600,
+            ...(request.messageId !== undefined ? { messageId: request.messageId } : {}),
+            ...(request.conversationId !== undefined ? { conversationId: request.conversationId } : {}),
+            ...(request.messageSeq !== undefined ? { messageSeq: request.messageSeq } : {}),
+          });
           url = String(access.url ?? access.cdnUrl ?? '').trim();
         }
         if (!url) {

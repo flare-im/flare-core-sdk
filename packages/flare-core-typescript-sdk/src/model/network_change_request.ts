@@ -1,7 +1,7 @@
 /** GENERATED. Do not edit by hand. */
 import type { NetworkInterfaceKind } from './network_interface_kind';
 
-/** Platform network-change notification used to trigger active reconnect. */
+/** Platform network-change notification. The link supervisor alone decides whether and how to reconnect. */
 export interface NetworkChangeRequest {
   /** wire: `available`. Whether a network route is currently available. Omitted means available. */
   available?: boolean;
@@ -13,4 +13,6 @@ export interface NetworkChangeRequest {
   metered?: boolean;
   /** wire: `reason`. Optional platform reason string for diagnostics. */
   reason?: string;
+  /** wire: `fingerprintHint`. Coarse network identity (native: Wi-Fi gateway prefix or cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID. */
+  fingerprintHint?: string;
 }

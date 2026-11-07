@@ -6,13 +6,14 @@
   "scripts": {
     "postinstall": "node scripts/patch-ant-design-icons-config.js",
     "sync:dev-token-secret": "node scripts/sync-dev-token-secret.js",
-    "start": "npm run sync:dev-token-secret && react-native start",
-    "ios": "npm run sync:dev-token-secret && node scripts/run-native.js ios",
-    "android": "npm run sync:dev-token-secret && node scripts/run-native.js android",
+    "sync:access-config": "node scripts/sync-access-config.js",
+    "start": "npm run sync:dev-token-secret && npm run sync:access-config && react-native start",
+    "ios": "npm run sync:dev-token-secret && npm run sync:access-config && node scripts/run-native.js ios",
+    "android": "npm run sync:dev-token-secret && npm run sync:access-config && node scripts/run-native.js android",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-transform-types --loader ./tests/ts-extension-loader.mjs --test tests/*.test.ts",
-    "bundle:ios": "npm run sync:dev-token-secret && rm -rf /tmp/flare-core-rn-app-bundle && mkdir -p /tmp/flare-core-rn-app-bundle && react-native bundle --platform ios --entry-file index.js --bundle-output /tmp/flare-core-rn-app-bundle/main.jsbundle --assets-dest /tmp/flare-core-rn-app-bundle/assets --dev true --reset-cache",
-    "bundle:android": "npm run sync:dev-token-secret && rm -rf /tmp/flare-core-rn-app-android-bundle && mkdir -p /tmp/flare-core-rn-app-android-bundle && react-native bundle --platform android --entry-file index.js --bundle-output /tmp/flare-core-rn-app-android-bundle/index.android.bundle --assets-dest /tmp/flare-core-rn-app-android-bundle/assets --dev true --reset-cache",
+    "bundle:ios": "npm run sync:dev-token-secret && npm run sync:access-config && rm -rf /tmp/flare-core-rn-app-bundle && mkdir -p /tmp/flare-core-rn-app-bundle && react-native bundle --platform ios --entry-file index.js --bundle-output /tmp/flare-core-rn-app-bundle/main.jsbundle --assets-dest /tmp/flare-core-rn-app-bundle/assets --dev true --reset-cache",
+    "bundle:android": "npm run sync:dev-token-secret && npm run sync:access-config && rm -rf /tmp/flare-core-rn-app-android-bundle && mkdir -p /tmp/flare-core-rn-app-android-bundle && react-native bundle --platform android --entry-file index.js --bundle-output /tmp/flare-core-rn-app-android-bundle/index.android.bundle --assets-dest /tmp/flare-core-rn-app-android-bundle/assets --dev true --reset-cache",
     "verify": "npm run typecheck && npm run test && npm run bundle:ios && npm run bundle:android"
   },
   "dependencies": {

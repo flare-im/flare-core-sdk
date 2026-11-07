@@ -44,4 +44,6 @@ abstract interface class ConversationsApi {
   Future<void> updateConversationDraft(UpdateConversationDraftRequest request);
   /// clearLocalChatHistory maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.clear_local_chat_history`.
   Future<void> clearLocalChatHistory(Map<String, Object?> request);
+  /// clearChatHistoryForSelf maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.clear_chat_history_for_self`.
+  Future<void> clearChatHistoryForSelf(Map<String, Object?> request);
 }

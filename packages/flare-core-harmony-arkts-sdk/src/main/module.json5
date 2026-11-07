@@ -8,6 +8,10 @@
       "tablet",
       "2in1"
     ],
-    "requestPermissions": []
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.GET_NETWORK_INFO"
+      }
+    ]
   }
 }

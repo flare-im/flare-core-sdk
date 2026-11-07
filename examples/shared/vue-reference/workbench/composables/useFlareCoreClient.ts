@@ -1,8 +1,9 @@
 import { validSearchTimeRange, type FlareSearchTimeRange } from "@flare-im/vue-ui/contracts";
-import { computed, onBeforeUnmount, reactive, readonly, ref, watch } from "vue";
+import { computed, onBeforeUnmount, reactive, readonly, ref, shallowRef, watch } from "vue";
 import { translateFlare } from "@flare-im/vue-ui/i18n";
 import type {
   AudioContentPayload,
+  ConnectionStatus,
   Conversation,
   FileContentPayload,
   FlareImClient,
@@ -22,10 +23,8 @@ import type {
 } from "@flare-im/sdk/web";
 import {
   FlareSdkException,
-  HeartbeatAppState,
   MessageBuildOp,
   MessageContentType,
-  NetworkInterfaceKind,
   conversationFromJson,
 } from "@flare-im/sdk/web";
 import {
@@ -40,27 +39,21 @@ import {
   setDesktopUnreadCount,
   type DesktopNotificationKind,
 } from "../app/infrastructure/desktop/desktopNotifications";
-import { mediaProxyFields as sdkMediaProxyFields, withTimeout } from "@flare-im/vue-ui/utils";
+import { FlareConnectionRefresh, withTimeout } from "@flare-im/vue-ui/utils";
 
+/**
+ * What the sign-in page collects. Where to connect is not here: it is the build's access configuration
+ * (`UseFlareCoreClientOptions.sdkConfig`).
+ */
 export interface LoginFormState {
   userId: string;
+  /** A connect token the host already holds (app-hosted); empty lets the SDK issue and renew one (SDK-managed). */
   token: string;
-  transportMode: LoginTransportMode;
-  wsUrl: string;
-  quicUrl: string;
-  tlsCaCertPath: string;
-  httpUrl: string;
   dataUrl: string;
   tenantId: string;
 }
 
-export type LoginTransportMode = "websocket" | "quic" | "race";
 export type SdkRuntimeStatus = "browser-wasm" | "browser-unavailable" | "tauri-native" | "electron-native" | "uni-native";
-
-type LoginTransportConfig = Pick<
-  SdkConfig,
-  "wsUrl" | "quicUrl" | "tlsCaCertPath" | "transportPolicy" | "defaultTransport" | "protocolRaceOrder"
->;
 
 export interface LoginIdentity {
   userId: string;
@@ -102,11 +95,6 @@ export interface SdkLabState {
   sourcePath: string;
   sourceUrl: string;
   remoteFileId: string;
-  networkAvailable: boolean;
-  networkInterface: NetworkInterfaceKind;
-  networkExpensive: boolean;
-  networkMetered: boolean;
-  heartbeatAppState: "foreground" | "background";
   heartbeatNatTimeoutSecs: number;
   tokenTtlSecs: number;
   draft: string;
@@ -129,7 +117,7 @@ type CoreSessionSnapshot = {
   initialized: boolean;
   loggedIn: boolean;
   userId: string;
-  connectionState: string;
+  connectionStatus: ConnectionStatus;
 };
 
 type CoreDiagnosticsSnapshot = {
@@ -140,7 +128,7 @@ type CoreDiagnosticsSnapshot = {
   currentUser: unknown;
   sessionActive: boolean;
   isConnected: boolean;
-  connectionState: string;
+  connectionStatus: ConnectionStatus;
 };
 
 type ViewDeltaPayload = NonNullable<ViewUpdate["delta"]>;
@@ -189,14 +177,14 @@ const ACTIVE_CONVERSATION_REFRESH_DEBOUNCE_MS = 500;
 export interface UseFlareCoreClientOptions {
   /** Host-provided client factory (e.g. web WASM bridge). */
   createClient: () => FlareImClient;
-  /** Host environment record (e.g. Vite `import.meta.env`). */
+  /** Host environment record (e.g. Vite `import.meta.env`): sign-in defaults only, never an address. */
   env?: Record<string, string | undefined>;
-  /** Default HTTP base URL for the dev login form (host-resolved). */
-  defaultHttpUrl?: string;
-  /** Host-provided CA/self-signed certificate path for native QUIC TLS. */
-  defaultTlsCaCertPath?: string;
-  /** Native hosts can expose QUIC/protocol racing; browser Web/WASM stays WebSocket-only. */
-  nativeTransportSelectionEnabled?: boolean;
+  /**
+   * The SDK configuration this build connects with: the access configuration (signed seed or development
+   * endpoints) and the host's own settings such as a private CA. Throws when the build has none; the sign-in page
+   * then says so and offers no sign-in.
+   */
+  sdkConfig: () => SdkConfig;
   /** Host runtime label for diagnostics and login status. */
   runtimeStatus?: SdkRuntimeStatus;
 }
@@ -217,140 +205,6 @@ export function keepArchivedConversations<T extends { isArchived?: boolean }>(
 export function readLoginEnvText(value: string | undefined, fallback: string): string {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
-}
-
-export function normalizeLoginTransportMode(value: unknown): LoginTransportMode {
-  const normalized = String(value ?? "").trim().toLowerCase().replace(/-/g, "_");
-  if (normalized === "quic") return "quic";
-  if (normalized === "race" || normalized === "protocol_race") return "race";
-  return "websocket";
-}
-
-export function loginTransportDisplayName(value: unknown): string {
-  const mode = normalizeLoginTransportMode(value);
-  if (mode === "quic") return "QUIC";
-  if (mode === "race") return "QUIC → WebSocket";
-  return "WebSocket";
-}
-
-function requiredLoginUrl(value: string, label: string): string {
-  const normalized = String(value ?? "").trim();
-  if (!normalized) {
-    throw new Error(`${label} is required for selected transport`);
-  }
-  return normalized;
-}
-
-function optionalLoginText(value: string | undefined): string | undefined {
-  const normalized = String(value ?? "").trim();
-  return normalized || undefined;
-}
-
-export function buildLoginTransportConfig(
-  input: Pick<LoginFormState, "transportMode" | "wsUrl" | "quicUrl"> &
-    Partial<Pick<LoginFormState, "tlsCaCertPath">>,
-): LoginTransportConfig {
-  const mode = normalizeLoginTransportMode(input.transportMode);
-  const wsUrl = requiredLoginUrl(input.wsUrl, "WebSocket URL");
-  const tlsCaCertPath = optionalLoginText(input.tlsCaCertPath);
-  const tlsConfig = tlsCaCertPath ? { tlsCaCertPath } : {};
-  if (mode === "websocket") {
-    return {
-      wsUrl,
-      ...tlsConfig,
-      transportPolicy: "websocket_only",
-      defaultTransport: "websocket",
-    };
-  }
-
-  const quicUrl = requiredLoginUrl(input.quicUrl, "QUIC URL");
-  if (mode === "quic") {
-    return {
-      wsUrl,
-      quicUrl,
-      ...tlsConfig,
-      transportPolicy: "auto",
-      defaultTransport: "quic",
-      protocolRaceOrder: ["quic"],
-    };
-  }
-
-  return {
-    wsUrl,
-    quicUrl,
-    ...tlsConfig,
-    transportPolicy: "protocol_race",
-    defaultTransport: "quic",
-    protocolRaceOrder: ["quic", "websocket"],
-  };
-}
-
-function transportErrorText(error: unknown): string {
-  if (!error) return "";
-  const parts: string[] = [];
-  if (error instanceof Error) {
-    parts.push(error.message);
-  } else {
-    parts.push(String(error));
-  }
-  if (typeof error === "object") {
-    const shaped = error as {
-      code?: unknown;
-      operation?: unknown;
-      details?: unknown;
-      cause?: unknown;
-    };
-    for (const value of [shaped.code, shaped.operation]) {
-      if (value !== undefined && value !== null) parts.push(String(value));
-    }
-    if (shaped.details !== undefined) {
-      try {
-        parts.push(JSON.stringify(shaped.details));
-      } catch {
-        parts.push(String(shaped.details));
-      }
-    }
-    if (shaped.cause !== undefined) {
-      parts.push(transportErrorText(shaped.cause));
-    }
-  }
-  return parts.filter(Boolean).join(" ");
-}
-
-export function isRecoverableLoginTransportError(
-  error: unknown,
-  transportMode: LoginTransportMode,
-): boolean {
-  const mode = normalizeLoginTransportMode(transportMode);
-  if (mode === "websocket") return false;
-  const text = transportErrorText(error);
-  if (!text) return false;
-  const mentionsQuic = /\bquic\b/i.test(text);
-  const unsupported = /OPERATION_NOT_SUPPORTED|not supported|feature is disabled/i.test(text);
-  return mentionsQuic && unsupported;
-}
-
-function loginTransportLabel(transportMode: LoginTransportMode): string {
-  return normalizeLoginTransportMode(transportMode) === "race" ? translateFlare("login.transport.race") : "QUIC";
-}
-
-function loginTransportFallbackReason(error: unknown): string {
-  const text = transportErrorText(error);
-  if (/QUIC transport feature is disabled/i.test(text)) {
-    return "QUIC transport feature is disabled";
-  }
-  const codeMatch = text.match(/\[OPERATION_NOT_SUPPORTED\]/i);
-  if (codeMatch) return codeMatch[0];
-  return text.slice(0, 160);
-}
-
-export function loginTransportFallbackMessage(
-  transportMode: LoginTransportMode,
-  error: unknown,
-): string {
-  const reason = loginTransportFallbackReason(error);
-  const suffix = reason ? translateFlare("transport.fallbackReason", { reason }) : translateFlare("transport.fallbackReasonGeneric");
-  return translateFlare("transport.switchedToWebsocket", { label: loginTransportLabel(transportMode), suffix });
 }
 
 export function normalizeLoginIdentityForSdk(input: Pick<LoginFormState, "userId" | "tenantId">): LoginIdentity {
@@ -382,22 +236,10 @@ function readBooleanField(input: unknown, field: string): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
 }
 
-function makeFormDefaults(
-  env: Record<string, string | undefined>,
-  defaultHttpUrl: string,
-  nativeTransportSelectionEnabled = false,
-  defaultTlsCaCertPath = "",
-): LoginFormState {
+function makeFormDefaults(env: Record<string, string | undefined>): LoginFormState {
   return {
     userId: readLoginEnvText(env.VITE_FLARE_USER_ID, ""),
     token: "",
-    transportMode: nativeTransportSelectionEnabled
-      ? normalizeLoginTransportMode(env.VITE_FLARE_TRANSPORT_MODE ?? env.VITE_FLARE_TRANSPORT_POLICY)
-      : "websocket",
-    wsUrl: readLoginEnvText(env.VITE_FLARE_WS_URL, "ws://127.0.0.1:60051/ws"),
-    quicUrl: readLoginEnvText(env.VITE_FLARE_QUIC_URL, "quic://127.0.0.1:60052"),
-    tlsCaCertPath: readLoginEnvText(env.VITE_FLARE_TLS_CA_CERT_PATH, defaultTlsCaCertPath),
-    httpUrl: readLoginEnvText(env.VITE_FLARE_HTTP_URL, defaultHttpUrl),
     dataUrl: readLoginEnvText(env.VITE_FLARE_DATA_URL, ""),
     tenantId: readLoginEnvText(env.VITE_FLARE_TENANT_ID, "0"),
   };
@@ -411,12 +253,8 @@ function makeFormDefaults(
 export interface SavedSessionProfile {
   userId: string;
   tenantId: string;
+  /** Empty for an SDK-managed session: the SDK issues a new connect token when it resumes. */
   token: string;
-  transportMode: LoginTransportMode;
-  wsUrl: string;
-  quicUrl: string;
-  tlsCaCertPath: string;
-  httpUrl: string;
   dataUrl: string;
   savedAtMs: number;
 }
@@ -442,23 +280,13 @@ export function loadSavedSessionProfile(): SavedSessionProfile | undefined {
     if (!raw) return undefined;
     const parsed = JSON.parse(raw) as Partial<SavedSessionProfile>;
     const userId = String(parsed.userId ?? "").trim();
-    const token = String(parsed.token ?? "").trim();
-    const wsUrl = String(parsed.wsUrl ?? "").trim();
-    const httpUrl = String(parsed.httpUrl ?? "").trim();
-    // SDK 托管登录(只输 user id,token 由网关签发)存下的 token 恒为空,恢复路径靠
-    // httpUrl 走 SDK 托管重签(见 connectResumedSessionInBackground)。因此空 token 不该
-    // 一刀切拒热启动——只在既无 token 又无 SDK 托管端点(httpUrl)时才判无会话。
-    if (!userId || !wsUrl) return undefined;
-    if (!token && !httpUrl) return undefined;
+    // SDK 托管登录(只输 user id)存下的 token 恒为空:恢复时由 SDK 重新签发,所以空 token 照样热启动。
+    // 连到哪里不在档案里:那是构建期的接入配置。
+    if (!userId) return undefined;
     return {
       userId,
       tenantId: String(parsed.tenantId ?? "").trim() || "0",
-      token,
-      transportMode: normalizeLoginTransportMode(parsed.transportMode),
-      wsUrl,
-      quicUrl: String(parsed.quicUrl ?? "").trim(),
-      tlsCaCertPath: String(parsed.tlsCaCertPath ?? "").trim(),
-      httpUrl,
+      token: String(parsed.token ?? "").trim(),
       dataUrl: String(parsed.dataUrl ?? "").trim(),
       savedAtMs: Number(parsed.savedAtMs) || 0,
     };
@@ -508,11 +336,6 @@ const sdkLabDefaults: SdkLabState = {
   sourcePath: "",
   sourceUrl: "",
   remoteFileId: "",
-  networkAvailable: true,
-  networkInterface: NetworkInterfaceKind.Wifi,
-  networkExpensive: false,
-  networkMetered: false,
-  heartbeatAppState: "foreground",
   heartbeatNatTimeoutSecs: 60,
   tokenTtlSecs: 3600,
   draft: "",
@@ -522,6 +345,8 @@ const sdkLabDefaults: SdkLabState = {
 const sdkEventSources = [
   "lifecycle",
   "connection",
+  "access",
+  "update",
   "message",
   "conversation",
   "sync",
@@ -798,11 +623,6 @@ function contentTypeParam(source: Record<string, unknown>): MessageContentType {
   return raw as MessageContentType;
 }
 
-/** SDK 托管 token：把网关基址交给核心，核心去 /api/v1/auth/tokens 签发、到期前刷新。 */
-export function sdkManagedAuth(httpUrl: string): { tokenEndpoint: string } {
-  return { tokenEndpoint: httpUrl.trim().replace(/\/+$/, "") };
-}
-
 export function desktopNotificationBodyForMessage(message: Message): string {
   switch (message.content?.contentType ?? messageContentTypeFromPreview(message.textPreview)) {
     case MessageContentType.Text:
@@ -928,14 +748,9 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
   const defaultSdkRuntimeStatus = options.runtimeStatus ?? "browser-wasm";
   const appClient = options.createClient();
   const client = appClient;
-  const form = reactive({
-    ...makeFormDefaults(
-      env,
-      options.defaultHttpUrl ?? "",
-      options.nativeTransportSelectionEnabled === true,
-      options.defaultTlsCaCertPath ?? "",
-    ),
-  });
+  const form = reactive({ ...makeFormDefaults(env) });
+  // A build without an access configuration cannot connect anywhere: the sign-in page says why and offers no sign-in.
+  const accessConfigError = ref(sdkConfigProblem());
   const sdkLab = reactive({ ...sdkLabDefaults });
   const conversationFilters = reactive<ConversationFilterState>({
     filter: "all",
@@ -946,7 +761,12 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
   const initialized = ref(false);
   const loggedIn = ref(false);
   const busy = ref(false);
-  const connectionState = ref("disconnected");
+  /**
+   * The core's `connection://status`, whole as it arrives (null before the SDK has reported one). The app shell
+   * hands it to the kit's `FlareConnectionNotice` unchanged; flows here read only its phase.
+   */
+  const connectionStatus = shallowRef<ConnectionStatus | null>(null);
+  const connectionPhase = computed(() => connectionStatus.value?.phase ?? "idle");
   const currentUserId = ref("");
   const sessionActive = ref(false);
   const isConnected = ref(false);
@@ -960,7 +780,6 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     percent: 0,
   });
   const sdkRuntimeStatus = ref<SdkRuntimeStatus>(defaultSdkRuntimeStatus);
-  const transportFallbackNotice = ref("");
   const activeConversationId = ref("");
   const conversations = ref<Conversation[]>([]);
   const messages = ref<Message[]>([]);
@@ -1527,7 +1346,7 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       currentUser,
       active,
       connected,
-      state,
+      status,
     ] = await Promise.all([
       client.diagnostics.getSdkVersion(),
       client.diagnostics.getFfiContractVersion(),
@@ -1536,7 +1355,7 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       client.currentUserId(),
       client.sessionActive(),
       client.isConnected(),
-      client.connection.getConnectionState(),
+      client.connection.getStatus(),
     ]);
     return {
       sdkVersion: sdkVersion as Record<string, unknown>,
@@ -1546,7 +1365,7 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       currentUser,
       sessionActive: active,
       isConnected: connected,
-      connectionState: state,
+      connectionStatus: status,
     };
   }
 
@@ -1589,33 +1408,72 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     });
   }
 
+  /**
+   * The init request of one session: where to connect and the host's own settings come from the build
+   * (`options.sdkConfig`), the tenant and data root from the sign-in. Two ways to authenticate: app-hosted, a
+   * connect token the host already holds is used as it is; SDK-managed, without one the SDK issues the connect token
+   * through the core API of the access point it is on and renews it before expiry. The client never signs tokens
+   * itself (that would put the signing key in the browser).
+   */
+  function coreSdkConfig(request: { dataUrl: string; tenantId: string; token: string }): SdkConfig {
+    return {
+      ...options.sdkConfig(),
+      dataUrl: request.dataUrl,
+      tenantId: request.tenantId,
+      ...(request.token ? {} : { auth: {} }),
+    };
+  }
+
+  /** Why this build cannot connect anywhere, or "" when it can. */
+  function sdkConfigProblem(): string {
+    try {
+      options.sdkConfig();
+      return "";
+    } catch (error) {
+      return errorMessage(error);
+    }
+  }
+
+  let initBeforeSignInRun: Promise<boolean> | undefined;
+
+  async function initForSignInPage(): Promise<boolean> {
+    if (initialized.value) return true;
+    if (accessConfigError.value || hasSavedSession()) return false;
+    try {
+      await client.init(coreSdkConfig({ dataUrl: form.dataUrl, tenantId: form.tenantId, token: "" }));
+      return true;
+    } catch (error) {
+      log("init_before_sign_in_failed", errorMessage(error));
+      return false;
+    }
+  }
+
+  /**
+   * Initializes the SDK ahead of any sign-in, so the update center runs on the sign-in page too: where to connect is
+   * the build's, and the tenant here is only the form's default. Answers whether the SDK is initialized; a sign-in
+   * initializes again with its own tenant, and a saved session initializes on its way in.
+   */
+  function initBeforeSignIn(): Promise<boolean> {
+    initBeforeSignInRun ??= initForSignInPage().then((ready) => {
+      if (!ready) initBeforeSignInRun = undefined;
+      return ready;
+    });
+    return initBeforeSignInRun;
+  }
+
   async function initAndLoginCore(request: {
-    transportMode: LoginTransportMode;
-    wsUrl: string;
-    quicUrl: string;
-    tlsCaCertPath: string;
     dataUrl: string;
     tenantId: string;
     userId: string;
     token: string;
-    httpUrl: string;
   }): Promise<{ session: CoreSessionSnapshot; diagnostics: CoreDiagnosticsSnapshot; messageBuildCatalog: readonly MessageBuildCatalogEntry[] }> {
-    // 两条路：应用托管——用户在高级区粘贴了一枚 token 就原样用；SDK 托管——没有 token 时
-    // 把网关地址交给核心，核心自己去 /api/v1/auth/tokens 签发并在到期前刷新。
-    // 客户端不再本地签发（那等于把签名密钥放进浏览器）。
     const token = request.token.trim();
-    const mediaProxy = sdkMediaProxyFields();
+    const sdkConfig = coreSdkConfig({ ...request, token });
+    // The sign-in page's init must not land after this one and put the default tenant back.
+    await initBeforeSignInRun;
     await resetCoreSessionForLogin();
     await withTimeout(
-      client.init({
-        ...buildLoginTransportConfig(request),
-        dataUrl: request.dataUrl,
-        tenantId: request.tenantId,
-        httpUrl: request.httpUrl,
-        mediaStorageProxyPrefix: mediaProxy.storageProxyPrefix,
-        mediaStorageProxyTargets: mediaProxy.storageProxyTargets,
-        ...(token ? {} : { auth: sdkManagedAuth(request.httpUrl) }),
-      }),
+      client.init(sdkConfig),
       CORE_LOGIN_STEP_TIMEOUT_MS,
       () => sdkOperationTimeoutError("login.init", CORE_LOGIN_STEP_TIMEOUT_MS),
     );
@@ -1629,9 +1487,9 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       CORE_LOGIN_TIMEOUT_MS,
       () => sdkOperationTimeoutError("login.core", CORE_LOGIN_TIMEOUT_MS),
     );
-    const [state, catalog, coreDiagnostics] = await withTimeout(
+    const [status, catalog, coreDiagnostics] = await withTimeout(
       Promise.all([
-        client.connection.getConnectionState(),
+        client.connection.getStatus(),
         refreshCoreMessageBuildCatalog(),
         refreshCoreDiagnostics(),
       ]),
@@ -1643,7 +1501,7 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
         initialized: true,
         loggedIn: true,
         userId: request.userId,
-        connectionState: state,
+        connectionStatus: status,
       },
       diagnostics: coreDiagnostics,
       messageBuildCatalog: catalog,
@@ -2254,7 +2112,7 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
   }
 
   function isRealtimeRefreshConnectionReady(): boolean {
-    return connectionState.value === "ready" || connectionState.value === "connected";
+    return connectionPhase.value === "online";
   }
 
   function startRealtimeSafetyPoll(): void {
@@ -2541,15 +2399,16 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     messageOpening.value = false;
   }
 
-  async function refreshConnectionState(): Promise<void> {
-    connectionState.value = await client.connection.getConnectionState();
+  /** Takes the core's current status: the `connection://status` events keep it current after that. */
+  async function refreshConnectionStatus(): Promise<void> {
+    connectionStatus.value = await client.connection.getStatus();
   }
 
-  async function refreshConnectionStateSafely(reason: string): Promise<void> {
+  async function refreshConnectionStatusSafely(reason: string): Promise<void> {
     try {
-      await refreshConnectionState();
+      await refreshConnectionStatus();
     } catch (error) {
-      log("connection_state_refresh_failed", `${reason}: ${errorMessage(error)}`);
+      log("connection_status_refresh_failed", `${reason}: ${errorMessage(error)}`);
     }
   }
 
@@ -2833,10 +2692,11 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
         currentUser: appDiagnostics.currentUser,
         sessionActive: appDiagnostics.sessionActive,
         isConnected: appDiagnostics.isConnected,
-        connectionState: appDiagnostics.connectionState,
+        connectionStatus: appDiagnostics.connectionStatus,
       };
+      connectionStatus.value = appDiagnostics.connectionStatus;
       labResult.value = diagnostics.value;
-      log("diagnostics", appDiagnostics.connectionState);
+      log("diagnostics", appDiagnostics.connectionStatus.phase);
       messageBuildCatalog.value = [...await refreshCoreMessageBuildCatalog()];
     } finally {
       labBusy.value = false;
@@ -2855,7 +2715,6 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     const loginStartedAt = nowMs();
     homeSyncReady.value = false;
     homeSyncError.value = "";
-    transportFallbackNotice.value = "";
     setHomeSyncProgress({
       step: "session",
       title: translateFlare("sync.connectTitle"),
@@ -2866,44 +2725,20 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       const tokenStartedAt = nowMs();
       const identity = applyLoginIdentity();
       logDuration("login_token_ready", tokenStartedAt);
-      // 留空 = SDK 托管（核心向网关签发）；填了 = 应用托管（原样使用）。
+      // 留空 = SDK 托管（核心签发并续期）；填了 = 应用托管（原样使用）。
       const token = String(form.token ?? "").trim();
       const coreLoginStartedAt = nowMs();
-      const selectedTransportMode = normalizeLoginTransportMode(form.transportMode);
-      const loginRequest = (transportMode: LoginTransportMode) => ({
-        transportMode,
-        wsUrl: form.wsUrl,
-        quicUrl: form.quicUrl,
-        tlsCaCertPath: form.tlsCaCertPath,
+      // The protocol and the access point are the core's choice, per the build's access configuration.
+      const snapshot = await initAndLoginCore({
         dataUrl: form.dataUrl,
         tenantId: identity.tenantId,
         userId: identity.userId,
         token,
-        httpUrl: form.httpUrl,
       });
-      let snapshot: Awaited<ReturnType<typeof initAndLoginCore>>;
-      try {
-        snapshot = await initAndLoginCore(loginRequest(selectedTransportMode));
-      } catch (error) {
-        if (!isRecoverableLoginTransportError(error, selectedTransportMode)) {
-          throw error;
-        }
-        const notice = loginTransportFallbackMessage(selectedTransportMode, error);
-        transportFallbackNotice.value = notice;
-        form.transportMode = "websocket";
-        log("login_transport_fallback", notice);
-        setHomeSyncProgress({
-          step: "session",
-          title: translateFlare("sync.switchWsTitle"),
-          detail: notice,
-          percent: 10,
-        });
-        snapshot = await initAndLoginCore(loginRequest("websocket"));
-      }
       logDuration("login_core_ready", coreLoginStartedAt);
       initialized.value = snapshot.session.initialized;
       loggedIn.value = snapshot.session.loggedIn;
-      connectionState.value = snapshot.session.connectionState;
+      connectionStatus.value = snapshot.session.connectionStatus;
       currentUserId.value = snapshot.session.userId ?? identity.userId;
       sessionActive.value = Boolean(snapshot.diagnostics?.sessionActive);
       isConnected.value = Boolean(snapshot.diagnostics?.isConnected);
@@ -2916,7 +2751,6 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
         percent: 18,
       });
       persistSavedSessionProfile(savedSessionProfileFromForm(identity, token));
-      startPlatformSignalBridge();
       log("login", `${identity.userId} connected`);
       logDuration("login_route_ready", loginStartedAt);
     } catch (error) {
@@ -2944,11 +2778,6 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       userId: identity.userId,
       tenantId: identity.tenantId,
       token,
-      transportMode: normalizeLoginTransportMode(form.transportMode),
-      wsUrl: form.wsUrl,
-      quicUrl: form.quicUrl,
-      tlsCaCertPath: form.tlsCaCertPath,
-      httpUrl: form.httpUrl,
       dataUrl: form.dataUrl,
       savedAtMs: Date.now(),
     };
@@ -2958,11 +2787,6 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     form.userId = profile.userId;
     form.tenantId = profile.tenantId;
     form.token = profile.token;
-    form.transportMode = profile.transportMode;
-    form.wsUrl = profile.wsUrl;
-    if (profile.quicUrl) form.quicUrl = profile.quicUrl;
-    if (profile.tlsCaCertPath) form.tlsCaCertPath = profile.tlsCaCertPath;
-    if (profile.httpUrl) form.httpUrl = profile.httpUrl;
     if (profile.dataUrl) form.dataUrl = profile.dataUrl;
   }
 
@@ -2997,18 +2821,8 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     });
     try {
       applySavedSessionToForm(profile);
-      const mediaProxy = sdkMediaProxyFields();
-      await client.init({
-        ...buildLoginTransportConfig(form),
-        dataUrl: form.dataUrl,
-        tenantId: profile.tenantId,
-        httpUrl: form.httpUrl,
-        mediaStorageProxyPrefix: mediaProxy.storageProxyPrefix,
-        mediaStorageProxyTargets: mediaProxy.storageProxyTargets,
-        // SDK 托管会话(空 token)热恢复也要接线 auth.tokenEndpoint,否则重连拿不到 token
-        // → WS/sync 401 → NOT_CONNECTED 一直 disconnected(与登录路径 initAndLoginCore 对齐)。
-        ...(profile.token ? {} : { auth: sdkManagedAuth(form.httpUrl) }),
-      });
+      // SDK 托管会话(空 token)热恢复同样交给 SDK 签发,与登录路径 initAndLoginCore 一致。
+      await client.init(coreSdkConfig({ dataUrl: form.dataUrl, tenantId: profile.tenantId, token: profile.token }));
       await client.events.subscribeEvents({ sources: [...sdkEventSources] });
       await withTimeout(
         client.prepare({ userId: profile.userId, token: profile.token }),
@@ -3045,7 +2859,6 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       });
       log("session_resume_local_ready", `${conversations.value.length} conversations`);
       logDuration("session_resume_local_ready", resumeStartedAt);
-      startPlatformSignalBridge();
       void connectResumedSessionInBackground(profile);
       return true;
     } catch (error) {
@@ -3073,7 +2886,10 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
           profile.token ? { userId: profile.userId, token: profile.token } : { userId: profile.userId },
         );
       } catch (error) {
-        // 保存的 token 过期/失效：不带 token 再连一次，核心会向网关重新签发（需要 HTTP 网关可达）。
+        // A failure the link recovers from by itself (offline, timeouts, overload) is not an error here: the SDK
+        // keeps the session and `connection://status` says how it goes. What is left is final, such as a rejected
+        // token. A saved app-hosted token may have expired or been revoked: connect without it, the SDK issues one.
+        if (!profile.token) throw error;
         log("session_resume_connect_retry", errorMessage(error));
         await client.connect({ userId: profile.userId });
         form.token = "";
@@ -3086,7 +2902,7 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       }
       isConnected.value = true;
       sessionActive.value = true;
-      await refreshConnectionStateSafely("session_resume");
+      await refreshConnectionStatusSafely("session_resume");
       logDuration("session_resume_connected", connectStartedAt);
       // 连接建立后启动前台收敛，把离线期间的增量补齐（core 内部静默去重）
       void client.sync.bootstrapStartupHome({
@@ -3108,69 +2924,11 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
         log("session_resume_catalog_failed", errorMessage(error));
       }
     } catch (error) {
-      // 离线也保持本地视图可用；连接状态交由 connection watcher 呈现
+      // Not a sign-out either: the local view stays readable and the connection notice follows
+      // `connection://status`, which offers signing in again when the session is over.
       log("session_resume_connect_failed", errorMessage(error));
-      await refreshConnectionStateSafely("session_resume_offline");
+      await refreshConnectionStatusSafely("session_resume_connect_failed");
     }
-  }
-
-  /**
-   * 平台原始信号桥：浏览器 online/offline → SDK 网络变化（core 主动重连，不等心跳超时）、
-   * 页面可见性 → 心跳前后台（core 前台立即收敛/后台降配）。策略全在 core，这里只喂信号。
-   */
-  let platformSignalCleanup: (() => void) | undefined;
-
-  function browserNetworkInterface(): NetworkInterfaceKind {
-    const type = (navigator as { connection?: { type?: string; effectiveType?: string } })
-      .connection?.type;
-    switch (type) {
-      case "wifi": return NetworkInterfaceKind.Wifi;
-      case "cellular": return NetworkInterfaceKind.Cellular;
-      case "ethernet": return NetworkInterfaceKind.Ethernet;
-      case undefined: return NetworkInterfaceKind.Unknown;
-      default: return NetworkInterfaceKind.Other;
-    }
-  }
-
-  function startPlatformSignalBridge(): void {
-    if (platformSignalCleanup || typeof window === "undefined" || typeof document === "undefined") {
-      return;
-    }
-    const notifyNetwork = (available: boolean, reason: string) => {
-      void client.connection.notifyNetworkChange({
-        available,
-        interface: browserNetworkInterface(),
-        reason,
-      }).then((response) => {
-        log("network_change", `${reason} reconnected=${response.reconnected}`);
-      }).catch((error) => {
-        log("network_change_failed", `${reason}: ${errorMessage(error)}`);
-      });
-    };
-    const onOnline = () => notifyNetwork(true, "browser_online");
-    const onOffline = () => notifyNetwork(false, "browser_offline");
-    const onVisibility = () => {
-      const appState = document.visibilityState === "visible"
-        ? HeartbeatAppState.Foreground
-        : HeartbeatAppState.Background;
-      void client.setHeartbeatAppState({ appState }).catch((error) => {
-        log("heartbeat_app_state_failed", `${appState}: ${errorMessage(error)}`);
-      });
-    };
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
-    document.addEventListener("visibilitychange", onVisibility);
-    platformSignalCleanup = () => {
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-    log("platform_signals", "bridge started");
-  }
-
-  function stopPlatformSignalBridge(): void {
-    platformSignalCleanup?.();
-    platformSignalCleanup = undefined;
   }
 
   async function syncHomeBeforeEnter(): Promise<void> {
@@ -3190,7 +2948,7 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
         detail: translateFlare("sync.checkDetail"),
         percent: 20,
       });
-      await refreshConnectionStateSafely("home_sync");
+      await refreshConnectionStatusSafely("home_sync");
       setHomeSyncProgress({
         step: "conversations",
         title: translateFlare("sync.syncTitle"),
@@ -3287,20 +3045,9 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       upsertUserProfiles;
   }
 
-  /** 登录配置提示状态，供登录页展开高级设置。 */
-
-  // Reactive recovery: if the connection drops into reconnecting/disconnected while the token has
-  // already expired (e.g. the app was suspended past expiry, or the proactive push failed),
-  // regenerate it immediately so the core's next reconnect authenticates instead of looping on
-  // AUTHENTICATION_FAILED. The freshly minted token is no longer near expiry, so this fires at
-  // most once per expiry rather than every reconnect tick.
-  watch(connectionState, (state) => {
-  });
-
   async function logout(): Promise<void> {
     invalidateActiveSearch();
     clearSavedSessionProfile();
-    stopPlatformSignalBridge();
     await disposeOpenViewsAndEvents("logout");
     await client.logout();
     loggedIn.value = false;
@@ -3317,12 +3064,7 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       detail: translateFlare("sync.prepareDetail"),
       percent: 0,
     });
-    try {
-      connectionState.value = await client.connection.getConnectionState();
-    } catch (error) {
-      connectionState.value = "disconnected";
-      log("connection_state_refresh_failed", `logout: ${errorMessage(error)}`);
-    }
+    await refreshConnectionStatusSafely("logout");
     log("logout", "session closed");
   }
 
@@ -3752,17 +3494,12 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
 
   async function sendTyping(typing = true): Promise<void> {
     if (!activeConversationId.value) return;
-    if (connectionState.value !== "ready" && connectionState.value !== "connected") return;
+    if (connectionPhase.value !== "online") return;
     try {
       await client.messages.setTyping({ conversationId: activeConversationId.value, typing });
     } catch (error) {
-      const detail = errorMessage(error);
-      if (/OPERATION_TIMEOUT|NOT_CONNECTED|CLOSING|CLOSED|typing|realtime control/i.test(detail)) {
-        if (/NOT_CONNECTED|CLOSING|CLOSED/i.test(detail)) {
-          connectionState.value = "reconnecting";
-        }
-        return;
-      }
+      // Typing is best effort; a dropped link shows up in `connection://status`, not here.
+      if (/OPERATION_TIMEOUT|NOT_CONNECTED|CLOSING|CLOSED|typing|realtime control/i.test(errorMessage(error))) return;
       throw error;
     }
   }
@@ -4136,31 +3873,58 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     });
   }
 
+  /**
+   * The SDK Lab's connection and access probes. Network and foreground reports are not among them: the platform
+   * lifecycle the SDK installs at init owns those.
+   */
   async function runConnectionOperation(kind: string): Promise<void> {
     await runLab(`connection.${kind}`, async () => {
-      if (kind === "state") {
-        const state = await client.connection.getConnectionState();
-        connectionState.value = state;
-        return { state };
+      if (kind === "reconnect_now") {
+        await client.connection.reconnectNow();
+        await refreshConnectionStatusSafely("lab.reconnect_now");
+        return { reconnecting: true, status: connectionStatus.value };
       }
       if (kind === "disconnect") {
         await client.connection.disconnect();
-        await refreshConnectionStateSafely("lab.disconnect");
-        return { disconnected: true, state: connectionState.value };
+        await refreshConnectionStatusSafely("lab.disconnect");
+        return { disconnected: true, status: connectionStatus.value };
       }
-      if (kind === "network_change") {
-        const response = await client.connection.notifyNetworkChange({
-          available: sdkLab.networkAvailable,
-          interface: sdkLab.networkInterface,
-          expensive: sdkLab.networkExpensive,
-          metered: sdkLab.networkMetered,
-          reason: "web-sdk-lab",
-        });
-        await refreshConnectionStateSafely("lab.network_change");
-        return { ...response, state: connectionState.value };
+      if (kind === "access_status") {
+        return { ...await client.access.getStatus() };
       }
-      return { state: await client.connection.getConnectionState() };
+      if (kind === "access_points") {
+        return await client.access.listAccessPoints();
+      }
+      if (kind === "access_diagnostics") {
+        return { diagnostics: await client.access.exportDiagnostics() };
+      }
+      await refreshConnectionStatus();
+      return { status: connectionStatus.value };
     });
+  }
+
+  /** The connection notice's "retry now": the core drops its backoff and tries at once. */
+  async function reconnectNow(): Promise<void> {
+    try {
+      await client.connection.reconnectNow();
+    } catch (error) {
+      log("reconnect_now_failed", errorMessage(error));
+    }
+  }
+
+  /**
+   * The connection notice's "sign in again" (kicked, or the session expired): the local session ends even when the
+   * server no longer accepts the logout, and the shell goes back to the sign-in page.
+   */
+  async function signInAgain(): Promise<void> {
+    try {
+      await logout();
+    } catch (error) {
+      log("logout_failed", errorMessage(error));
+      clearSavedSessionProfile();
+      loggedIn.value = false;
+      homeSyncReady.value = false;
+    }
   }
 
   async function runSessionOperation(kind: string): Promise<void> {
@@ -4169,14 +3933,6 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
         return { ...await client.diagnostics.getRuntimeHealth() };
       }
       if (kind === "heartbeat_interval") {
-        return { ...await client.heartbeatEffectiveInterval() };
-      }
-      if (kind === "heartbeat_app_state") {
-        await client.setHeartbeatAppState({
-          appState: sdkLab.heartbeatAppState === "background"
-            ? HeartbeatAppState.Background
-            : HeartbeatAppState.Foreground,
-        });
         return { ...await client.heartbeatEffectiveInterval() };
       }
       if (kind === "heartbeat_nat_timeout") {
@@ -4261,12 +4017,24 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     refreshDerivedState();
   }
 
+  // What a reconnect owes is the kit's rule (`FlareConnectionRefresh`, shared with the native kits): a gap drops
+  // what nobody could correct while the link was down (who is typing), and coming back online subscribes to and
+  // reads again the presence the gap may have missed.
+  const connectionRefresh = new FlareConnectionRefresh();
+  watch(connectionPhase, (phase) => {
+    const work = connectionRefresh.observe(phase);
+    if (work.dropStaleBeliefs) typingUsersByConversation.value = new Map();
+    if (work.resubscribe || work.reread) {
+      for (const peerUserId of Object.keys(peerPresence.value)) void refreshActivePeerPresence(peerUserId);
+    }
+  });
+
   let disposeSessionBridge: (() => void) | undefined;
   if (appClient) {
     disposeSessionBridge = bindFlareSessionEvents({
       appClient,
       events,
-      connectionState,
+      connectionStatus,
       loggedIn,
       onIncomingMessage: handleIncomingMessageNotification,
       onPresenceChanged: applyPresenceChanged,
@@ -4292,7 +4060,6 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       realtimeSafetyPollTimer = undefined;
     }
     disposeSessionBridge?.();
-    stopPlatformSignalBridge();
     resetMessageOpening();
     if (markReadTimer) {
       clearTimeout(markReadTimer);
@@ -4314,7 +4081,9 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     initialized: readonly(initialized),
     loggedIn: readonly(loggedIn),
     busy: readonly(busy),
-    connectionState: readonly(connectionState),
+    accessConfigError: readonly(accessConfigError),
+    connectionStatus: readonly(connectionStatus),
+    connectionPhase,
     currentUserId: readonly(currentUserId),
     sessionActive: readonly(sessionActive),
     isConnected: readonly(isConnected),
@@ -4323,7 +4092,6 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     homeSyncError: readonly(homeSyncError),
     homeSyncProgress: readonly(homeSyncProgress),
     sdkRuntimeStatus: readonly(sdkRuntimeStatus),
-    transportFallbackNotice: readonly(transportFallbackNotice),
     activeConversationId: readonly(activeConversationId),
     activeConversation,
     peerPresence: readonly(peerPresence),
@@ -4349,11 +4117,14 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     totalUnread: readonly(totalUnread),
     activeLatestMessageId: readonly(activeLatestMessageId),
     initializeAndLogin,
+    initBeforeSignIn,
     resumeSavedSession,
     hasSavedSession,
     syncHomeBeforeEnter,
     upsertUserProfiles,
     logout,
+    reconnectNow,
+    signInAgain,
     selectConversation,
     setConversationFilter,
     sendText,

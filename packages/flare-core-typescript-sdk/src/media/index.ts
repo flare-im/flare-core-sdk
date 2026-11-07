@@ -203,12 +203,22 @@ export type CoreMediaInvoke = (op: string, params: Record<string, unknown>) => P
  * Browser "save to device" and display caching for a web app that reaches the core through its own
  * bridge: saves go to the folder the user picked (File System Access API) or the browser's download
  * flow, and pictures shown with `resolveDisplayUrl({ fileId, autoCache: true })` are kept in Cache
- * Storage. Only `media.temp_download_url` and `media.resolve_access` are called through [invoke].
+ * Storage. A timeline's `messageId` is resolved through the core's local message view so recipients
+ * supply the same authorization reference for previews and downloads as native clients.
  */
 export function browserMediaFor(invoke: CoreMediaInvoke): WebMediaApi {
+  async function withMessageReference(request: Record<string, unknown>): Promise<Record<string, unknown>> {
+    if (request.conversationId !== undefined || request.messageSeq !== undefined || !request.messageId) return request;
+    const message = await invoke("message.get", { messageId: request.messageId }) as Partial<Message> | null;
+    const conversationId = message?.conversationId;
+    const messageSeq = message?.conversationSeq;
+    if (typeof conversationId !== "string" || !conversationId || typeof messageSeq !== "number" || !Number.isSafeInteger(messageSeq) || messageSeq <= 0) return request;
+    return { ...request, conversationId, messageSeq };
+  }
   const inner = {
-    getTempDownloadUrl: (request: Record<string, unknown>) => invoke("media.temp_download_url", request),
-    resolveMediaAccess: (request: Record<string, unknown>) => invoke("media.resolve_access", request),
+    // get_url accepts message authorization; temp_download_url only authorizes the uploader.
+    getTempDownloadUrl: async (request: Record<string, unknown>) => invoke("media.get_url", await withMessageReference(request)),
+    resolveMediaAccess: async (request: Record<string, unknown>) => invoke("media.resolve_access", await withMessageReference(request)),
   };
   return WebMediaApi.fromInner(inner as unknown as MediaApi);
 }

@@ -2,7 +2,7 @@
 import { NativeBridge, NativeCallMap } from '../../contract/bridge_contract';
 import type { ConversationsApi } from '../../api/modules/conversations';
 import { BootstrapHomeTimelineRequest, Conversation, ConversationListQuery, ConversationTimelineSnapshot, ConversationTotalUnreadResponse, HomeTimelineSnapshot, ListConversationsResponse, OpenConversationTimelineRequest, UpdateConversationDraftRequest } from '../../model';
-import { invokeBool, invokeConnectionState, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError } from '../codec/nativeInvoke';
+import { invokeBool, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeList, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError, withoutNullFields } from '../codec/nativeInvoke';
 import { bootstrapHomeTimelineRequestToMap, conversationFromJson, conversationListQueryToMap, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, openConversationTimelineRequestToMap, sendAckFromJson, sendMessageRequestToMap, updateConversationDraftRequestToMap } from '../codec/wireCodec';
 
 export class DefaultConversationsApi implements ConversationsApi {
@@ -86,5 +86,9 @@ export class DefaultConversationsApi implements ConversationsApi {
 
   async clearLocalChatHistory(request: Record<string, unknown>): Promise<void> {
     await invokeVoid(this.bridge, NativeCallMap.conversationClearLocalChatHistory, request);
+  }
+
+  async clearChatHistoryForSelf(request: Record<string, unknown>): Promise<void> {
+    await invokeVoid(this.bridge, NativeCallMap.conversationClearChatHistoryForSelf, request);
   }
 }

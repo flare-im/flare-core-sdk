@@ -17,6 +17,9 @@
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "bin": {
+    "flare-web-retain-builds": "./devtools/vite/flareWebRetainBuilds.js"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./api": "./src/api/index.ts",
@@ -33,7 +36,11 @@
     "./adapter/*": "./src/adapter/*.ts",
     "./bridge/*": "./src/bridge/*.ts",
     "./lifecycle": "./src/lifecycle/index.ts",
+    "./update": "./src/update/index.ts",
+    "./update/service-worker": "./src/update/service-worker.ts",
     "./web": "./src/adapters/web/index.ts",
+    "./web/storage": "./src/adapters/web/idbWasmStorageHost.ts",
+    "./web/access-store": "./src/adapters/web/idbAccessStoreHost.ts",
     "./tauri": "./src/adapters/tauri/index.ts",
     "./react-native": "./src/adapters/react-native/index.ts",
     "./uni-app": "./src/adapters/uni-app/index.ts",
@@ -61,12 +68,14 @@
   "devDependencies": {
     "@tauri-apps/api": "2.11.0",
     "@types/node": "^22.10.2",
+    "fake-indexeddb": "^6.2.7",
     "typescript": "^5.0.0",
     "vitest": "^3.2.6"
   },
   "license": "Apache-2.0",
   "files": [
     "src",
+    "devtools",
     "!src/**/*.test.ts",
     "!src/**/*.spec.ts",
     "README.md",

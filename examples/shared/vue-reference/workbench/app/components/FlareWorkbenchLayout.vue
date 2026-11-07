@@ -36,6 +36,7 @@ import {
   FlareIconButton,
   FlareSearchBar,
   FlareSearchResults,
+  FlareSettingsList,
   FlareStatusBanner,
   FlareComposerActionPanel as ComposerActionPanel,
   FlareStartConversationDialog,
@@ -44,7 +45,7 @@ import MessagePreviewModal from "./MessagePreviewModal.vue";
 import DeveloperConsole from "./DeveloperConsole.vue";
 import WorkbenchShell from "./WorkbenchShell.vue";
 import type { WorkbenchShellMode } from "./workbenchShell";
-import { formatBytes, toneFromLegacyConnectionTone, type FlareTone, type FlareSearchResultGroup, type FlareSearchResultItem } from "@flare-im/vue-ui/contracts";
+import { formatBytes, type FlareTone, type FlareSearchResultGroup, type FlareSearchResultItem } from "@flare-im/vue-ui/contracts";
 import {
   loadDownloadLocation,
   mediaCacheBytes,
@@ -64,6 +65,7 @@ import {
 import { useFlareSdk } from "../sdk/flareSdkContext";
 import { conversationTitle } from "../shared/conversationTitle";
 import { useFlareI18n, type FlareLocale } from "../shared/i18n";
+import { useFlareUpdates } from "../state/update";
 
 type MessageIdentity = { readonly serverId: string; readonly clientMsgId: string };
 type ChatSearchResultMessage = MessageIdentity & {
@@ -90,6 +92,10 @@ const { mode: themeMode, variant: themeVariant, setMode: setThemeMode, setVarian
   useFlareTheme();
 
 const settingsOpen = ref(false);
+const updates = useFlareUpdates();
+const aboutSections = computed(() => [{
+  items: [{ key: "about", label: t("versionPanel.title"), icon: "info", kind: "navigation" as const, badge: updates.badge.value }],
+}]);
 
 // ── 下载位置与本地媒体缓存（核心 SDK）：设置面板打开时读一次 ──────────────────────
 const downloadLocation = ref<DownloadLocation | null>(null);
@@ -253,22 +259,15 @@ const chatSearchKindOptions = [
   { label: t("workbench.kind.file"), value: "file", icon: FileTrayOutline },
 ] satisfies Array<{ label: string; value: ChatSearchKindValue; icon: typeof SearchOutline }>;
 
-const connectionTone = computed(() => {
-  if (sdk.connectionState.value === "ready" || sdk.connectionState.value === "connected") return "success";
-  if (sdk.connectionState.value === "connecting" || sdk.connectionState.value === "reconnecting") return "warning";
-  return "default";
+// The details panel shows the connection phase as it is; what to tell the user about it is the connection
+// notice's job.
+const detailsTone = computed<FlareTone>(() => {
+  const phase = sdk.connectionPhase.value;
+  if (phase === "online") return "success";
+  return phase === "idle" ? "neutral" : "warning";
 });
 
-const detailsTone = computed<FlareTone>(() => toneFromLegacyConnectionTone(connectionTone.value));
-
-const connectionText = computed(() => {
-  const state = sdk.connectionState.value;
-  if (state === "ready") return "Ready";
-  if (state === "connected") return "Connected";
-  if (state === "connecting") return "Connecting";
-  if (state === "reconnecting") return "Reconnecting";
-  return "Disconnected";
-});
+const connectionText = computed(() => sdk.connectionPhase.value);
 
 const diagnosticsText = computed(() => JSON.stringify(sdk.diagnostics.value, null, 2));
 const labResultText = computed(() => JSON.stringify(sdk.labResult.value, null, 2));
@@ -597,6 +596,7 @@ async function buildFromAction(op: string): Promise<void> {
         </button>
         <button type="button" @click="settingsOpen = true; moreOpen = false">
           <AppIcon :icon="SettingsOutline" /> {{ t("nav.settings") }}
+          <span v-if="updates.badge.value" class="more-action-dot" role="img" :aria-label="t('settingsRow.badge')" />
         </button>
         <button type="button" class="more-action-danger" @click="logout(); moreOpen = false">
           <AppIcon :icon="LogOutOutline" /> {{ t('common.logout') }}
@@ -708,6 +708,10 @@ async function buildFromAction(op: string): Promise<void> {
           ]"
         />
       </FlareFormField>
+      <FlareButton variant="secondary" block @click="settingsOpen = false; router.push({ name: 'network' })">
+        {{ t("accessDiagnostics.title") }}
+      </FlareButton>
+      <FlareSettingsList :sections="aboutSections" @select="settingsOpen = false; router.push({ name: 'about' })" />
       <FlareFormField :label="t('workbench.downloadLocation')">
         <div class="workbench-storage-row">
           <span class="workbench-storage-value">{{ downloadLocationText }}</span>
@@ -754,5 +758,16 @@ async function buildFromAction(op: string): Promise<void> {
   min-width: 0;
   overflow-wrap: anywhere;
   color: var(--flare-color-text-secondary);
+}
+
+/* The dot of the settings row inside, on the way there: this menu's buttons are drawn here, not by the kit. */
+.more-action-dot {
+  display: inline-block;
+  flex: none;
+  width: var(--flare-size-spacing-sm);
+  height: var(--flare-size-spacing-sm);
+  margin-inline-start: var(--flare-size-spacing-xs);
+  border-radius: var(--flare-size-radius-full);
+  background: var(--flare-color-error);
 }
 </style>

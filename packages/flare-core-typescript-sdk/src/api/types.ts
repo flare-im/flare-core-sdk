@@ -7,42 +7,94 @@ import type { FlareSdkError } from '../contract';
 
 export type Unit = void;
 export type JsonValue = unknown;
-export type TransportPolicy = "auto" | "websocket_only" | "protocol_race";
-export type TransportKind = "websocket" | "quic";
 export type SdkResourceProfile = "desktop" | "mobile";
+/** A root public key the access manifest signature chain is verified against. */
+export interface AccessTrustRoot { keyId: string; publicKey: string; }
+/** One more access point of the development cell (local dual-entry failover drills). */
+export interface DevelopmentAccessPoint {
+  id: string;
+  wsUrl?: string;
+  quicUrl?: string;
+  coreApiUrl?: string;
+  socialApiUrl?: string;
+  mediaUrl?: string;
+}
+/** Development mode only: endpoints of the primary access point (id `development`), unsigned. */
+export interface DevelopmentEndpoints {
+  wsUrl?: string;
+  quicUrl?: string;
+  coreApiUrl?: string;
+  socialApiUrl?: string;
+  mediaUrl?: string;
+  accessPoints?: DevelopmentAccessPoint[];
+  /** Client link policy overrides, clamped like a signed manifest's `clientPolicy`. */
+  clientPolicy?: Record<string, unknown>;
+}
+/** Where to connect: the signed access manifest, or development endpoints. The SDK has no other address field. */
+export interface AccessConfig {
+  bootstrapId?: string;
+  trustRoots?: AccessTrustRoot[];
+  /** Signed access manifest written at build time (DSSE envelope JSON text). */
+  seed?: string;
+  trustMode?: "production" | "development";
+  developmentEndpoints?: DevelopmentEndpoints;
+}
+/** Host app identity reported on CONNECT. When given it replaces the build-time value whole. */
+export interface SdkAppConfig {
+  /** Version name, e.g. `3.2.1`. Web hosts inject it at build time. */
+  version?: string;
+  /** Monotonic integer build number; servers compare versions by it. */
+  build?: number;
+  /** Distribution channel reported on CONNECT (`web` when unset in the browser, `tauri` under Tauri). */
+  distribution?: string;
+  /** Update channel (stable, beta); not reported on CONNECT. */
+  channel?: string;
+  /** The web build this page runs: the update center compares it, not `build`. */
+  buildId?: string;
+  /** Desktop target (`darwin-aarch64`): picks the desktop artifact. */
+  target?: string;
+  /** Interface language (BCP-47); the release notes follow it. */
+  locale?: string;
+}
+/**
+ * SDK-managed connect tokens: with `auth` in the config (even `{}`) the core issues and refreshes
+ * them through the Core API; without it the host supplies them.
+ */
+export interface SdkAuthConfig {
+  /**
+   * Path of the issuing endpoint on the Core API, starting with `/` (default `/api/v1/auth/tokens`;
+   * refresh is `{tokenEndpoint}/refresh`). An absolute URL fails init with CONFIGURATION_ERROR.
+   */
+  tokenEndpoint?: string;
+  /** Seconds before expiry to refresh the token (default 300). */
+  refreshLeadSecs?: number;
+}
 export interface SdkConfig {
+  access?: AccessConfig;
   ackMaxInFlight?: number;
   ackMaxRetries?: number;
   ackTimeoutSecs?: number;
-  /** Monotonic integer build number reported on CONNECT; servers compare versions by it. */
-  appBuild?: number;
-  /** Host app version name reported on CONNECT. Web hosts inject it at build time. */
-  appVersion?: string;
-  capabilityUrl?: string;
+  app?: SdkAppConfig;
+  auth?: SdkAuthConfig;
+  /** Local override of one handshake's timeout, clamped to 2..30; unset uses the manifest's clientPolicy. */
   connectTimeoutSecs?: number;
   dataUrl?: string;
-  defaultTransport?: TransportKind;
-  /** Distribution channel reported on CONNECT (`web` when unset in the browser, `tauri` under Tauri). */
-  distribution?: string;
+  deviceId?: string;
   enableMetrics?: boolean;
   eventBusCapacity?: number;
   eventDedupeCapacity?: number;
-  httpUrl?: string;
   initMessageSyncConcurrency?: number;
-  maxReconnectAttempts?: number;
-  mediaStorageProxyPrefix?: string;
-  mediaStorageProxyTargets?: string[];
   messageDedupeCapacity?: number;
-  onlineUrl?: string;
-  protocolRaceOrder?: TransportKind[];
-  quicUrl?: string;
-  reconnectIntervalSecs?: number;
   resourceProfile?: SdkResourceProfile;
   syncBatchSize?: number;
   tenantId?: string;
+  tlsCaCert?: string;
   tlsCaCertPath?: string;
-  transportPolicy?: TransportPolicy;
-  wsUrl?: string;
+  /**
+   * Platform package only, never sent to the core: init installs the PlatformLifecycle
+   * (network and foreground/background wiring) unless this is false. Default true; tests turn it off.
+   */
+  installPlatformLifecycle?: boolean;
 }
 export interface CreateClientRequest { config: SdkConfig; }
 export interface CreateClientResponse { handle: bigint | number; }

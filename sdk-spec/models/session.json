@@ -1,30 +1,8 @@
 {
   "group": "session",
   "description": "Session utility request and response models.",
-  "enums": [
-    {
-      "name": "HeartbeatAppState",
-      "description": "Application visibility state used by adaptive heartbeat scheduling.",
-      "values": [
-        "foreground",
-        "background"
-      ]
-    }
-  ],
+  "enums": [],
   "models": [
-    {
-      "name": "SetHeartbeatAppStateRequest",
-      "description": "Runtime app visibility update for adaptive heartbeat scheduling.",
-      "fields": [
-        {
-          "name": "appState",
-          "wireName": "appState",
-          "type": "HeartbeatAppState",
-          "required": true,
-          "description": "Current application visibility state."
-        }
-      ]
-    },
     {
       "name": "SetHeartbeatNatTimeoutRequest",
       "description": "Runtime NAT timeout hint for adaptive heartbeat scheduling. Omit or pass null to clear the hint.",
@@ -62,6 +40,39 @@
           "type": "UInt64",
           "required": false,
           "description": "Effective heartbeat interval in seconds when connected."
+        }
+      ]
+    },
+    {
+      "name": "SetConnectTokenRefresherRequest",
+      "description": "Installs or removes the host's connect token refresher at the native boundary. Platform packages build it from their one host function; hosts do not send it themselves.",
+      "fields": [
+        {
+          "name": "enabled",
+          "wireName": "enabled",
+          "type": "Boolean",
+          "required": true,
+          "description": "Whether a refresher is installed."
+        }
+      ]
+    },
+    {
+      "name": "CompleteConnectTokenRefreshRequest",
+      "description": "Answer to one connect token refresh request.",
+      "fields": [
+        {
+          "name": "requestId",
+          "wireName": "requestId",
+          "type": "UInt64",
+          "required": true,
+          "description": "Request id the core asked with."
+        },
+        {
+          "name": "token",
+          "wireName": "token",
+          "type": "String",
+          "required": false,
+          "description": "The new connect token; omitted or empty when none could be obtained."
         }
       ]
     }

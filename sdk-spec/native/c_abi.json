@@ -1,5 +1,5 @@
 {
-  "contract": "flare-im-ffi/v1",
+  "contract": "flare-im-ffi/v2",
   "source": "../../flare-core-sdk-engine/bindings/c",
   "defaults": {
     "callback": "FlareResultCallback",
@@ -16,7 +16,6 @@
     "responseEncodingByResponse": {
       "Unit": "unit",
       "BooleanResponse": "boolean",
-      "ConnectionStateResponse": "enum",
       "CreateClientResponse": "handle",
       "Subscription": "subscription",
       "JsonValue": "json"
@@ -70,6 +69,14 @@
     {
       "id": "sdk.hard_reset",
       "reason": "Runs process-level SDK reset behavior outside a single core client call."
+    },
+    {
+      "id": "sdk.set_connect_token_refresher",
+      "reason": "Installs or removes the host connect token refresher: the platform bridge passes its own FlareTokenRefreshCallback trampoline and answers each request with sdk.complete_connect_token_refresh."
+    },
+    {
+      "id": "sdk.complete_connect_token_refresh",
+      "reason": "Answers one connect token refresh request from the platform refresher bridge; returns synchronously whether the request id was still pending."
     },
     {
       "id": "event.subscribe",
@@ -143,12 +150,13 @@
       "returnMode": "sync",
       "callback": null
     },
-    "connection.get_state": {
+    "sdk.set_connect_token_refresher": {
+      "requestEncoding": "host-callback",
+      "callback": "FlareTokenRefreshCallback"
+    },
+    "sdk.complete_connect_token_refresh": {
       "returnMode": "sync",
       "callback": null
-    },
-    "connection.notify_network_change": {
-      "responseEncoding": "json-object"
     },
     "diagnostics.sdk_version": {
       "requestEncoding": "none",

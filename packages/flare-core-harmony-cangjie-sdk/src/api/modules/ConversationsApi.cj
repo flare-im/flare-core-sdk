@@ -25,4 +25,5 @@ public interface ConversationsApi {
     func deleteConversation(requestJson: String): Unit
     func updateConversationDraft(request: UpdateConversationDraftRequest): Unit
     func clearLocalChatHistory(requestJson: String): Unit
+    func clearChatHistoryForSelf(requestJson: String): Unit
 }

@@ -17,7 +17,8 @@ SDK lifecycle, authenticated session and process-level utilities.
 | `prepare` | `LoginRequest` | `Unit` | `ffi-symbol` | `flare_sdk_prepare` |
 | `connect` | `LoginRequest` | `Unit` | `ffi-symbol` | `flare_sdk_connect` |
 | `updateAccessToken` | `UpdateAccessTokenRequest` | `Unit` | `ffi-symbol` | `flare_sdk_update_access_token` |
-| `setHeartbeatAppState` | `SetHeartbeatAppStateRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `setConnectTokenRefresher` | `SetConnectTokenRefresherRequest` | `Unit` | `ffi-symbol` | `flare_sdk_set_connect_token_refresher` |
+| `completeConnectTokenRefresh` | `CompleteConnectTokenRefreshRequest` | `BooleanResponse` | `ffi-symbol` | `flare_sdk_complete_connect_token_refresh` |
 | `setHeartbeatNatTimeout` | `SetHeartbeatNatTimeoutRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `heartbeatEffectiveInterval` | `Unit` | `HeartbeatEffectiveIntervalResponse` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `logout` | `Unit` | `Unit` | `ffi-symbol` | `flare_sdk_logout` |
@@ -34,14 +35,54 @@ SDK lifecycle, authenticated session and process-level utilities.
 
 ## client.connection
 
-Connection state and manual network lifecycle.
+Connection status and manual network lifecycle.
 
 | Method | Request | Response | Transport | C API |
 |--------|---------|----------|-----------|-------|
-| `getConnectionState` | `Unit` | `ConnectionStateResponse` | `ffi-symbol` | `flare_sdk_state` |
+| `getStatus` | `Unit` | `ConnectionStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `reconnectNow` | `Unit` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `disconnect` | `Unit` | `Unit` | `ffi-symbol` | `flare_sdk_disconnect` |
 | `getServerClock` | `Unit` | `ServerClockResponse` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `notifyNetworkChange` | `NetworkChangeRequest` | `NetworkChangeResponse` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `notifyNetworkChange` | `NetworkChangeRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+
+## client.access
+
+Access directory, access point health, manual pinning, manifest refresh and recovery links for the network diagnostics page.
+
+| Method | Request | Response | Transport | C API |
+|--------|---------|----------|-----------|-------|
+| `getStatus` | `Unit` | `AccessStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `listAccessPoints` | `Unit` | `AccessPointInfoList` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `pin` | `AccessPinRequest` | `AccessPin` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `unpin` | `Unit` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `refresh` | `Unit` | `AccessRefreshReport` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `importRecovery` | `AccessImportRecoveryRequest` | `AccessRecoveryImport` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `exportDiagnostics` | `Unit` | `JsonValue` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+
+## client.lifecycle
+
+Platform lifecycle signals the core needs (foreground and background).
+
+| Method | Request | Response | Transport | C API |
+|--------|---------|----------|-----------|-------|
+| `setAppState` | `SetAppStateRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+
+## client.update
+
+Update center: release evaluation, download and the install plan. Works before sign-in and with every IM node down; the release manifest comes from the access mirrors.
+
+| Method | Request | Response | Transport | C API |
+|--------|---------|----------|-----------|-------|
+| `getState` | `UpdateGetStateRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `check` | `UpdateCheckRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `download` | `UpdateDownloadRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `install` | `Unit` | `UpdateInstallPlan` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `reportInstall` | `UpdateReportInstallRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `defer` | `Unit` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `skip` | `UpdateSkipRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `markPrompted` | `UpdateMarkPromptedRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `setLocale` | `UpdateSetLocaleRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `getResources` | `UpdateGetResourcesRequest` | `UpdateResources` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 
 ## client.conversations
 
@@ -69,6 +110,7 @@ Conversation query and local conversation state.
 | `deleteConversation` | `DeleteConversationRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `updateConversationDraft` | `UpdateConversationDraftRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `clearLocalChatHistory` | `ClearLocalChatHistoryRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `clearChatHistoryForSelf` | `ClearLocalChatHistoryRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 
 ## client.messageBuilder
 

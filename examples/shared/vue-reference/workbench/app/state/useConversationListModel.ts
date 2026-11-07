@@ -57,8 +57,8 @@ export function useConversationListModel() {
     })),
   );
 
+  // Conversation sync only: the connection itself has the app's one connection notice.
   const runtimeStatus = computed(() => {
-    const state = sdk.connectionState.value;
     if (sdk.conversationSyncError.value) {
       return {
         show: true,
@@ -77,16 +77,7 @@ export function useConversationListModel() {
         tone: "warning" as const,
       };
     }
-    if (state === "ready" || state === "connected") {
-      return { show: false, title: t("connection.stable"), detail: t("connection.ready"), busy: false, tone: "success" as const };
-    }
-    if (state === "connecting") {
-      return { show: true, title: t("connection.connecting"), detail: t("connection.syncDetail"), busy: true, tone: "warning" as const };
-    }
-    if (state === "reconnecting") {
-      return { show: true, title: t("connection.reconnecting"), detail: t("connection.retryHint"), busy: true, tone: "warning" as const };
-    }
-    return { show: false, title: t("connection.disconnected"), detail: t("connection.retryHint"), busy: false, tone: "neutral" as const };
+    return { show: false, title: "", detail: "", busy: false, tone: "neutral" as const };
   });
 
   async function applyFilter(filter: ConversationFilter): Promise<void> {

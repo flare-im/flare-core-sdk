@@ -35,7 +35,7 @@ export interface MessageEventListener {
   onMessagePluginStateChanged?(event: MessageMutationEvent): void;
 }
 
-/** Direct callback for `messages.sendMessage(request, callback)` progress and terminal states.
+/** Direct callback for `messages.sendMessage(request, callback)` progress and terminal states. */
 export interface MessageSendCallback {
   /** Message upload or send progress changed. */
   onProgress?(event: ProgressEvent): void;

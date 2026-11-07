@@ -15,10 +15,6 @@ const hosts: ReturnType<typeof mount>[] = [];
 function setup(overrides: Record<string, unknown> = {}, count = 1) {
   const props = reactive({
     userId: "",
-    wsUrl: "wss://example.com/ws",
-    httpUrl: "https://example.com/api",
-    dataUrl: "file:///test",
-    tenantId: "0",
     ...overrides,
   });
   const host = mount(defineComponent({ setup() {
@@ -36,27 +32,24 @@ afterEach(() => {
 });
 
 describe("shared authentication screen", () => {
-  it("keeps the technology artwork decorative without rendering simulated messages", () => {
+  it("uses the shared decorative brand motif without rendering simulated messages", () => {
     const { screen } = setup();
-    expect(screen.get(".auth-brand__visual").attributes("aria-hidden")).toBe("true");
-    expect(screen.get(".auth-brand__visual img").attributes("alt")).toBe("");
-    expect(screen.get(".auth-brand__visual img").attributes("src")).toContain("auth-technology.webp");
+    expect(screen.get(".flare-auth-shell__art").attributes("aria-hidden")).toBe("true");
     expect(screen.findAll(".message-bubble")).toHaveLength(0);
     expect(screen.findAll("form")).toHaveLength(1);
     expect(screen.emitted("login")).toBeUndefined();
   });
 
-  it("labels the identity field and gives login priority over optional connection settings", () => {
+  it("labels the identity field and asks for nothing else: where to connect is the build's", () => {
     const { screen } = setup();
-    expect(screen.get("h1").text()).toBe("flare IM");
-    expect(screen.get("h2").text()).toBe("Welcome back");
+    expect(screen.text()).toContain("Flare IM");
+    expect(screen.get("h1").text()).toBe("Welcome back");
     const input = screen.get(".auth-user-input input");
     expect(input.attributes("aria-label")).toBe("User ID");
     expect(document.getElementById(input.attributes("aria-describedby") ?? "")?.textContent?.toLowerCase()).toContain("user id");
-    const login = screen.get(".auth-login-btn").element;
-    const settings = screen.get(".auth-server-toggle").element;
-    expect(login.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.get(".auth-server-toggle").attributes("aria-expanded")).toBe("false");
+    expect(screen.findAll("form input")).toHaveLength(1);
+    expect(screen.findAll(".auth-server-toggle")).toHaveLength(0);
+    expect(screen.text()).not.toMatch(/WebSocket|QUIC|gateway URL/i);
   });
 
   it("blocks empty and whitespace submissions, then submits a valid identity", async () => {
@@ -86,31 +79,26 @@ describe("shared authentication screen", () => {
     expect(screen.emitted("login")).toHaveLength(1);
   });
 
-  it("retains host-owned identity and gateway updates with only the requested fields", async () => {
-    const { screen, props } = setup({ serverFields: ["websocket", "http"], hideToken: true });
+  it("reports identity edits to the host", async () => {
+    const { screen } = setup();
     await screen.get(".auth-user-input input").setValue("alice");
     expect(screen.emitted("update:userId")?.[0]).toEqual(["alice"]);
-    await screen.get(".auth-server-toggle").trigger("click");
-    expect(screen.findAll(".auth-server-fields input")).toHaveLength(2);
-    const wsInput = screen.get('input[aria-label="WebSocket gateway URL"]');
-    await wsInput.setValue("wss://another.example/ws");
-    expect(screen.emitted("update:wsUrl")?.[0]).toEqual(["wss://another.example/ws"]);
-    props.wsUrl = "wss://another.example/ws";
-    await screen.get(".auth-server-toggle").trigger("click");
-    await screen.get(".auth-server-toggle").trigger("click");
-    expect((screen.get('input[aria-label="WebSocket gateway URL"]').element as HTMLInputElement).value).toBe(props.wsUrl);
   });
 
-  it("keeps the full connection contract available to other hosts", () => {
-    const { screen } = setup({ advancedOpen: true });
-    expect(screen.get(".auth-server-toggle").attributes("aria-expanded")).toBe("true");
-    expect(screen.findAll(".auth-server-fields input")).toHaveLength(5);
-    expect(screen.get('input[aria-label="Token"]').attributes("type")).toBe("password");
+  it("offers no sign-in while the build has nowhere to connect", async () => {
+    const { screen, props } = setup({ userId: "auth-test-user", disabled: true });
+    expect(screen.get(".auth-login-btn").attributes("disabled")).toBeDefined();
+    await screen.get("form").trigger("submit");
+    expect(screen.emitted("login")).toBeUndefined();
+    Object.assign(props, { disabled: false });
+    await nextTick();
+    await screen.get("form").trigger("submit");
+    expect(screen.emitted("login")).toHaveLength(1);
   });
 
   it("uses distinct accessible references when multiple screens are mounted", () => {
     const { screens: [first, second] } = setup({}, 2);
-    expect(first.get("h2").attributes("id")).not.toBe(second.get("h2").attributes("id"));
+    expect(first.get("h1").attributes("id")).not.toBe(second.get("h1").attributes("id"));
     expect(first.get(".auth-user-input input").attributes("aria-describedby"))
       .not.toBe(second.get(".auth-user-input input").attributes("aria-describedby"));
   });

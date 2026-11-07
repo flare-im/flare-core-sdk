@@ -31,24 +31,14 @@ abstract interface class EventsApi {
   EventSubscription onLoggedOut(EventCallback<LifecycleEvent> listener);
   /// The SDK client has been disposed.
   EventSubscription onDisposed(EventCallback<LifecycleEvent> listener);
-  /// SDK is connecting to the IM server.
-  EventSubscription onConnecting(EventCallback<ConnectionEvent> listener);
-  /// SDK connected to the IM server successfully.
-  EventSubscription onConnectSuccess(EventCallback<ConnectionEvent> listener);
-  /// SDK connection is authenticated and ready for message traffic.
-  EventSubscription onConnectReady(EventCallback<ConnectionEvent> listener);
-  /// SDK failed to connect to the IM server.
-  EventSubscription onConnectFailed(EventCallback<ConnectionEvent> listener);
-  /// SDK disconnected from the IM server.
-  EventSubscription onDisconnected(EventCallback<ConnectionEvent> listener);
-  /// SDK is attempting to reconnect to the IM server.
-  EventSubscription onReconnecting(EventCallback<ConnectionEvent> listener);
-  /// SDK reconnect attempt failed.
-  EventSubscription onReconnectFailed(EventCallback<ConnectionEvent> listener);
-  /// The account logged in elsewhere and this device was kicked offline.
-  EventSubscription onKickedOffline(EventCallback<ConnectionEvent> listener);
-  /// The login token expired and the app should renew credentials.
-  EventSubscription onUserTokenExpired(EventCallback<ConnectionEvent> listener);
+  /// The connection status changed (connection://status). Replace the held status whole and hand it to the Kit ConnectionNotice unchanged.
+  EventSubscription onConnectionStatusChanged(EventCallback<ConnectionStatus> listener);
+  /// The IM connection moved to another access point (access://switched).
+  EventSubscription onAccessSwitched(EventCallback<AccessSwitchedEvent> listener);
+  /// A new access manifest was accepted (access://changed).
+  EventSubscription onAccessChanged(EventCallback<AccessChangedEvent> listener);
+  /// The update center state changed (update://state). Delivered with a session; before sign-in read update.getState.
+  EventSubscription onUpdateState(EventCallback<UpdateStatus> listener);
   /// A single message was received.
   EventSubscription onMessageReceived(EventCallback<MessageReceivedEvent> listener);
   /// A batch of messages was received.

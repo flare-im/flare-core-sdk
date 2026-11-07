@@ -87,11 +87,12 @@ export type PluginUiBlock =
   | PluginUiTextBlock | PluginUiFieldsBlock | PluginUiChoicesBlock | PluginUiEntriesBlock | PluginUiPeopleBlock
   | PluginUiStatusBlock | PluginUiProgressBlock | PluginUiTimeBlock | PluginUiDividerBlock | PluginUiNoteBlock | PluginUiRowsBlock;
 
-export type PluginUiInputKind = "text" | "textarea" | "number" | "toggle" | "select" | "datetime" | "options" | "members";
+export type PluginUiInputKind = "text" | "textarea" | "password" | "number" | "toggle" | "select" | "datetime" | "options" | "members";
 /**
  * A form input, labels translated and `default` resolved from the card data. Submitted values:
- * text/textarea strings, number, toggle boolean, select a choice `value`, datetime epoch ms,
+ * text/textarea/password strings, number, toggle boolean, select a choice `value`, datetime epoch ms,
  * options an array of strings, members an array of user ids (the host provides the members).
+ * Password inputs never prefill from `default` and must not enter durable command storage.
  */
 export interface PluginUiInput {
   id: string;

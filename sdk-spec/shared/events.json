@@ -3,17 +3,15 @@
   "events": [
     {
       "names": [
-        "connecting",
-        "reconnect_failed",
-        "ready",
-        "connected",
-        "disconnected",
-        "reconnecting",
-        "state_changed",
-        "sync_state_changed",
-        "server_error",
-        "kicked_off",
-        "token_expired"
+        "switched",
+        "changed"
+      ],
+      "type": "access"
+    },
+    {
+      "names": [
+        "status",
+        "sync_state_changed"
       ],
       "type": "connection"
     },
@@ -85,7 +83,8 @@
     },
     {
       "names": [
-        "received"
+        "received",
+        "message_sound"
       ],
       "type": "notification"
     },
@@ -114,6 +113,12 @@
         "readiness"
       ],
       "type": "sync"
+    },
+    {
+      "names": [
+        "state"
+      ],
+      "type": "update"
     },
     {
       "names": [

@@ -7,7 +7,6 @@ import 'package:ffi/ffi.dart';
 
 import '../adapter/codec/wire_codec.dart'
     show wireDecodeResponse, wireEncodeRequest;
-import '../api/connection_state.dart';
 import '../contract/bridge_contract.dart';
 import 'contract_version_guard.dart';
 import '../bridge/ffi_types.dart';
@@ -30,6 +29,8 @@ typedef _NativeEventBatchCallback = Void Function(
   NativeFlareString,
 );
 
+typedef _NativeTokenRefreshCallback = Void Function(Pointer<Void>, Uint64);
+
 typedef NativeEventHandler = void Function(int eventType, Object? payload);
 
 final NativeCallable<_NativeResultCallback> _resultCallback =
@@ -39,13 +40,22 @@ final NativeCallable<_NativeEventCallback> _eventCallback =
 final NativeCallable<_NativeEventBatchCallback> _eventBatchCallback =
     NativeCallable<_NativeEventBatchCallback>.listener(
         _handleEventBatchCallback);
+// The core calls this on one of its background threads; a listener callable
+// posts the call to this isolate, which answers through the complete call.
+final NativeCallable<_NativeTokenRefreshCallback> _tokenRefreshCallback =
+    NativeCallable<_NativeTokenRefreshCallback>.listener(
+        _handleTokenRefreshCallback);
 
 final _pendingCalls = <int, _PendingCall>{};
 final _eventSinks = <int, NativeEventHandler>{};
+final _tokenRefreshers = <int, ConnectTokenRefresh>{};
+
+/// FFI result codes the token refresh answer distinguishes.
+const int _flareOk = 0;
 int _nextContextId = 1;
 
 /// Thin Dart bridge over the Flare Core C ABI.
-final class FfiNativeBridge implements NativeBridge {
+final class FfiNativeBridge implements NativeBridge, ConnectTokenRefresherBridge {
   FfiNativeBridge({
     DynamicLibrary? library,
     String? libraryPath,
@@ -57,6 +67,7 @@ final class FfiNativeBridge implements NativeBridge {
   int _handle = 0;
   bool _released = false;
   bool _contractVersionChecked = false;
+  int? _tokenRefreshContext;
 
   @override
   Future<T> invoke<T>(NativeCallDescriptor descriptor,
@@ -119,6 +130,9 @@ final class FfiNativeBridge implements NativeBridge {
         return _dispose();
       case 'sdk.hard_reset':
         _bindings.sdkHardReset();
+        // A hard reset drops every handle's refresher in the core.
+        _tokenRefreshers.clear();
+        _tokenRefreshContext = null;
         _handle = 0;
         _released = true;
         return Future.value();
@@ -142,10 +156,6 @@ final class FfiNativeBridge implements NativeBridge {
         return Future.value(_bindings.sdkIsConnected(_requireHandle()));
       case 'sdk.session_active':
         return Future.value(_bindings.sdkSessionActive(_requireHandle()));
-      case 'connection.get_state':
-        return Future.value(connectionStateFromFfiStateCode(
-          _bindings.sdkState(_requireHandle()),
-        ));
       case 'connection.disconnect':
         return _call0(_bindings.sdkDisconnect);
       case 'message.create_text':
@@ -253,10 +263,95 @@ final class FfiNativeBridge implements NativeBridge {
 
   Future<void> _dispose() async {
     if (_handle != 0 && !_released) {
+      // Releasing the handle drops its refresher in the core as well.
       _bindings.sdkRelease(_handle);
     }
+    _forgetTokenRefresher();
     _handle = 0;
     _released = true;
+  }
+
+  /// Installs [refresher] as the host's connect token refresher, or removes it
+  /// when null.
+  ///
+  /// The core asks for a token on one of its background threads; the request
+  /// comes back to this isolate, [refresher] runs here, and its token goes back
+  /// through `flare_sdk_complete_connect_token_refresh`. A refresher that throws
+  /// or takes longer than the core waits (20 seconds) counts as no new token.
+  /// Disposing the client removes it.
+  @override
+  Future<void> setConnectTokenRefresher(ConnectTokenRefresher? refresher) async {
+    _ensureContractVersion();
+    final handle = _requireHandle();
+    final previous = _tokenRefreshContext;
+    if (refresher == null) {
+      await _enqueue('sdk.set_connect_token_refresher', (context) {
+        return _bindings.sdkSetConnectTokenRefresher(
+          handle,
+          nullptr,
+          nullptr,
+          context,
+          _resultCallback.nativeFunction,
+        );
+      });
+      _forgetTokenRefresher(previous);
+      return;
+    }
+    final refreshContext = _reserveContextId();
+    _tokenRefreshers[refreshContext] = ConnectTokenRefresh(
+      refresher: refresher,
+      complete: (requestId, token) {
+        // The handle went away (released, or replaced after a reset): nothing
+        // in the core waits for this answer any more.
+        if (_released || _handle != handle) return false;
+        return completeConnectTokenRefresh(requestId, token);
+      },
+    );
+    try {
+      await _enqueue('sdk.set_connect_token_refresher', (context) {
+        return _bindings.sdkSetConnectTokenRefresher(
+          handle,
+          Pointer<Void>.fromAddress(refreshContext),
+          _tokenRefreshCallback.nativeFunction,
+          context,
+          _resultCallback.nativeFunction,
+        );
+      });
+    } catch (_) {
+      _tokenRefreshers.remove(refreshContext);
+      rethrow;
+    }
+    _tokenRefreshContext = refreshContext;
+    if (previous != null && previous != refreshContext) {
+      _tokenRefreshers.remove(previous);
+    }
+  }
+
+  /// Answers refresh request [requestId] with [token] (null or empty when none
+  /// could be obtained). False when the core no longer waits for it: the
+  /// request expired, or no refresher is installed.
+  bool completeConnectTokenRefresh(int requestId, String? token) {
+    if (_handle == 0 || _released) return false;
+    final handle = _handle;
+    final code = using((arena) {
+      final nativeToken = token == null || token.trim().isEmpty
+          ? nullptr
+          : token.toNativeUtf8(allocator: arena);
+      return _bindings.sdkCompleteConnectTokenRefresh(
+        handle,
+        requestId,
+        nativeToken,
+      );
+    });
+    return code == _flareOk;
+  }
+
+  void _forgetTokenRefresher([int? context]) {
+    final target = context ?? _tokenRefreshContext;
+    if (target != null) _tokenRefreshers.remove(target);
+    if (context == null || context == _tokenRefreshContext) {
+      _tokenRefreshContext = null;
+    }
   }
 
   int _requireHandle() {
@@ -270,7 +365,7 @@ final class FfiNativeBridge implements NativeBridge {
     return using((arena) {
       final userId =
           stringField(request, 'userId').toNativeUtf8(allocator: arena);
-      // token 可选：留空由核心按 sdkConfig.auth.tokenEndpoint 向网关签发（SDK 托管）。
+      // token 可选：配了 sdkConfig.auth（SDK 托管）时留空，由核心经 Core API 签发。
       final token = (request['token']?.toString() ?? '').toNativeUtf8(allocator: arena);
       final storeConfigJson = request['storeConfigJson']?.toString();
       final storeConfig = (storeConfigJson != null && storeConfigJson.isNotEmpty
@@ -315,7 +410,7 @@ final class FfiNativeBridge implements NativeBridge {
     return using((arena) {
       final userId =
           stringField(request, 'userId').toNativeUtf8(allocator: arena);
-      // token 可选：留空由核心按 sdkConfig.auth.tokenEndpoint 向网关签发（SDK 托管）。
+      // token 可选：配了 sdkConfig.auth（SDK 托管）时留空，由核心经 Core API 签发。
       final token = (request['token']?.toString() ?? '').toNativeUtf8(allocator: arena);
       return _enqueue('sdk.connect', (context) {
         return _bindings.sdkConnect(
@@ -756,6 +851,40 @@ void _handleEventBatchCallback(
   }
 }
 
+void _handleTokenRefreshCallback(Pointer<Void> context, int requestId) {
+  _tokenRefreshers[context.address]?.answer(requestId);
+}
+
+/// One installed connect token refresher: runs the host function for each
+/// request the core makes and hands the outcome back.
+final class ConnectTokenRefresh {
+  ConnectTokenRefresh({
+    required this.refresher,
+    required this.complete,
+    this.timeout = const Duration(seconds: 20),
+  });
+
+  final ConnectTokenRefresher refresher;
+
+  /// Hands one answer to the core; false when it no longer waits for it.
+  final bool Function(int requestId, String? token) complete;
+
+  /// How long the core waits for an answer.
+  final Duration timeout;
+
+  /// Runs the refresher for [requestId] and completes it. A refresher that
+  /// throws or outlasts [timeout] answers with no token.
+  Future<bool> answer(int requestId) async {
+    String? token;
+    try {
+      token = await refresher().timeout(timeout);
+    } catch (_) {
+      token = null;
+    }
+    return complete(requestId, token);
+  }
+}
+
 Object? parseJsonLenient(String raw) {
   if (raw.isEmpty) {
     return null;
@@ -897,22 +1026,6 @@ Uint8List bytesField(Object? request, String key) {
 
 int _reserveContextId() => _nextContextId++;
 
-ConnectionState connectionStateFromFfiStateCode(int code) {
-  return switch (code) {
-    0 => ConnectionState.disconnected,
-    1 => ConnectionState.connecting,
-    2 => ConnectionState.connected,
-    3 => ConnectionState.ready,
-    4 => ConnectionState.reconnecting,
-    _ => throw FlareSdkException(
-        code: 'invalidParameter',
-        message: 'invalid connection state code: $code',
-        operation: 'connection.get_state',
-        details: {'field': 'stateCode'},
-      ),
-  };
-}
-
 typedef _Async0Fn = int Function(
   int,
   Pointer<Void>,
@@ -962,15 +1075,37 @@ final class _NativeBindings {
           'flare_sdk_release');
   late final void Function() sdkHardReset = library
       .lookupFunction<Void Function(), void Function()>('flare_sdk_hard_reset');
-  late final int Function(int) sdkState =
-      library.lookupFunction<Int32 Function(Uint64), int Function(int)>(
-          'flare_sdk_state');
   late final bool Function(int) sdkIsConnected =
       library.lookupFunction<Bool Function(Uint64), bool Function(int)>(
           'flare_sdk_is_connected');
   late final bool Function(int) sdkSessionActive =
       library.lookupFunction<Bool Function(Uint64), bool Function(int)>(
           'flare_sdk_session_active');
+  late final int Function(
+          int,
+          Pointer<Void>,
+          Pointer<NativeFunction<_NativeTokenRefreshCallback>>,
+          Pointer<Void>,
+          Pointer<NativeFunction<_NativeResultCallback>>)
+      sdkSetConnectTokenRefresher = library.lookupFunction<
+              Int32 Function(
+                  Uint64,
+                  Pointer<Void>,
+                  Pointer<NativeFunction<_NativeTokenRefreshCallback>>,
+                  Pointer<Void>,
+                  Pointer<NativeFunction<_NativeResultCallback>>),
+              int Function(
+                  int,
+                  Pointer<Void>,
+                  Pointer<NativeFunction<_NativeTokenRefreshCallback>>,
+                  Pointer<Void>,
+                  Pointer<NativeFunction<_NativeResultCallback>>)>(
+          'flare_sdk_set_connect_token_refresher');
+  late final int Function(int, int, Pointer<Utf8>)
+      sdkCompleteConnectTokenRefresh = library.lookupFunction<
+              Int32 Function(Uint64, Uint64, Pointer<Utf8>),
+              int Function(int, int, Pointer<Utf8>)>(
+          'flare_sdk_complete_connect_token_refresh');
   late final _AsyncDispatchFn sdkInvokeJson = library.lookupFunction<
       Int32 Function(Uint64, Pointer<Utf8>, Pointer<Utf8>, Pointer<Void>,
           Pointer<NativeFunction<_NativeResultCallback>>),

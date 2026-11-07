@@ -1,7 +1,6 @@
 package com.flare.im.adapter.codec
 
 import com.flare.im.adapter.module.DefaultEventsApi
-import com.flare.im.api.ConnectionState
 import com.flare.im.contract.NativeBridge
 import com.flare.im.contract.NativeCallDescriptor
 import com.flare.im.model.catalog.*
@@ -44,12 +43,6 @@ internal suspend fun invokeBool(
     descriptor: NativeCallDescriptor,
     request: Any? = null,
 ): Boolean = bridge.invoke(descriptor, request)
-
-internal suspend fun invokeConnectionState(
-    bridge: NativeBridge,
-    descriptor: NativeCallDescriptor,
-    request: Any? = null,
-): ConnectionState = bridge.invoke(descriptor, request)
 
 internal suspend fun invokeMessage(
     bridge: NativeBridge,

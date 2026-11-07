@@ -25,6 +25,7 @@ public class DefaultDiagnosticsApi <: DiagnosticsApi {
     }
 
     public func getRuntimeHealth(): RuntimeHealthResponse {
-        return bridge.invoke(descriptor: NativeCallMap.diagnosticsRuntimeHealth, requestJson: wireEncodeRequest("{}"))
+        let raw = bridge.invoke(descriptor: NativeCallMap.diagnosticsRuntimeHealth, requestJson: wireEncodeRequest("{}"))
+        return runtimeHealthResponseFromJson(raw)
     }
 }

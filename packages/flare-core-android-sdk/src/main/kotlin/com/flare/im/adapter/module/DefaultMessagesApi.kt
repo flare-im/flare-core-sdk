@@ -3,7 +3,6 @@ package com.flare.im.adapter.module
 /** GENERATED. Do not edit by hand. */
 
 import com.flare.im.adapter.codec.*
-import com.flare.im.api.ConnectionState
 import com.flare.im.api.messages.MessagesApi
 import com.flare.im.callback.*
 import com.flare.im.contract.NativeBridge

@@ -22,10 +22,13 @@ The uni-app adapter automatically splits by runtime (`configureProductionAppClie
 | **H5 / web** | WASM | WebSocket | IndexedDB |
 | **App (Android / iOS)** | FFI (`bindings/c` TurboModule) → native core | WebSocket + QUIC protocol race | SQLite |
 
-- The QUIC/race transport selector is enabled only in the App native runtime (`isUniNativeTransportRuntime()`); H5 stays on WebSocket.
+- There is no transport selector: the core races QUIC and WebSocket per access point where the runtime has QUIC; H5 has WebSocket only.
+- Where to connect is the SDK `access` configuration (signed seed or development endpoints), not a sign-in setting.
 - The App side relies on a native plugin to expose `bindings/c` as `globalThis.__FLARE_IM_CORE_NATIVE__` (TurboModule).
-- The race algorithm and the SQLite engine belong to the Rust core; the client only passes `SdkConfig` (`protocolRaceOrder`, etc.). See
+- The race algorithm and the SQLite engine belong to the Rust core. See
   [docs/design/transport-storage-multiruntime.md](../../docs/design/transport-storage-multiruntime.md) for details.
+- This scaffold still mounts the workbench of the published `@flare-im/vue-ui` 1.0.9 (`@flare-im/vue-ui/app`), which
+  predates the access configuration; it is not on the current connection path yet.
 
 ## Directory structure
 

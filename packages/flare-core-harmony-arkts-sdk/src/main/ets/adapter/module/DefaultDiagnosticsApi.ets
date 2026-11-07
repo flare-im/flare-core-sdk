@@ -3,6 +3,7 @@ import { NativeBridge, NativeCallMap } from '../../contract/BridgeContract';
 import type { DiagnosticsApi } from '../../api/modules/diagnostics';
 import type { RuntimeHealthResponse } from '../../model';
 import { invokeMap } from '../codec/NativeInvoke';
+import { runtimeHealthResponseFromJson } from '../codec/WireCodec';
 
 export class DefaultDiagnosticsApi implements DiagnosticsApi {
   constructor(private readonly bridge: NativeBridge) {}
@@ -20,6 +21,7 @@ export class DefaultDiagnosticsApi implements DiagnosticsApi {
   }
 
   async getRuntimeHealth(): Promise<RuntimeHealthResponse> {
-    return await invokeMap(this.bridge, NativeCallMap.diagnosticsRuntimeHealth);
+    const raw = await invokeMap(this.bridge, NativeCallMap.diagnosticsRuntimeHealth);
+    return runtimeHealthResponseFromJson(raw);
   }
 }

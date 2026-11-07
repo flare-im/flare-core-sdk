@@ -17,8 +17,16 @@ export interface NativeCallDescriptor {
 }
 
 /** Platform runtimes implement this bridge using FFI, JNI, N-API, WASM or host IPC. */
+/** Host-managed connect token refresh: resolves the new connect token, or null when none can be obtained. */
+export type ConnectTokenRefresher = () => Promise<string | null>;
+
 export interface NativeBridge {
   invoke<T>(descriptor: NativeCallDescriptor, request?: Object): Promise<T>;
+  /**
+   * Installs (or, with null, removes) the connect token refresher: registers the native
+   * trampoline and answers every request with flare_sdk_complete_connect_token_refresh.
+   */
+  setConnectTokenRefresher?(refresher: ConnectTokenRefresher | null): Promise<void>;
 }
 
 export const NativeCallMap = {
@@ -36,8 +44,10 @@ export const NativeCallMap = {
   sdkConnect: { module: "session", method: "connect", operation: "sdk.connect", transport: "ffi-symbol", cApi: "flare_sdk_connect", requestEncoding: "typed-ffi", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
   /** updateAccessToken maps to `flare_sdk_update_access_token` via `ffi-symbol`. Operation: `sdk.update_access_token`. */
   sdkUpdateAccessToken: { module: "session", method: "updateAccessToken", operation: "sdk.update_access_token", transport: "ffi-symbol", cApi: "flare_sdk_update_access_token", requestEncoding: "typed-ffi", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
-  /** setHeartbeatAppState maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.set_heartbeat_app_state`. */
-  sdkSetHeartbeatAppState: { module: "session", method: "setHeartbeatAppState", operation: "sdk.set_heartbeat_app_state", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** setConnectTokenRefresher maps to `flare_sdk_set_connect_token_refresher` via `ffi-symbol`. Operation: `sdk.set_connect_token_refresher`. */
+  sdkSetConnectTokenRefresher: { module: "session", method: "setConnectTokenRefresher", operation: "sdk.set_connect_token_refresher", transport: "ffi-symbol", cApi: "flare_sdk_set_connect_token_refresher", requestEncoding: "host-callback", responseEncoding: "unit", returnMode: "callback", callback: "FlareTokenRefreshCallback", handlePolicy: "client-handle" },
+  /** completeConnectTokenRefresh maps to `flare_sdk_complete_connect_token_refresh` via `ffi-symbol`. Operation: `sdk.complete_connect_token_refresh`. */
+  sdkCompleteConnectTokenRefresh: { module: "session", method: "completeConnectTokenRefresh", operation: "sdk.complete_connect_token_refresh", transport: "ffi-symbol", cApi: "flare_sdk_complete_connect_token_refresh", requestEncoding: "typed-ffi", responseEncoding: "boolean", returnMode: "sync", callback: null, handlePolicy: "client-handle" },
   /** setHeartbeatNatTimeout maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.set_heartbeat_nat_timeout`. */
   sdkSetHeartbeatNatTimeout: { module: "session", method: "setHeartbeatNatTimeout", operation: "sdk.set_heartbeat_nat_timeout", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
   /** heartbeatEffectiveInterval maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.heartbeat_effective_interval`. */
@@ -64,14 +74,52 @@ export const NativeCallMap = {
   sdkReconcilePush: { module: "session", method: "reconcilePush", operation: "sdk.reconcile_push", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
   /** pushStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.push_status`. */
   sdkPushStatus: { module: "session", method: "pushStatus", operation: "sdk.push_status", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
-  /** getConnectionState maps to `flare_sdk_state` via `ffi-symbol`. Operation: `connection.get_state`. */
-  connectionGetState: { module: "connection", method: "getConnectionState", operation: "connection.get_state", transport: "ffi-symbol", cApi: "flare_sdk_state", requestEncoding: "typed-ffi", responseEncoding: "enum", returnMode: "sync", callback: null, handlePolicy: "client-handle" },
+  /** getStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.get_status`. */
+  connectionGetStatus: { module: "connection", method: "getStatus", operation: "connection.get_status", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** reconnectNow maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.reconnect_now`. */
+  connectionReconnectNow: { module: "connection", method: "reconnectNow", operation: "connection.reconnect_now", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
   /** disconnect maps to `flare_sdk_disconnect` via `ffi-symbol`. Operation: `connection.disconnect`. */
   connectionDisconnect: { module: "connection", method: "disconnect", operation: "connection.disconnect", transport: "ffi-symbol", cApi: "flare_sdk_disconnect", requestEncoding: "typed-ffi", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
   /** getServerClock maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.server_clock`. */
   connectionServerClock: { module: "connection", method: "getServerClock", operation: "connection.server_clock", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
   /** notifyNetworkChange maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.notify_network_change`. */
-  connectionNotifyNetworkChange: { module: "connection", method: "notifyNetworkChange", operation: "connection.notify_network_change", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  connectionNotifyNetworkChange: { module: "connection", method: "notifyNetworkChange", operation: "connection.notify_network_change", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** getStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.get_status`. */
+  accessGetStatus: { module: "access", method: "getStatus", operation: "access.get_status", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** listAccessPoints maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.list_access_points`. */
+  accessListAccessPoints: { module: "access", method: "listAccessPoints", operation: "access.list_access_points", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** pin maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.pin`. */
+  accessPin: { module: "access", method: "pin", operation: "access.pin", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** unpin maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.unpin`. */
+  accessUnpin: { module: "access", method: "unpin", operation: "access.unpin", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** refresh maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.refresh`. */
+  accessRefresh: { module: "access", method: "refresh", operation: "access.refresh", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** importRecovery maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.import_recovery`. */
+  accessImportRecovery: { module: "access", method: "importRecovery", operation: "access.import_recovery", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** exportDiagnostics maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.export_diagnostics`. */
+  accessExportDiagnostics: { module: "access", method: "exportDiagnostics", operation: "access.export_diagnostics", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** setAppState maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `lifecycle.set_app_state`. */
+  lifecycleSetAppState: { module: "lifecycle", method: "setAppState", operation: "lifecycle.set_app_state", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** getState maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.get_state`. */
+  updateGetState: { module: "update", method: "getState", operation: "update.get_state", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** check maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.check`. */
+  updateCheck: { module: "update", method: "check", operation: "update.check", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** download maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.download`. */
+  updateDownload: { module: "update", method: "download", operation: "update.download", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** install maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.install`. */
+  updateInstall: { module: "update", method: "install", operation: "update.install", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** reportInstall maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.report_install`. */
+  updateReportInstall: { module: "update", method: "reportInstall", operation: "update.report_install", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** defer maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.defer`. */
+  updateDefer: { module: "update", method: "defer", operation: "update.defer", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** skip maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.skip`. */
+  updateSkip: { module: "update", method: "skip", operation: "update.skip", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** markPrompted maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.mark_prompted`. */
+  updateMarkPrompted: { module: "update", method: "markPrompted", operation: "update.mark_prompted", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** setLocale maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.set_locale`. */
+  updateSetLocale: { module: "update", method: "setLocale", operation: "update.set_locale", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** getResources maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.get_resources`. */
+  updateGetResources: { module: "update", method: "getResources", operation: "update.get_resources", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
   /** listConversations maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.list`. */
   conversationList: { module: "conversations", method: "listConversations", operation: "conversation.list", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "json-object", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
   /** listConversationsByQuery maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.list_by_query`. */
@@ -112,6 +160,8 @@ export const NativeCallMap = {
   conversationUpdateDraft: { module: "conversations", method: "updateConversationDraft", operation: "conversation.update_draft", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
   /** clearLocalChatHistory maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.clear_local_chat_history`. */
   conversationClearLocalChatHistory: { module: "conversations", method: "clearLocalChatHistory", operation: "conversation.clear_local_chat_history", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
+  /** clearChatHistoryForSelf maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.clear_chat_history_for_self`. */
+  conversationClearChatHistoryForSelf: { module: "conversations", method: "clearChatHistoryForSelf", operation: "conversation.clear_chat_history_for_self", transport: "contract-invoke-json", cApi: "flare_sdk_invoke_json", requestEncoding: "json", responseEncoding: "unit", returnMode: "callback", callback: "FlareResultCallback", handlePolicy: "client-handle" },
   /** listSupportedBuildOperations maps to `flare_message_build_json` via `catalog-static`. Operation: `message_builder.list_catalog`. */
   messageBuilderListCatalog: { module: "message_builder", method: "listSupportedBuildOperations", operation: "message_builder.list_catalog", transport: "catalog-static", cApi: "flare_message_build_json", requestEncoding: "local-static", responseEncoding: "json-object", returnMode: "local", callback: "FlareResultCallback", handlePolicy: "client-handle" },
   /** normalizeRichDocFromMarkdown maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `rich_doc_v2.normalize_from_markdown`. */

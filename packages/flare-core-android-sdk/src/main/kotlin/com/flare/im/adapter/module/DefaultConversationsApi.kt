@@ -3,7 +3,6 @@ package com.flare.im.adapter.module
 /** GENERATED. Do not edit by hand. */
 
 import com.flare.im.adapter.codec.*
-import com.flare.im.api.ConnectionState
 import com.flare.im.api.conversations.ConversationsApi
 import com.flare.im.callback.*
 import com.flare.im.contract.NativeBridge
@@ -112,5 +111,9 @@ class DefaultConversationsApi(
 
     override suspend fun clearLocalChatHistory(request: Map<String, Any?>): Unit {
         invokeUnit(bridge, NativeCallMap.CONVERSATION_CLEAR_LOCAL_CHAT_HISTORY, request)
+    }
+
+    override suspend fun clearChatHistoryForSelf(request: Map<String, Any?>): Unit {
+        invokeUnit(bridge, NativeCallMap.CONVERSATION_CLEAR_CHAT_HISTORY_FOR_SELF, request)
     }
 }

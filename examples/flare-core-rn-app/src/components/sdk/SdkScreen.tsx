@@ -103,9 +103,12 @@ const capabilityLabels: Record<RnCapabilityOperation, string> = {
 };
 
 const connectionLabels: Record<RnConnectionOperation, string> = {
-  state: '连接状态',
+  status: '连接状态',
+  reconnect_now: '立即重连',
   disconnect: '断开连接',
-  network_change: '网络变化',
+  access_status: '接入状态',
+  access_points: '接入点',
+  access_diagnostics: '导出诊断',
 };
 
 const sessionLabels: Record<RnSessionOperation, string> = {
@@ -113,7 +116,6 @@ const sessionLabels: Record<RnSessionOperation, string> = {
   session_active: '会话活跃',
   runtime_health: '运行健康',
   heartbeat_interval: '心跳间隔',
-  heartbeat_app_state: '应用前后台',
   heartbeat_nat_timeout: 'NAT 超时',
   update_access_token: '刷新 Token',
 };

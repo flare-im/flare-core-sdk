@@ -1,10 +1,11 @@
 // GENERATED. Do not edit by hand.
-import { ConnectionEvent, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, ViewUpdate } from '../../model';
+import { AccessChangedEvent, AccessSwitchedEvent, ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NetworkChangeRequest, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, ServerClockResponse, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
 
-/** Connection state and manual network lifecycle. */
+/** Connection status and manual network lifecycle. */
 export interface ConnectionApi {
-  getConnectionState(): Promise<ConnectionState>;
+  getStatus(): Promise<ConnectionStatus>;
+  reconnectNow(): Promise<void>;
   disconnect(): Promise<void>;
   getServerClock(): Promise<ServerClockResponse>;
-  notifyNetworkChange(request: NetworkChangeRequest): Promise<NetworkChangeResponse>;
+  notifyNetworkChange(request: NetworkChangeRequest): Promise<void>;
 }

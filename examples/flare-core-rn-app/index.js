@@ -11,6 +11,13 @@ try {
   globalThis.__FLARE_RN_DEV_TOKEN_SECRET__ = '';
 }
 
+// Where to connect: the access configuration the bundle was built with (scripts/sync-access-config.js).
+try {
+  globalThis.__FLARE_ACCESS_JSON__ = require('./.generated/flare-access.json').json || '';
+} catch {
+  globalThis.__FLARE_ACCESS_JSON__ = '';
+}
+
 const flareNativeModule = NativeModules.FlareImCoreSdk;
 if (flareNativeModule?.invoke) {
   globalThis.__FLARE_IM_CORE_NATIVE__ = {

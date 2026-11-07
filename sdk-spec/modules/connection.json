@@ -1,16 +1,27 @@
 {
   "key": "connection",
   "facade": "client.connection",
-  "description": "Connection state and manual network lifecycle.",
+  "description": "Connection status and manual network lifecycle.",
   "methods": [
     {
-      "name": "getConnectionState",
-      "operation": "connection.get_state",
-      "transport": "ffi-symbol",
-      "cApi": "flare_sdk_state",
+      "name": "getStatus",
+      "operation": "connection.get_status",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
       "request": "Unit",
-      "response": "ConnectionStateResponse",
-      "stability": "stable"
+      "response": "ConnectionStatus",
+      "stability": "stable",
+      "description": "The latest `connection://status` value; `idle` without a session. Hosts subscribe to the status event for changes and read this once at startup."
+    },
+    {
+      "name": "reconnectNow",
+      "operation": "connection.reconnect_now",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "Unit",
+      "response": "Unit",
+      "stability": "stable",
+      "description": "The banner's retry action: resets the backoff and starts the next round at once. No effect while online, connecting or stopped for a user action; fails with notConnected without a session."
     },
     {
       "name": "disconnect",
@@ -37,8 +48,9 @@
       "transport": "contract-invoke-json",
       "cApi": "flare_sdk_invoke_json",
       "request": "NetworkChangeRequest",
-      "response": "NetworkChangeResponse",
-      "stability": "stable"
+      "response": "Unit",
+      "stability": "stable",
+      "description": "Tells the link supervisor the platform network changed. The platform lifecycle installed at init calls it; the supervisor alone decides whether and how to reconnect."
     }
   ]
 }

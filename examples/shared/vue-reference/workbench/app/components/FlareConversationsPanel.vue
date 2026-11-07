@@ -5,11 +5,13 @@ import type { FlareConversationAction } from "@flare-im/vue-ui/contracts";
 import { useFlareWorkbenchUi } from "../../composables/useFlareWorkbenchUi";
 import type { ConversationFilter } from "../../composables/sdk";
 import { useFlareI18n } from "../shared/i18n";
+import { useFlareUpdates } from "../state/update";
 import { useConversationListModel } from "../state/useConversationListModel";
 import { ConversationListPanel } from "../ui/components";
 
 const router = useRouter();
 const workbenchUi = useFlareWorkbenchUi();
+const updates = useFlareUpdates();
 const { t } = useFlareI18n();
 const {
   sdk,
@@ -25,7 +27,7 @@ const {
 const conversationStatusText = computed(() => t("workbench.convStats", {
   total: conversationItems.value.length,
   pinned: conversationItems.value.filter((item) => item.pinned).length,
-  state: sdk.connectionState.value,
+  state: sdk.connectionPhase.value,
 }));
 
 async function selectConversation(id: string): Promise<void> {
@@ -65,6 +67,7 @@ async function runConversationAction(action: FlareConversationAction, id: string
     :close-search-label="t('workbench.closeConvSearch')"
     :create-label="t('workbench.newChat')"
     :more-label="t('workbench.moreConvActions')"
+    :more-dot="updates.badge.value"
     :loading="sdk.conversationSyncing.value"
     :status="runtimeStatus"
     :loading-title="t('connection.syncConversations')"

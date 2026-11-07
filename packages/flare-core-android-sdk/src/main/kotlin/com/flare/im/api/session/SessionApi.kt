@@ -1,8 +1,8 @@
 package com.flare.im.api.session
 
-import com.flare.im.api.ConnectionState
 import com.flare.im.callback.*
 import com.flare.im.listener.*
+import com.flare.im.contract.ConnectTokenRefresher
 import com.flare.im.model.catalog.*
 import com.flare.im.model.command.*
 import com.flare.im.model.command.message.*
@@ -12,6 +12,7 @@ import com.flare.im.model.common.error.*
 import com.flare.im.model.content.*
 import com.flare.im.model.entity.*
 import com.flare.im.model.event.*
+import com.flare.im.model.event.access.*
 import com.flare.im.model.event.connection.*
 import com.flare.im.model.event.conversation.*
 import com.flare.im.model.event.lifecycle.*
@@ -41,8 +42,8 @@ interface SessionApi {
     suspend fun connect(request: Map<String, Any?>): Unit
     /** updateAccessToken maps to `flare_sdk_update_access_token` via `ffi-symbol`. Operation: `sdk.update_access_token`. */
     suspend fun updateAccessToken(request: Map<String, Any?>): Unit
-    /** setHeartbeatAppState maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.set_heartbeat_app_state`. */
-    suspend fun setHeartbeatAppState(request: SetHeartbeatAppStateRequest): Unit
+    /** Installs (or, with null, removes) the host-managed connect token refresher: an async function returning the new connect token, or null when none can be obtained. The core calls it once after the gateway rejects a connection on authentication and waits at most 20 seconds. Not needed with SDK-managed tokens (an auth block in the init config, even an empty one). */
+    suspend fun setConnectTokenRefresher(refresher: ConnectTokenRefresher?): Unit
     /** setHeartbeatNatTimeout maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.set_heartbeat_nat_timeout`. */
     suspend fun setHeartbeatNatTimeout(request: SetHeartbeatNatTimeoutRequest): Unit
     /** heartbeatEffectiveInterval maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.heartbeat_effective_interval`. */

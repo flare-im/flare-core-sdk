@@ -56,11 +56,16 @@ npm install
 npm run dev
 ```
 
-The example ships a local-development `.env` matching `flare-core-web-app`.
 The app never holds a signing secret: with only a user id the SDK issues the
-access token from the API gateway (`{httpUrl}/api/v1/auth/tokens`, start the
-gateway with `FLARE_API_GATEWAY_AUTH_DEV_ISSUE=true` locally) and refreshes it
-before expiry; or paste a backend-issued token in the login page.
+access token through the core API (start the API gateway with
+`FLARE_API_GATEWAY_AUTH_DEV_ISSUE=true` locally) and refreshes it before expiry.
+
+Where to connect is the SDK `access` configuration (a signed seed, or development
+endpoints), never a sign-in setting; see the access section of
+`flare-core-examples/apps/flare-core-web-app/README.md`. This scaffold still mounts
+the workbench of the published `@flare-im/vue-ui` 1.0.9 (`@flare-im/vue-ui/app`),
+which predates the access configuration, so it is not on the current connection
+path yet.
 
 Useful commands:
 

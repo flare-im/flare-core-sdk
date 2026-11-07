@@ -13,13 +13,13 @@ public class MessagePreview {
     // wire: `time`. 毫秒时间戳
     public let time: UInt64
     // wire: `type`. 
-    public let type: Int32
+    public let typeValue: Int32
 
-    public init(messageId!: String, senderId!: String, text!: String, time!: UInt64, type!: Int32) {
+    public init(messageId!: String, senderId!: String, text!: String, time!: UInt64, typeValue!: Int32) {
         this.messageId = messageId
         this.senderId = senderId
         this.text = text
         this.time = time
-        this.type = type
+        this.typeValue = typeValue
     }
 }

@@ -51,12 +51,6 @@ export function resolveWebMediaProxyEnv(): WebMediaProxyEnv | undefined {
   return readEnvRecord(env);
 }
 
-export function devMediaHttpBaseUrl(): string {
-  const proxy = resolveWebMediaProxyEnv();
-  if (proxy) return proxy.apiProxyPrefix;
-  return DEFAULT_MEDIA_API_TARGET;
-}
-
 export function sdkMediaProxyFields(): {
   storageProxyPrefix?: string;
   storageProxyTargets?: string[];

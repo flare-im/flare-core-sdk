@@ -1,6 +1,5 @@
 package com.flare.im.api.events
 
-import com.flare.im.api.ConnectionState
 import com.flare.im.callback.*
 import com.flare.im.listener.*
 import com.flare.im.model.catalog.*
@@ -12,6 +11,7 @@ import com.flare.im.model.common.error.*
 import com.flare.im.model.content.*
 import com.flare.im.model.entity.*
 import com.flare.im.model.event.*
+import com.flare.im.model.event.access.*
 import com.flare.im.model.event.connection.*
 import com.flare.im.model.event.conversation.*
 import com.flare.im.model.event.lifecycle.*
@@ -44,15 +44,10 @@ interface EventsApi {
     fun onLoginFailed(listener: EventCallback<LifecycleEvent>): EventSubscription
     fun onLoggedOut(listener: EventCallback<LifecycleEvent>): EventSubscription
     fun onDisposed(listener: EventCallback<LifecycleEvent>): EventSubscription
-    fun onConnecting(listener: EventCallback<ConnectionEvent>): EventSubscription
-    fun onConnectSuccess(listener: EventCallback<ConnectionEvent>): EventSubscription
-    fun onConnectReady(listener: EventCallback<ConnectionEvent>): EventSubscription
-    fun onConnectFailed(listener: EventCallback<ConnectionEvent>): EventSubscription
-    fun onDisconnected(listener: EventCallback<ConnectionEvent>): EventSubscription
-    fun onReconnecting(listener: EventCallback<ConnectionEvent>): EventSubscription
-    fun onReconnectFailed(listener: EventCallback<ConnectionEvent>): EventSubscription
-    fun onKickedOffline(listener: EventCallback<ConnectionEvent>): EventSubscription
-    fun onUserTokenExpired(listener: EventCallback<ConnectionEvent>): EventSubscription
+    fun onConnectionStatusChanged(listener: EventCallback<ConnectionStatus>): EventSubscription
+    fun onAccessSwitched(listener: EventCallback<AccessSwitchedEvent>): EventSubscription
+    fun onAccessChanged(listener: EventCallback<AccessChangedEvent>): EventSubscription
+    fun onUpdateState(listener: EventCallback<UpdateStatus>): EventSubscription
     fun onMessageReceived(listener: EventCallback<MessageReceivedEvent>): EventSubscription
     fun onMessageReceivedBatch(listener: EventCallback<MessageReceivedBatchEvent>): EventSubscription
     fun onMessageSendAck(listener: EventCallback<MessageSendAckEvent>): EventSubscription

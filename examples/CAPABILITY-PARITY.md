@@ -7,7 +7,7 @@
 六个示例应用分两类：
 
 - **原生独立实现**，各自一套 UI：Flutter（Dart）、Android（Kotlin / Compose）、iOS（SwiftUI）。
-- **共享 Vue 实现**：web / electron / uni / tauri 四端复用 `packages/@flare-im/vue-ui/app` 暴露的 workbench 组件、SDK context 以及 media/desktop/transport adapter hooks，但各自维护 `App.vue`、`router.ts`、路由守卫、history 模式和平台初始化。因此**UI 业务能力按共享包统计，应用壳与平台集成按各端统计**。
+- **共享 Vue 实现**：web / electron / uni / tauri 四端复用 `packages/@flare-im/vue-ui/app` 暴露的 workbench 组件、SDK context 以及 media/desktop adapter hooks，但各自维护 `App.vue`、`router.ts`、路由守卫、history 模式和平台初始化。因此**UI 业务能力按共享包统计，应用壳与平台集成按各端统计**。
 
 另有 `flare-core-rn-app`（React Native），未纳入本清单。
 
@@ -53,13 +53,13 @@ web / uni / tauri 三列数值相同，因为它们共享同一套 Vue UI。三�
 
 **Android** —— `flare-core-android-sdk` 本身 1:1 暴露全部 115 个操作，示例应用覆盖 104 个。分层为 `core/{session,data,domain}` 加五个特性 ViewModel，其中 `ViewDataRepository` 采用 re-fetch-on-signal 策略（Kotlin SDK 无 snapshot/delta 解码器，`onViewUpdated` 后重拉 typed 快照）。剩余 11 个 `·` 均为等价覆盖：`getConversation` / `getMultipleConversations` 走 `getOne`，`listConversationsByQuery` 走 paginated 变体，`deleteMessage` / `markMessage` / `pinMessage` / `unmarkMessage` / `unpinMessage` 走 `*ById` 或 ForSelf/ForEveryone 变体，`dispatchMessage` / `editRichDocByMessageId` 走 send / editText，`syncConversationSummariesWithVersions` 走 summaries。
 
-> 接线注意：SDK 多数动作方法签名为 `Map<String, Any?>`。类型归属容易记错——`ForwardSourceMessage` 在 content，`MediaSourceInfo` 在 media，`Normalize*` / `Heartbeat*` 在 command，`HeartbeatAppState` 在 entity，`MessageSearchKind` 在 common.enums。
+> 接线注意：SDK 多数动作方法签名为 `Map<String, Any?>`。类型归属容易记错——`ForwardSourceMessage` 在 content，`MediaSourceInfo` 在 media，`Normalize*` / `Heartbeat*` 在 command，`MessageSearchKind` 在 common.enums。
 
 **iOS** —— 五个 ViewModel 加 `Core/Session/AppLifecycle` 协议，视图层不直接调用 store；平台相关代码收敛在 `Core/Platform/`（Image / Clipboard / AudioSession），`#if canImport` 集中而非散落；`MessageBuilder` 独立于 `MessagingViewModel`；`FlareDesign` 提供 `Radius` / `Spacing`（4pt 网格）/ `Typography` 标尺。
 
 复核为等价覆盖而非缺口的操作：`pinMessage` / `unpinMessage` / `markMessage` / `unmarkMessage`（用 `*ById`）、`listConversations`（用 paginated）、`getMessage`（用 `getRawMessage`）、`getConversation` / `getMultipleConversations`（用 `getOneConversation`）、`subscribeEventsBatch`（用 `subscribeEvents`）、`openConversationTimeline`（用 `views.openTimeline`）、`createTextMessage` / `dispatchMessage`（经 send / builder）、`editRichDocByMessageId`（有 `editTextByMessageId`）、`listConversationsByQuery` / `listConversationsIncludingArchived`（paginated 变体）。
 
-`session.connect` 记为 `·`：连接由 `client.init` + `client.login` 隐式建立，代码中没有独立的 `connect()` 调用，登录后读 `client.connection.getConnectionState()`。
+`session.connect` 记为 `·`：连接由 `client.init` + `client.login` 隐式建立，代码中没有独立的 `connect()` 调用，登录后读 `client.connection.getStatus()`，之后跟随 `connection://status`。
 
 **web / uni / tauri** —— 共享 Vue 包的改动三端同时生效。八个操作经 `dispatchMessage({op})` 等价覆盖，不为其增加冗余的具名包装：`deleteMessageForEveryone`、`editRichDocByMessageId`、`markMessageReadAndBurn`、`markMessageWithColor`、`unmarkMessage`、`unpinMessage`，以及 `subscribeEventsBatch` → `subscribeEvents`、`syncConversationSummariesWithVersions` → `syncConversationSummaries`。
 
@@ -71,7 +71,9 @@ web / uni / tauri 三列数值相同，因为它们共享同一套 Vue UI。三�
 - **iOS**：先用 `scripts/sync_ffi.sh` 同步 FFI 产物，工程由 `project.yml`（xcodegen）生成，静态链接模拟器 `.a` 并加 `-force_load` / `-export_dynamic`。详见 `flare-core-ios-app/README.md`。
 - **web**：`npm install` + 构建 core 后 `vite dev`；**uni**：走 uni 端构建；**tauri**：`tauri dev`（含 `src-tauri` Rust 构建）。
 
-需要连接后端才能真正执行的操作（上传、删除、网络变更通知等）须先登录。
+需要连接后端才能真正执行的操作（上传、删除等）须先登录。
+
+`connection.notifyNetworkChange` 与 `lifecycle.setAppState` 在各示例中都记为 `·`，这是有意的：网络与前后台上报由平台包在 `init` 时自动安装的 PlatformLifecycle 完成，示例不再手写接线。连到哪里由初始化配置的 `access`（签名清单或开发模式 `developmentEndpoints`）决定，示例登录页没有服务器地址设置。
 
 ## 补齐优先级
 
@@ -91,8 +93,10 @@ web / uni / tauri 三列数值相同，因为它们共享同一套 Vue UI。三�
 | capabilities.listUserCapabilities | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | capabilities.revokeCapability | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | connection.disconnect | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| connection.getConnectionState | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| connection.notifyNetworkChange | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| connection.getStatus | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| connection.notifyNetworkChange | · | · | · | · | · | · |
+| connection.reconnectNow | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| access.listAccessPoints | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | conversations.bootstrapHomeTimeline | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | conversations.clearLocalChatHistory | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | conversations.deleteConversation | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -187,7 +191,6 @@ web / uni / tauri 三列数值相同，因为它们共享同一套 Vue UI。三�
 | session.logout | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | session.prepare | ✓ | ✓ | ✓ | · | · | · |
 | session.sessionActive | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| session.setHeartbeatAppState | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | session.setHeartbeatNatTimeout | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | session.uninit | ✓ | ✓ | ✓ | · | · | · |
 | session.updateAccessToken | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |

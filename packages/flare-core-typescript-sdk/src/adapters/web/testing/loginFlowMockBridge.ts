@@ -43,8 +43,20 @@ export class LoginFlowMockBridge implements NativeBridge {
         return undefined;
       case "event.subscribe":
         return { id: 1 };
-      case "connection.get_state":
-        return "connected";
+      case "connection.get_status":
+        return {
+          phase: "online",
+          quality: "good",
+          accessPointId: "development",
+          cellId: null,
+          regionId: null,
+          protocol: "ws",
+          rttMs: 12,
+          attempt: 0,
+          nextRetryAt: null,
+          reason: null,
+          developmentMode: true,
+        };
       case "sdk.current_user_id":
         return { userId: this.currentUserId };
       case "sdk.session_active":

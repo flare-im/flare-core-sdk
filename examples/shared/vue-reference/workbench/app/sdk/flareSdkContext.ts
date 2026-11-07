@@ -1,13 +1,8 @@
 import { inject, provide, type InjectionKey } from "vue";
+import { currentFlareRuntimeLocale } from "@flare-im/vue-ui/i18n";
 import { useFlareCoreClient } from "../../composables/sdk";
-import { createProductionAppClient } from "../infrastructure/sdk/createProductionAppClient";
-import { devMediaHttpBaseUrl } from "../runtime/mediaProxy";
-import { withSameOriginEndpoints } from "../runtime/sameOriginEndpoints";
-import {
-  appTransportSelectorTlsCaCertPath,
-  appTransportSelectorRuntimeStatus,
-  isAppTransportSelectorEnabled,
-} from "../infrastructure/transport/appTransportSelector";
+import { createProductionAppClient, productionAppHost } from "../infrastructure/sdk/createProductionAppClient";
+import { buildAccessConfig } from "../runtime/access";
 
 export type FlareSdkContext = ReturnType<typeof useFlareCoreClient>;
 
@@ -20,14 +15,17 @@ export function getFlareSdkSingleton(): FlareSdkContext | null {
 }
 
 export function provideFlareSdk(): FlareSdkContext {
-  const nativeTransportSelectionEnabled = isAppTransportSelectorEnabled();
+  const host = productionAppHost();
   const sdk = useFlareCoreClient({
     createClient: createProductionAppClient,
-    env: withSameOriginEndpoints(import.meta.env as Record<string, string | undefined>),
-    defaultHttpUrl: devMediaHttpBaseUrl(),
-    defaultTlsCaCertPath: appTransportSelectorTlsCaCertPath(),
-    nativeTransportSelectionEnabled,
-    runtimeStatus: nativeTransportSelectionEnabled ? appTransportSelectorRuntimeStatus() : "browser-wasm",
+    env: import.meta.env as Record<string, string | undefined>,
+    // Where to connect is the build's access configuration; the host only adds its own settings (a private CA). Every
+    // init gets the whole `app`: the core replaces it, and release notes follow the language of the moment.
+    sdkConfig: () => {
+      const own = host.sdkConfig?.();
+      return { ...own, access: buildAccessConfig(), app: { ...own?.app, locale: currentFlareRuntimeLocale() } };
+    },
+    runtimeStatus: host.runtimeStatus ?? "browser-wasm",
   });
   flareSdkSingleton = sdk;
   provide(flareSdkKey, sdk);

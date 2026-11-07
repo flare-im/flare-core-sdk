@@ -16,12 +16,7 @@
 // 由 `src/utils/messageContent.contract.test.ts` 的可达性门禁强制。
 export {
   useFlareCoreClient,
-  buildLoginTransportConfig,
   desktopNotificationBodyForMessage,
-  isRecoverableLoginTransportError,
-  loginTransportDisplayName,
-  loginTransportFallbackMessage,
-  normalizeLoginTransportMode,
   readLoginEnvText,
   normalizeLoginIdentityForSdk,
   presenceStatusFromCoreDto,
@@ -32,7 +27,6 @@ export {
   type UseFlareCoreClientOptions,
   type LoginFormState,
   type LoginIdentity,
-  type LoginTransportMode,
   type SdkRuntimeStatus,
   type RuntimeEventLogItem,
   type HomeSyncProgress,

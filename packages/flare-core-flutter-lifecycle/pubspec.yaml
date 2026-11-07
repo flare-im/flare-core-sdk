@@ -1,0 +1,34 @@
+name: flare_core_flutter_lifecycle
+description: >-
+  Flutter platform lifecycle for the Flare Core SDK: native network changes,
+  foreground and background, and the app version, reported to the core by the
+  client itself.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flare_core_flutter_sdk:
+    path: ../flare-core-flutter-sdk
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.flare.im.lifecycle
+        pluginClass: FlareCoreFlutterLifecyclePlugin
+      ios:
+        pluginClass: FlareCoreFlutterLifecyclePlugin
+        sharedDarwinSource: true
+      macos:
+        pluginClass: FlareCoreFlutterLifecyclePlugin
+        sharedDarwinSource: true

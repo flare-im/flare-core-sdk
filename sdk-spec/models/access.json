@@ -1,0 +1,587 @@
+{
+  "group": "access",
+  "description": "Access directory status, access point health, manual pinning, manifest refresh, recovery links and access events.",
+  "enums": [],
+  "models": [
+    {
+      "name": "AccessPin",
+      "description": "A manual access point pin.",
+      "fields": [
+        {
+          "name": "accessPointId",
+          "wireName": "accessPointId",
+          "type": "String",
+          "required": true,
+          "description": "The pinned access point."
+        },
+        {
+          "name": "expiresAtMs",
+          "wireName": "expiresAtMs",
+          "type": "Int64",
+          "required": true,
+          "description": "When the pin lapses, Unix milliseconds; an app restart also clears it."
+        }
+      ]
+    },
+    {
+      "name": "AccessPinRequest",
+      "description": "Pins one access point of the home cell.",
+      "fields": [
+        {
+          "name": "accessPointId",
+          "wireName": "accessPointId",
+          "type": "String",
+          "required": true,
+          "description": "Access point to pin, as listed by access.listAccessPoints."
+        }
+      ]
+    },
+    {
+      "name": "AccessConnectAck",
+      "description": "Diagnostics the gateway returned in CONNECT_ACK for the current connection; shown only, nothing acts on them.",
+      "fields": [
+        {
+          "name": "gatewayId",
+          "wireName": "gatewayId",
+          "type": "String",
+          "required": false,
+          "description": "Gateway instance serving the connection."
+        },
+        {
+          "name": "accessPointId",
+          "wireName": "accessPointId",
+          "type": "String",
+          "required": false,
+          "description": "Access point the server reports for the connection, when its gateway is configured with one."
+        },
+        {
+          "name": "accessSerial",
+          "wireName": "accessSerial",
+          "type": "UInt64",
+          "required": false,
+          "description": "Newest access manifest serial the server knows."
+        },
+        {
+          "name": "heartbeatIntervalHintSec",
+          "wireName": "heartbeatIntervalHintSec",
+          "type": "UInt32",
+          "required": false,
+          "description": "Gateway heartbeat interval in seconds; the heartbeat itself follows the access policy."
+        },
+        {
+          "name": "accessPointMismatch",
+          "wireName": "accessPointMismatch",
+          "type": "Boolean",
+          "required": true,
+          "description": "The server reports a different access point than the client chose; logged and counted, the connection stays up."
+        }
+      ]
+    },
+    {
+      "name": "AccessStatus",
+      "description": "Access directory and current link summary for the diagnostics page.",
+      "fields": [
+        {
+          "name": "loaded",
+          "wireName": "loaded",
+          "type": "Boolean",
+          "required": true,
+          "description": "Whether the directory holds a usable manifest. False means there is no access point to connect to until bootstrap or a recovery link brings one."
+        },
+        {
+          "name": "serial",
+          "wireName": "serial",
+          "type": "UInt64",
+          "required": true,
+          "description": "Serial of the loaded access manifest; 0 before loading."
+        },
+        {
+          "name": "source",
+          "wireName": "source",
+          "type": "String",
+          "required": false,
+          "description": "Where the manifest came from: seed, https:<mirror base>, wellKnown:<apId>, recovery, development, or none when the directory is empty. A restart keeps the original source."
+        },
+        {
+          "name": "stale",
+          "wireName": "stale",
+          "type": "Boolean",
+          "required": true,
+          "description": "Whether the manifest is past expiresAtMs: it still connects, and refresh retries every 10 minutes."
+        },
+        {
+          "name": "developmentMode",
+          "wireName": "developmentMode",
+          "type": "Boolean",
+          "required": true,
+          "description": "Endpoints come from development-mode configuration."
+        },
+        {
+          "name": "issuedAtMs",
+          "wireName": "issuedAtMs",
+          "type": "Int64",
+          "required": false,
+          "description": "When the manifest was issued, Unix milliseconds; absent with an empty directory."
+        },
+        {
+          "name": "expiresAtMs",
+          "wireName": "expiresAtMs",
+          "type": "Int64",
+          "required": false,
+          "description": "When the manifest expires, Unix milliseconds; absent with an empty directory."
+        },
+        {
+          "name": "fetchedAtMs",
+          "wireName": "fetchedAtMs",
+          "type": "Int64",
+          "required": false,
+          "description": "When the manifest reached this device, Unix milliseconds; absent for a seed or development mode."
+        },
+        {
+          "name": "regionId",
+          "wireName": "regionId",
+          "type": "String",
+          "required": false,
+          "description": "Home region."
+        },
+        {
+          "name": "cellId",
+          "wireName": "cellId",
+          "type": "String",
+          "required": false,
+          "description": "Home cell."
+        },
+        {
+          "name": "keystateSerial",
+          "wireName": "keystateSerial",
+          "type": "UInt64",
+          "required": false,
+          "description": "Serial of the loaded signing key state."
+        },
+        {
+          "name": "accessPointId",
+          "wireName": "accessPointId",
+          "type": "String",
+          "required": false,
+          "description": "Access point the IM connection is on."
+        },
+        {
+          "name": "protocol",
+          "wireName": "protocol",
+          "type": "String",
+          "required": false,
+          "description": "Transport of the IM connection: quic or ws."
+        },
+        {
+          "name": "pinned",
+          "wireName": "pinned",
+          "type": "AccessPin",
+          "required": false,
+          "description": "The manual pin, when one is in force."
+        },
+        {
+          "name": "connectAck",
+          "wireName": "connectAck",
+          "type": "AccessConnectAck",
+          "required": false,
+          "description": "CONNECT_ACK diagnostics of the current connection; absent without one."
+        },
+        {
+          "name": "refresh",
+          "wireName": "refresh",
+          "type": "AccessRefreshStatus",
+          "required": false,
+          "description": "Manifest refresh progress; absent in development mode."
+        },
+        {
+          "name": "recovering",
+          "wireName": "recovering",
+          "type": "AccessRecoveringStatus",
+          "required": false,
+          "description": "Present only while every access point has failed and recovery is running."
+        }
+      ]
+    },
+    {
+      "name": "AccessRefreshStatus",
+      "description": "Progress of the periodic manifest refresh.",
+      "fields": [
+        {
+          "name": "lastAttemptAtMs",
+          "wireName": "lastAttemptAtMs",
+          "type": "Int64",
+          "required": false,
+          "description": "When the last round ran, Unix milliseconds."
+        },
+        {
+          "name": "lastSuccessAtMs",
+          "wireName": "lastSuccessAtMs",
+          "type": "Int64",
+          "required": false,
+          "description": "When a source last gave a trusted answer, Unix milliseconds."
+        },
+        {
+          "name": "lastOutcome",
+          "wireName": "lastOutcome",
+          "type": "String",
+          "required": false,
+          "description": "Outcome of the last round: adopted, upToDate, oldValues or failed; absent before the first round."
+        },
+        {
+          "name": "nextAtMs",
+          "wireName": "nextAtMs",
+          "type": "Int64",
+          "required": false,
+          "description": "When the next round runs, Unix milliseconds; absent while recovering without a network."
+        }
+      ]
+    },
+    {
+      "name": "AccessRecoveringStatus",
+      "description": "Recovery state while every access point has failed.",
+      "fields": [
+        {
+          "name": "sinceMs",
+          "wireName": "sinceMs",
+          "type": "Int64",
+          "required": true,
+          "description": "When recovery began, Unix milliseconds."
+        },
+        {
+          "name": "rounds",
+          "wireName": "rounds",
+          "type": "UInt32",
+          "required": true,
+          "description": "Bootstrap rounds run so far."
+        },
+        {
+          "name": "nextRoundAtMs",
+          "wireName": "nextRoundAtMs",
+          "type": "Int64",
+          "required": false,
+          "description": "When the next round runs, Unix milliseconds; absent while the device has no network."
+        }
+      ]
+    },
+    {
+      "name": "AccessRefreshAttempt",
+      "description": "One source tried during a refresh round. Sources the round never reached are not listed.",
+      "fields": [
+        {
+          "name": "source",
+          "wireName": "source",
+          "type": "String",
+          "required": true,
+          "description": "The source: https:<base>, wellKnown:<apId> or doh:<resolver>."
+        },
+        {
+          "name": "tier",
+          "wireName": "tier",
+          "type": "String",
+          "required": true,
+          "description": "Tier: mirror, wellKnown, pointer (a mirror resolved through DoH) or resolver (the DoH resolver itself)."
+        },
+        {
+          "name": "document",
+          "wireName": "document",
+          "type": "String",
+          "required": true,
+          "description": "Document fetched: access, keys or pointer."
+        },
+        {
+          "name": "result",
+          "wireName": "result",
+          "type": "String",
+          "required": true,
+          "description": "Result: adopted, notModified, sameSerial, olderSerial, rejected, failed or resolved."
+        },
+        {
+          "name": "code",
+          "wireName": "code",
+          "type": "String",
+          "required": false,
+          "description": "Stable cross-platform code of a rejection or failure: badSignature, rollback, keyCert.expired, revoked, wrongPayloadType, wrongBootstrapId, tooLarge, malformedEnvelope, invalidPayload, unknownKey, unsupportedSchema, noNetwork, unreachable, tls, timeout, cancelled or http.<status>."
+        },
+        {
+          "name": "serial",
+          "wireName": "serial",
+          "type": "UInt64",
+          "required": false,
+          "description": "Serial of the document, when one was read."
+        }
+      ]
+    },
+    {
+      "name": "AccessRefreshReport",
+      "description": "Result of one refresh round.",
+      "fields": [
+        {
+          "name": "outcome",
+          "wireName": "outcome",
+          "type": "String",
+          "required": true,
+          "description": "adopted (a new manifest was taken), upToDate (a source confirmed there is no update), oldValues (notified mode only got old values; a manual refresh never reports it), failed (no source gave a trusted answer) or skipped (development mode)."
+        },
+        {
+          "name": "mode",
+          "wireName": "mode",
+          "type": "String",
+          "required": true,
+          "description": "Round mode: background, notified or recovering."
+        },
+        {
+          "name": "serial",
+          "wireName": "serial",
+          "type": "UInt64",
+          "required": true,
+          "description": "Directory serial when the round ended."
+        },
+        {
+          "name": "source",
+          "wireName": "source",
+          "type": "String",
+          "required": false,
+          "description": "Source of the adopted manifest, in the form of AccessStatus.source; absent when nothing was adopted."
+        },
+        {
+          "name": "keystateSerial",
+          "wireName": "keystateSerial",
+          "type": "UInt64",
+          "required": false,
+          "description": "Serial of the current key state document."
+        },
+        {
+          "name": "attempts",
+          "wireName": "attempts",
+          "type": "AccessRefreshAttemptList",
+          "required": true,
+          "description": "Every source tried, in order."
+        }
+      ]
+    },
+    {
+      "name": "AccessImportRecoveryRequest",
+      "description": "Imports a recovery link.",
+      "fields": [
+        {
+          "name": "link",
+          "wireName": "link",
+          "type": "String",
+          "required": true,
+          "description": "The flare-recover:// deep link or QR code content, verbatim."
+        }
+      ]
+    },
+    {
+      "name": "AccessRecoveryImport",
+      "description": "Result of importing a recovery link.",
+      "fields": [
+        {
+          "name": "outcome",
+          "wireName": "outcome",
+          "type": "String",
+          "required": true,
+          "description": "adopted, unchanged (this link was already imported) or rejected."
+        },
+        {
+          "name": "code",
+          "wireName": "code",
+          "type": "String",
+          "required": false,
+          "description": "Why a link was rejected: a code of AccessRefreshAttempt.code or developmentMode. Commonly rollback (the link is older than this device's manifest) or badSignature."
+        },
+        {
+          "name": "serial",
+          "wireName": "serial",
+          "type": "UInt64",
+          "required": true,
+          "description": "Directory serial after the import."
+        }
+      ]
+    },
+    {
+      "name": "AccessPointInfo",
+      "description": "One access point of the home cell with its health on the current network.",
+      "fields": [
+        {
+          "name": "accessPointId",
+          "wireName": "accessPointId",
+          "type": "String",
+          "required": true,
+          "description": "Access point id."
+        },
+        {
+          "name": "regionId",
+          "wireName": "regionId",
+          "type": "String",
+          "required": true,
+          "description": "Region the access point is in."
+        },
+        {
+          "name": "host",
+          "wireName": "host",
+          "type": "String",
+          "required": true,
+          "description": "Host name shown on the diagnostics page."
+        },
+        {
+          "name": "status",
+          "wireName": "status",
+          "type": "String",
+          "required": true,
+          "description": "Manifest status: active, draining, disabled or unknown."
+        },
+        {
+          "name": "rttMs",
+          "wireName": "rttMs",
+          "type": "Double",
+          "required": false,
+          "description": "Smoothed round trip on the current network, when measured."
+        },
+        {
+          "name": "breaker",
+          "wireName": "breaker",
+          "type": "String",
+          "required": true,
+          "description": "Circuit breaker state: closed, open or halfOpen."
+        },
+        {
+          "name": "protocolWinner",
+          "wireName": "protocolWinner",
+          "type": "String",
+          "required": false,
+          "description": "Protocol that last won the race on this network: quic or ws."
+        },
+        {
+          "name": "pinned",
+          "wireName": "pinned",
+          "type": "Boolean",
+          "required": true,
+          "description": "Whether this access point is manually pinned."
+        },
+        {
+          "name": "current",
+          "wireName": "current",
+          "type": "Boolean",
+          "required": true,
+          "description": "Whether the IM connection is on this access point."
+        }
+      ]
+    },
+    {
+      "name": "AccessEndpoint",
+      "description": "One side of an access point switch.",
+      "fields": [
+        {
+          "name": "ap",
+          "wireName": "ap",
+          "type": "String",
+          "required": true,
+          "description": "Access point id."
+        },
+        {
+          "name": "protocol",
+          "wireName": "protocol",
+          "type": "String",
+          "required": true,
+          "description": "Transport: quic or ws."
+        }
+      ]
+    },
+    {
+      "name": "AccessSwitchedEvent",
+      "description": "Payload of access://switched: the IM connection moved to another access point (sent once, when the new connection is ready).",
+      "fields": [
+        {
+          "name": "from",
+          "wireName": "from",
+          "type": "AccessEndpoint",
+          "required": true,
+          "description": "Where the connection was."
+        },
+        {
+          "name": "to",
+          "wireName": "to",
+          "type": "AccessEndpoint",
+          "required": true,
+          "description": "Where the connection is now."
+        },
+        {
+          "name": "reason",
+          "wireName": "reason",
+          "type": "String",
+          "required": true,
+          "description": "Why: failure, drain, failback, manual or manifest."
+        }
+      ]
+    },
+    {
+      "name": "AccessChanges",
+      "description": "What a newly accepted access manifest changed.",
+      "fields": [
+        {
+          "name": "accessPointsAdded",
+          "wireName": "accessPointsAdded",
+          "type": "StringList",
+          "required": true,
+          "description": "Access points that appeared."
+        },
+        {
+          "name": "accessPointsRemoved",
+          "wireName": "accessPointsRemoved",
+          "type": "StringList",
+          "required": true,
+          "description": "Access points that disappeared."
+        },
+        {
+          "name": "policyChanged",
+          "wireName": "policyChanged",
+          "type": "Boolean",
+          "required": true,
+          "description": "Whether the client link policy changed."
+        }
+      ]
+    },
+    {
+      "name": "AccessChangedEvent",
+      "description": "Payload of access://changed: a new access manifest was accepted. Sent for every adoption; a periodic re-signature has empty changes.",
+      "fields": [
+        {
+          "name": "serial",
+          "wireName": "serial",
+          "type": "UInt64",
+          "required": true,
+          "description": "Serial of the accepted manifest."
+        },
+        {
+          "name": "source",
+          "wireName": "source",
+          "type": "String",
+          "required": true,
+          "description": "Where it came from, in the form of AccessStatus.source."
+        },
+        {
+          "name": "stale",
+          "wireName": "stale",
+          "type": "Boolean",
+          "required": true,
+          "description": "Whether it is past its expiry."
+        },
+        {
+          "name": "developmentMode",
+          "wireName": "developmentMode",
+          "type": "Boolean",
+          "required": true,
+          "description": "Endpoints come from development-mode configuration."
+        },
+        {
+          "name": "changes",
+          "wireName": "changes",
+          "type": "AccessChanges",
+          "required": true,
+          "description": "What changed against the previous manifest."
+        }
+      ]
+    }
+  ]
+}

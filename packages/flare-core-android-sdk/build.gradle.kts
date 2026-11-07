@@ -42,3 +42,28 @@ android {
 kotlin {
     jvmToolchain(17)
 }
+
+dependencies {
+    // PlatformLifecycle lives in its own module (no native library) so hosts with their own engine reuse it;
+    // a build that includes this package includes `:flare-core-android-lifecycle` next to it.
+    api(project(":flare-core-android-lifecycle"))
+    // ClientUpdateEngine adapts a client to the update controller; the same goes for `:flare-core-android-update`.
+    api(project(":flare-core-android-update"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation(kotlin("test"))
+    // The Android stub jar has no working org.json; local unit tests use the real one.
+    testImplementation("org.json:json:20240303")
+}
+
+// LinkStatusVectorTest reads the engine's shared link status vectors. Declared as a test input so a changed
+// vector file reruns the tests instead of Gradle calling them up to date.
+val linkStatusVectors = layout.projectDirectory.file("../../../flare-core-sdk-engine/tests/vectors/link_status.json")
+tasks.withType<Test>().configureEach {
+    if (linkStatusVectors.asFile.isFile) {
+        inputs.file(linkStatusVectors)
+            .withPathSensitivity(PathSensitivity.RELATIVE)
+            .withPropertyName("linkStatusVectors")
+    }
+}

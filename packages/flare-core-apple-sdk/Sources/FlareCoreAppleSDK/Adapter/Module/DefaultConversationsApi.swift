@@ -114,4 +114,8 @@ public final class DefaultConversationsApi: ConversationsApiProtocol {
         try await invokeVoid(bridge, descriptor: NativeCallMap.conversationClearLocalChatHistory, request: AnySendable(request))
     }
 
+    public func clearChatHistoryForSelf(_ request: [String: AnySendable]) async throws -> Void {
+        try await invokeVoid(bridge, descriptor: NativeCallMap.conversationClearChatHistoryForSelf, request: AnySendable(request))
+    }
+
 }

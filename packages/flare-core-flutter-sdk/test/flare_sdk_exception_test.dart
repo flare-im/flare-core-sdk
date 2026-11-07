@@ -64,4 +64,97 @@ void main() {
     expect(error.reason, isNull);
     expect(error.machineReason, isNull);
   });
+
+  group('typed errors by C ABI code', () {
+    test('code 12 is an OverloadedException with the server wait', () {
+      final error = FlareSdkException.fromNative(
+        nativeCode: 12,
+        message: 'overloaded',
+        operation: 'sdk.connect',
+        details: {
+          'code': 'OVERLOADED',
+          'reason': 'sdk.link.overloaded',
+          'retryable': true,
+          'retryAfterMs': 1500,
+        },
+      );
+      expect(error, isA<OverloadedException>());
+      final overloaded = error as OverloadedException;
+      expect(overloaded.code, 'OVERLOADED');
+      expect(overloaded.retryAfterMs, 1500);
+      expect(overloaded.retryable, isTrue);
+      expect(overloaded.reason, 'sdk.link.overloaded');
+      expect(overloaded.operation, 'sdk.connect');
+    });
+
+    test('code 13 is an UpgradeRequiredException', () {
+      final error = FlareSdkException.fromNative(
+        nativeCode: 13,
+        message: 'upgrade required',
+        operation: 'sdk.login',
+        details: {'code': 'UPGRADE_REQUIRED', 'retryable': false},
+      );
+      expect(error, isA<UpgradeRequiredException>());
+      expect(error.code, 'UPGRADE_REQUIRED');
+      expect(error.retryable, isFalse);
+    });
+
+    test('code 14 is a NetworkUncertainException', () {
+      final error = FlareSdkException.fromNative(
+        nativeCode: 14,
+        message: 'uncertain',
+        operation: 'message.send',
+        details: {
+          'code': 'NETWORK_UNCERTAIN',
+          'retryable': false,
+          'httpStatus': 504,
+        },
+      );
+      expect(error, isA<NetworkUncertainException>());
+      expect(error.code, 'NETWORK_UNCERTAIN');
+      expect(error.httpStatus, 504);
+    });
+
+    test('the structured code alone picks the typed error', () {
+      expect(
+        FlareSdkException.fromNative(
+          nativeCode: 8,
+          message: 'x',
+          operation: null,
+          details: {'code': 'OVERLOADED'},
+        ),
+        isA<OverloadedException>()
+            .having((error) => error.retryAfterMs, 'retryAfterMs', isNull),
+      );
+      expect(
+        FlareSdkException.fromNative(
+          nativeCode: 13,
+          message: 'x',
+          operation: null,
+          details: null,
+        ),
+        isA<UpgradeRequiredException>(),
+      );
+      expect(
+        FlareSdkException.fromNative(
+          nativeCode: 8,
+          message: 'x',
+          operation: null,
+          details: {'code': 'networkUncertain'},
+        ),
+        isA<NetworkUncertainException>(),
+      );
+    });
+
+    test('other codes stay plain FlareSdkException', () {
+      final error = FlareSdkException.fromNative(
+        nativeCode: 5,
+        message: 'network down',
+        operation: 'sdk.connect',
+        details: {'code': 'NETWORK_ERROR', 'retryable': true},
+      );
+      expect(error.runtimeType, FlareSdkException);
+      expect(error.code, 'NETWORK_ERROR');
+    });
+  });
 }

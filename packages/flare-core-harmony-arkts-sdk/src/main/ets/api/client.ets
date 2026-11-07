@@ -1,6 +1,9 @@
 // GENERATED. Do not edit by hand.
 import { SessionApi } from './modules/session';
 import type { ConnectionApi } from './modules/connection';
+import type { AccessApi } from './modules/access';
+import type { LifecycleApi } from './modules/lifecycle';
+import type { UpdateApi } from './modules/update';
 import type { ConversationsApi } from './modules/conversations';
 import type { MessageBuilderApi } from './modules/message_builder';
 import type { MessagesApi } from './modules/messages';
@@ -13,10 +16,11 @@ import type { ViewsApi } from './modules/views';
 import type { EventsApi } from './modules/events';
 import type { DiagnosticsApi } from './modules/diagnostics';
 
-export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'ready' | 'reconnecting';
-
 export interface FlareImClient extends SessionApi {
   readonly connection: ConnectionApi;
+  readonly access: AccessApi;
+  readonly lifecycle: LifecycleApi;
+  readonly update: UpdateApi;
   readonly conversations: ConversationsApi;
   readonly messageBuilder: MessageBuilderApi;
   readonly messages: MessagesApi;

@@ -64,10 +64,12 @@ export function parseComposerMenu(value: unknown): ComposerMenu {
  * (the kit names its unified ids); a plugin's unknown icon name draws the kit's plugin glyph.
  */
 export function composerPanelActions(menu: ComposerMenu) {
-  return menu.actions.map((item) => ({
+  return menu.actions.map((item, index) => ({
     id: item.id,
     kind: item.kind,
-    order: item.order,
+    // The SDK already ordered built-ins and authorized plugins. Preserve that
+    // sequence when a kit re-sorts action priorities (including negative plugin priorities).
+    order: index,
     ...(item.kind === "plugin" ? { label: item.label } : {}),
     ...(item.icon ? { icon: item.icon } : {}),
   }));

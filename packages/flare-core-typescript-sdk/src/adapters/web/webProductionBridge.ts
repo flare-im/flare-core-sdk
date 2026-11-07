@@ -1,4 +1,4 @@
-import type { NativeBridge, NativeCallDescriptor } from "../../contract";
+import type { ConnectTokenRefresher, NativeBridge, NativeCallDescriptor } from "../../contract";
 import {
   wireDecodeResponse,
   wireEncodeRequest,
@@ -13,6 +13,11 @@ import {
   createWasmIndexedDbStorageHost,
   type WasmStorageHostCallbacks,
 } from "./idbWasmStorageHost";
+import {
+  createIndexedDbAccessStoreHost,
+  type WasmAccessStoreHost,
+} from "./idbAccessStoreHost";
+import { webAppInfoFromBuild, withWebAppInfo, type WebAppInfo } from "../../lifecycle/appInfo";
 
 /**
  * Loads the WASM core runtime. Injected by the host because asset resolution is
@@ -28,11 +33,21 @@ export type WasmRuntimeLoader = () => Promise<{ runtime: FlareWasmRuntime }>;
  */
 export type WasmStorageHostFactory = () => WasmStorageHostCallbacks | Promise<WasmStorageHostCallbacks>;
 
+/**
+ * Builds the host of the core's pre-login global store (access manifest LKG, key state, health
+ * book). Defaults to IndexedDB, falling back to memory where the browser offers none.
+ */
+export type WasmAccessStoreHostFactory = () => WasmAccessStoreHost | Promise<WasmAccessStoreHost>;
+
 export interface WebProductionBridgeOptions {
   /** Host-injected WASM runtime loader. Required before the first real `invoke`. */
   loadRuntime?: WasmRuntimeLoader;
   /** Host-injected storage backend factory. Defaults to IndexedDB. */
   createStorageHost?: WasmStorageHostFactory;
+  /** Host of the pre-login global store. Defaults to IndexedDB (memory where unavailable). */
+  createAccessStoreHost?: WasmAccessStoreHostFactory;
+  /** App identity for CONNECT; defaults to the build-time injected values. */
+  appInfo?: WebAppInfo;
 }
 
 type EventEmitter = { emit(event: unknown): void };
@@ -42,7 +57,8 @@ type WasmEventEnvelope = {
   payload: unknown;
 };
 
-type BrowserConnectionState = "disconnected" | "connecting" | "connected" | "ready" | "reconnecting";
+/** The last `connection://status` phase the bridge saw; best-effort control traffic waits for online. */
+type BrowserConnectionPhase = string;
 
 function isBestEffortControlOperation(operation: string): boolean {
   return operation === "message.typing";
@@ -115,29 +131,6 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function normalizeConnectionState(value: unknown, operation: string): BrowserConnectionState {
-  const state = String(value ?? "").trim();
-  switch (state.toLowerCase()) {
-    case "connecting":
-      return "connecting";
-    case "connected":
-      return "connected";
-    case "ready":
-      return "ready";
-    case "reconnecting":
-      return "reconnecting";
-    case "disconnected":
-      return "disconnected";
-    default:
-      throw new FlareSdkException(
-        "invalidParameter",
-        `invalid connection state: ${state || "<empty>"}`,
-        operation,
-        { field: "state" },
-      );
-  }
-}
-
 export function mapWasmEventForTesting(channel: string, payload: unknown): unknown {
   const eventType = eventTypeForWebChannel(channel);
   return eventType === undefined ? wireDecodeResponse(payload) : nativeEventFromCode(eventType, payload);
@@ -155,6 +148,8 @@ type WasmRuntimeWithHost = FlareWasmRuntime & {
   setEventCallback?: (cb: ((event: unknown) => void) | null) => void;
   /** Installs the persistence host; the runtime reads its methods by name and throws when one is missing. */
   setStorageHost?: (host: WasmStorageHostCallbacks) => void;
+  /** Installs the pre-login global store host before `sdk.init`. */
+  setAccessStoreHost?: (host: WasmAccessStoreHost | null) => Promise<void> | void;
 };
 
 /** Browser production bridge: real WASM IMClient + WebSocket transport. */
@@ -163,7 +158,7 @@ export class WebProductionBridge implements NativeBridge {
   private runtimeBlocked: FlareSdkException | null = null;
   private eventsApi: EventEmitter | null = null;
   private eventsStarted = false;
-  private lastConnectionState: BrowserConnectionState = "disconnected";
+  private lastPhase: BrowserConnectionPhase = "idle";
   private bestEffortControlInFlight = new Set<string>();
   /**
    * Serialize WASM invoke — Tokio block_on must not re-enter on wasm32.
@@ -180,10 +175,14 @@ export class WebProductionBridge implements NativeBridge {
   private invokeWaiters: Array<{ background: boolean; admit: () => void }> = [];
   private readonly loadRuntime?: WasmRuntimeLoader;
   private readonly createStorageHost: WasmStorageHostFactory;
+  private readonly createAccessStoreHost: WasmAccessStoreHostFactory;
+  private readonly appInfo: WebAppInfo;
 
   constructor(options: WebProductionBridgeOptions = {}) {
     this.loadRuntime = options.loadRuntime;
     this.createStorageHost = options.createStorageHost ?? createWasmIndexedDbStorageHost;
+    this.createAccessStoreHost = options.createAccessStoreHost ?? (() => createIndexedDbAccessStoreHost());
+    this.appInfo = options.appInfo ?? webAppInfoFromBuild();
   }
 
   attachEventEmitter(api: EventEmitter): void {
@@ -204,6 +203,9 @@ export class WebProductionBridge implements NativeBridge {
     const runtime = loaded.runtime as WasmRuntimeWithHost;
     const host = await this.createStorageHost();
     runtime.setStorageHost?.(host);
+    if (runtime.setAccessStoreHost) {
+      await runtime.setAccessStoreHost(await this.createAccessStoreHost());
+    }
     this.runtime = runtime;
     runtime.setEventCallback?.((raw: unknown) => {
       if (this.runtime === runtime) this.handleWasmEvent(raw);
@@ -237,13 +239,13 @@ export class WebProductionBridge implements NativeBridge {
 
   private captureConnectionState(event: unknown): void {
     const record = asRecord(event);
-    if (record.state !== undefined) {
-      this.lastConnectionState = normalizeConnectionState(record.state, "event.decode");
+    if (record.type === "connection" && record.event === "status" && typeof record.phase === "string") {
+      this.lastPhase = record.phase;
     }
   }
 
   private hasUsableConnection(): boolean {
-    return this.lastConnectionState === "connected" || this.lastConnectionState === "ready";
+    return this.lastPhase === "online";
   }
 
   private async invokeRuntimeOperation<T>(operation: string, request?: unknown): Promise<T> {
@@ -304,12 +306,13 @@ export class WebProductionBridge implements NativeBridge {
     const decoded = wireDecodeResponse(result);
     switch (operation) {
       case "sdk.login":
-        this.lastConnectionState = this.hasUsableConnection() ? this.lastConnectionState : "ready";
+        // Login returns once the session is up; status events refine it from here on.
+        this.lastPhase = "online";
         return decoded as T;
-      case "connection.get_state": {
-        const runtimeState = normalizeConnectionState(decoded, operation);
-        this.lastConnectionState = runtimeState;
-        return runtimeState as T;
+      case "connection.get_status": {
+        const phase = asRecord(decoded).phase;
+        if (typeof phase === "string") this.lastPhase = phase;
+        return decoded as T;
       }
       case "sdk.is_connected":
       case "sdk.session_active":
@@ -318,7 +321,7 @@ export class WebProductionBridge implements NativeBridge {
       case "sdk.dispose":
       case "sdk.hard_reset":
       case "connection.disconnect":
-        this.lastConnectionState = "disconnected";
+        this.lastPhase = "idle";
         return decoded as T;
       default:
         return decoded as T;
@@ -388,14 +391,23 @@ export class WebProductionBridge implements NativeBridge {
           runtime.setEventCallback?.(null);
           this.eventsStarted = false;
           this.runtime = null;
-          this.lastConnectionState = "disconnected";
+          this.lastPhase = "idle";
           return undefined as T;
         }
         if (operation === "sdk.login") {
-          this.lastConnectionState = "connecting";
+          this.lastPhase = "connecting";
         }
+        if (operation === "sdk.complete_connect_token_refresh") {
+          // The page's refresher is called directly by the runtime; there is no request to answer.
+          throw new FlareSdkException(
+            "capabilityUnavailable",
+            "the web runtime calls the connect token refresher directly",
+            operation,
+          );
+        }
+        const runtimeRequest = operation === "sdk.init" ? withWebAppInfo(request, this.appInfo) : request;
 
-        const runtimeInvoke = this.invokeRuntimeOperation<T>(operation, request);
+        const runtimeInvoke = this.invokeRuntimeOperation<T>(operation, runtimeRequest);
         runtimeInvokeSettled = runtimeInvoke.then(
           () => undefined,
           () => undefined,
@@ -403,7 +415,7 @@ export class WebProductionBridge implements NativeBridge {
         return await this.withInvokeTimeout(operation, runtimeInvoke);
       } catch (error) {
         if (operation === "sdk.login") {
-          this.lastConnectionState = "disconnected";
+          this.lastPhase = "idle";
         }
         const structured = FlareSdkException.fromBindingError(error, operation);
         if (structured) {
@@ -431,6 +443,29 @@ export class WebProductionBridge implements NativeBridge {
     };
     void next.then(releaseAfterSettled, releaseAfterSettled);
     return next;
+  }
+
+  /**
+   * The page's connect token refresher: after the gateway rejects a connection on authentication
+   * the core calls it once and waits at most 20 seconds for the new token (null when none).
+   * Runs in the invoke slot like every other runtime call.
+   */
+  async setConnectTokenRefresher(refresher: ConnectTokenRefresher | null): Promise<void> {
+    await this.acquireInvokeSlot(false);
+    try {
+      if (this.runtimeBlocked) throw this.runtimeBlocked;
+      const runtime = await this.ensureRuntime();
+      if (!runtime.setConnectTokenRefresher) {
+        throw new FlareSdkException(
+          "capabilityUnavailable",
+          "this wasm runtime has no connect token refresher hook",
+          "sdk.set_connect_token_refresher",
+        );
+      }
+      await runtime.setConnectTokenRefresher(refresher ?? undefined);
+    } finally {
+      this.releaseInvokeSlot();
+    }
   }
 
   /** 取得串行执行权。后台批量读让位给交互操作，同优先级内保持先来后到。 */
