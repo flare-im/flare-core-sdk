@@ -7,6 +7,11 @@ export type FlareCoreWebAppViteOptions = {
   extraAliases?: unknown[];
   extraDefine?: Record<string, unknown>;
   /**
+   * The distribution the core reports on CONNECT when `VITE_FLARE_DISTRIBUTION` is unset, e.g.
+   * `electron` for a renderer packaged in the Electron shell. Empty: the core reports `web`.
+   */
+  appDistribution?: string;
+  /**
    * Directory holding flare-core-sdk-engine and flare-im-design. Defaults to the nearest such
    * directory above this SDK package, then above `appDir`.
    */
