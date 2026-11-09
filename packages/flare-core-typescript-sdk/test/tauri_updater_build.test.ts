@@ -36,13 +36,13 @@ describe("the Tauri updater build", () => {
   it("keeps the updater of a build no store ships", () => {
     const updater = { FLARE_UPDATER_PUBKEY: "key", FLARE_UPDATER_ENDPOINTS: "https://a.example" };
 
-    for (const distribution of ["tauri", "direct", " ", ""]) {
+    for (const distribution of ["tauri", "electron", "direct", " ", ""]) {
       expect(updaterConfig({ ...updater, VITE_FLARE_DISTRIBUTION: distribution }), distribution).not.toBeNull();
     }
   });
 
   it("agrees with the page on what a store build is", () => {
-    for (const distribution of ["appstore", "msstore", "play", "tauri", "direct", "web", " ", ""]) {
+    for (const distribution of ["appstore", "msstore", "play", "tauri", "electron", "direct", "web", " ", ""]) {
       expect(isStoreBuild({ VITE_FLARE_DISTRIBUTION: distribution }), distribution).toBe(isStoreDistribution(distribution));
     }
     expect(isStoreBuild({})).toBe(isStoreDistribution(undefined));

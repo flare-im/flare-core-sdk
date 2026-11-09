@@ -18,7 +18,7 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 /** No store serves these channels; `isStoreDistribution` of `@flare-im/sdk/update` draws the same line for the page. */
-const NON_STORE_DISTRIBUTIONS = new Set(["direct", "web", "tauri"]);
+const NON_STORE_DISTRIBUTIONS = new Set(["direct", "web", "tauri", "electron"]);
 
 export function isStoreBuild(env) {
   const distribution = String(env.VITE_FLARE_DISTRIBUTION ?? "").trim();
