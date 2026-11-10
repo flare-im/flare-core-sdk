@@ -33,6 +33,22 @@ function render(port = fakePort(), props: Record<string, unknown> = {}, director
 }
 
 describe("PluginComposerSheet", () => {
+  it.each([
+    { success: false, posted },
+    { success: undefined, posted },
+    { success: true, posted: { ...posted, conversationId: "other-chat" } },
+    { success: true, posted: { ...posted, clientMsgId: "" } },
+    { success: true, posted: { ...posted, serverMsgId: " " } },
+  ])("keeps the composer open without a definite matching posted result: %j", async (response) => {
+    const port = fakePort({ presentMessage: vi.fn(async () => formView()), invokeAction: vi.fn(async () => ({ kind: "operation", response: { success: response.success, data: { posted: response.posted } } })) });
+    const { wrapper, onPosted, close } = render(port);
+    await flushPromises();
+    wrapper.getComponent(FlarePluginForm).vm.$emit("submit", { title: "Ship it" });
+    await flushPromises();
+    expect(onPosted).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
+  });
+
   it("draws a contribution without inputs embedded in the sheet and runs its keys", async () => {
     const port = fakePort({
       presentMessage: vi.fn(async () => ({ available: true, title: "Quick vote", fields: [{ label: "Question", value: "Lunch?" }], actions: [{ id: "send", label: "Send" }], stateVersion: 0 })),

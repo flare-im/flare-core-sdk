@@ -85,7 +85,6 @@ export interface SdkLabState {
   fileId: string;
   reaction: string;
   capability: string;
-  capabilityTargetUserId: string;
   mediaUrl: string;
   mediaCacheRoot: string;
   mediaCacheMaxBytes: number;
@@ -326,7 +325,6 @@ const sdkLabDefaults: SdkLabState = {
   fileId: "",
   reaction: "👍",
   capability: "",
-  capabilityTargetUserId: "",
   mediaUrl: "",
   mediaCacheRoot: "memory://flare-core-web-app/media-cache",
   mediaCacheMaxBytes: 134217728,
@@ -3845,25 +3843,6 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     await runLab(`capability.${kind}`, async () => {
       if (kind === "list") {
         return await client.capabilities.listCapabilities({});
-      }
-      if (kind === "list_user") {
-        return await client.capabilities.listUserCapabilities({ userId: form.userId });
-      }
-      if (kind === "grant") {
-        await client.capabilities.grantCapability({
-          userId: sdkLab.capabilityTargetUserId,
-          capability: sdkLab.capability,
-          payload: parseJsonParams(sdkLab.jsonParams),
-        });
-        return { granted: sdkLab.capability, userId: sdkLab.capabilityTargetUserId };
-      }
-      if (kind === "revoke") {
-        await client.capabilities.revokeCapability({
-          userId: sdkLab.capabilityTargetUserId,
-          capability: sdkLab.capability,
-          payload: parseJsonParams(sdkLab.jsonParams),
-        });
-        return { revoked: sdkLab.capability, userId: sdkLab.capabilityTargetUserId };
       }
       return await client.capabilities.dispatchCapability({
         operation: "web.echo",

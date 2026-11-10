@@ -31,12 +31,16 @@ void main() {
       expect(bridge.lastOperation, 'capability.plugin_ui_present');
       expect(bridge.lastTransport, 'capability-dispatch-json');
       expect(bridge.lastCApi, 'flare_capability_dispatch_json');
-      expect(bridge.lastRequest, {'payload': {'messageId': 'm1'}});
+      expect(bridge.lastRequest, {
+        'payload': {'messageId': 'm1'}
+      });
       await client.capabilities.invokePluginAction(request);
       expect(bridge.lastOperation, 'capability.plugin_ui_invoke');
       expect(bridge.lastTransport, 'capability-dispatch-json');
       expect(bridge.lastCApi, 'flare_capability_dispatch_json');
-      expect(bridge.lastRequest, {'payload': {'messageId': 'm1'}});
+      expect(bridge.lastRequest, {
+        'payload': {'messageId': 'm1'}
+      });
 
       await client.capabilities.pluginUiAction(request);
       expect(bridge.lastOperation, 'capability.plugin_ui_action');
@@ -57,6 +61,28 @@ void main() {
       expect(bridge.lastRequest, {
         'payload': {'messageId': 'm1'}
       });
+    });
+
+    test(
+        'plugin file upload forwards the typed envelope and completed reference',
+        () async {
+      final bridge = _RecordingBridge();
+      final client = FlareCoreSdk.createClientWithBridge(bridge);
+      const request = PluginUiEvaluationRequest(payload: {
+        'page': {'pluginId': 'example.plugin', 'page': 'example.plugin.form'},
+        'inputId': 'attachment',
+        'platform': 'flutter',
+        'commandId': 'upload-1',
+        'fileName': 'receipt.png',
+        'contentType': 'image/png',
+        'bytes': [137, 255],
+      });
+      final result = await client.capabilities.pluginFileUpload(request);
+      expect(bridge.lastOperation, 'capability.plugin_file_upload');
+      expect(bridge.lastTransport, 'capability-dispatch-json');
+      expect(bridge.lastCApi, 'flare_capability_dispatch_json');
+      expect(bridge.lastRequest, {'payload': request.payload});
+      expect(result, {'fileId': 'file:fixture'});
     });
 
     test('createTextMessage uses platform camelCase fields', () async {
@@ -1177,6 +1203,8 @@ final class _RecordingBridge implements NativeBridge {
     switch (descriptor.operation) {
       case 'capability.plugin_ui_catalog':
         return {'items': <Object>[]} as T;
+      case 'capability.plugin_file_upload':
+        return {'fileId': 'file:fixture'} as T;
       case 'capability.plugin_ui_action':
       case 'capability.plugin_ui_resolve':
       case 'capability.plugin_ui_present':

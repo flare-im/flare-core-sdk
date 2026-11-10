@@ -60,6 +60,10 @@ export class DefaultCapabilitiesApi implements CapabilitiesApi {
     return await invokeMap(this.bridge, NativeCallMap.capabilityPluginPage, pluginUiEvaluationRequestToMap(request));
   }
 
+  async pluginFileUpload(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginFileUpload, pluginUiEvaluationRequestToMap(request));
+  }
+
   async pluginAccountEntries(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
     return await invokeMap(this.bridge, NativeCallMap.capabilityPluginAccountEntries, pluginUiEvaluationRequestToMap(request));
   }
@@ -72,19 +76,7 @@ export class DefaultCapabilitiesApi implements CapabilitiesApi {
     return await invokeMap(this.bridge, NativeCallMap.capabilityList, request);
   }
 
-  async listUserCapabilities(request: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return await invokeMap(this.bridge, NativeCallMap.capabilityListUser, request);
-  }
-
   async dispatchCapability(request: Record<string, unknown>): Promise<Record<string, unknown>> {
     return await invokeMap(this.bridge, NativeCallMap.capabilityDispatch, request);
-  }
-
-  async grantCapability(request: Record<string, unknown>): Promise<void> {
-    await invokeVoid(this.bridge, NativeCallMap.capabilityGrant, request);
-  }
-
-  async revokeCapability(request: Record<string, unknown>): Promise<void> {
-    await invokeVoid(this.bridge, NativeCallMap.capabilityRevoke, request);
   }
 }

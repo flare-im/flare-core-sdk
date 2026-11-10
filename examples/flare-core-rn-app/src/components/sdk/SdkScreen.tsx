@@ -96,10 +96,7 @@ const mediaLabels: Record<RnMediaLabOperation, string> = {
 
 const capabilityLabels: Record<RnCapabilityOperation, string> = {
   list: '全部能力',
-  list_user: '用户能力',
   dispatch: '能力派发',
-  grant: '授权能力',
-  revoke: '撤销能力',
 };
 
 const connectionLabels: Record<RnConnectionOperation, string> = {

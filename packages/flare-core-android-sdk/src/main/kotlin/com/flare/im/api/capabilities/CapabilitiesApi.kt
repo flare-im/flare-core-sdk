@@ -53,18 +53,14 @@ interface CapabilitiesApi {
     suspend fun pluginDetail(request: PluginUiEvaluationRequest): Map<String, Any?>
     /** pluginPage maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_page`. Operation: `capability.plugin_page`. */
     suspend fun pluginPage(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** pluginFileUpload maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_file_upload`. Operation: `capability.plugin_file_upload`. */
+    suspend fun pluginFileUpload(request: PluginUiEvaluationRequest): Map<String, Any?>
     /** pluginAccountEntries maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`. */
     suspend fun pluginAccountEntries(request: PluginUiEvaluationRequest): Map<String, Any?>
     /** invalidatePluginCatalog maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`. */
     suspend fun invalidatePluginCatalog(request: Map<String, Any?>): Unit
     /** listCapabilities maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_list`. Operation: `capability.list`. */
     suspend fun listCapabilities(request: Map<String, Any?>): Map<String, Any?>
-    /** listUserCapabilities maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_list_user`. Operation: `capability.list_user`. */
-    suspend fun listUserCapabilities(request: Map<String, Any?>): Map<String, Any?>
     /** dispatchCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_dispatch`. Operation: `capability.dispatch`. */
     suspend fun dispatchCapability(request: Map<String, Any?>): Map<String, Any?>
-    /** grantCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_grant`. Operation: `capability.grant`. */
-    suspend fun grantCapability(request: Map<String, Any?>): Unit
-    /** revokeCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_revoke`. Operation: `capability.revoke`. */
-    suspend fun revokeCapability(request: Map<String, Any?>): Unit
 }

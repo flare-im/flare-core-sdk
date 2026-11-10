@@ -64,6 +64,10 @@ public class DefaultCapabilitiesApi <: CapabilitiesApi {
         return bridge.invoke(descriptor: NativeCallMap.capabilityPluginPage, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
     }
 
+    public func pluginFileUpload(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginFileUpload, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
+    }
+
     public func pluginAccountEntries(request: PluginUiEvaluationRequest): String {
         return bridge.invoke(descriptor: NativeCallMap.capabilityPluginAccountEntries, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
     }
@@ -76,19 +80,7 @@ public class DefaultCapabilitiesApi <: CapabilitiesApi {
         return bridge.invoke(descriptor: NativeCallMap.capabilityList, requestJson: wireEncodeRequest(requestJson))
     }
 
-    public func listUserCapabilities(requestJson: String): String {
-        return bridge.invoke(descriptor: NativeCallMap.capabilityListUser, requestJson: wireEncodeRequest(requestJson))
-    }
-
     public func dispatchCapability(requestJson: String): String {
         return bridge.invoke(descriptor: NativeCallMap.capabilityDispatch, requestJson: wireEncodeRequest(requestJson))
-    }
-
-    public func grantCapability(requestJson: String): Unit {
-        let _ignored = bridge.invoke(descriptor: NativeCallMap.capabilityGrant, requestJson: wireEncodeRequest(requestJson))
-    }
-
-    public func revokeCapability(requestJson: String): Unit {
-        let _ignored = bridge.invoke(descriptor: NativeCallMap.capabilityRevoke, requestJson: wireEncodeRequest(requestJson))
     }
 }

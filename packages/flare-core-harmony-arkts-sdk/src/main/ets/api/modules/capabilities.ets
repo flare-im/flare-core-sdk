@@ -16,11 +16,9 @@ export interface CapabilitiesApi {
   pluginComposerActions(request: PluginUiEvaluationRequest): Promise<Record<string, Object>>;
   pluginDetail(request: PluginUiEvaluationRequest): Promise<Record<string, Object>>;
   pluginPage(request: PluginUiEvaluationRequest): Promise<Record<string, Object>>;
+  pluginFileUpload(request: PluginUiEvaluationRequest): Promise<Record<string, Object>>;
   pluginAccountEntries(request: PluginUiEvaluationRequest): Promise<Record<string, Object>>;
   invalidatePluginCatalog(request: Record<string, Object>): Promise<void>;
   listCapabilities(request: Record<string, Object>): Promise<Record<string, Object>>;
-  listUserCapabilities(request: Record<string, Object>): Promise<Record<string, Object>>;
   dispatchCapability(request: Record<string, Object>): Promise<Record<string, Object>>;
-  grantCapability(request: Record<string, Object>): Promise<void>;
-  revokeCapability(request: Record<string, Object>): Promise<void>;
 }

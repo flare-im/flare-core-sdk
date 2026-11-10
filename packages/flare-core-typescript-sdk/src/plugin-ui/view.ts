@@ -87,7 +87,16 @@ export type PluginUiBlock =
   | PluginUiTextBlock | PluginUiFieldsBlock | PluginUiChoicesBlock | PluginUiEntriesBlock | PluginUiPeopleBlock
   | PluginUiStatusBlock | PluginUiProgressBlock | PluginUiTimeBlock | PluginUiDividerBlock | PluginUiNoteBlock | PluginUiRowsBlock;
 
-export type PluginUiInputKind = "text" | "textarea" | "password" | "number" | "toggle" | "select" | "datetime" | "options" | "members";
+export type PluginUiInputKind = "text" | "textarea" | "password" | "number" | "toggle" | "select" | "datetime" | "options" | "members" | "file";
+/** Stable completed private upload reference. Never a URL, grant or local path. */
+export interface UiFileReference { fileId: string }
+export interface PluginUiFileInput {
+  accept: string[];
+  /** Positive byte limit, at most 5 MiB. */
+  maxBytes: number;
+  upload: { prepareOperation: string; completeOperation: string; purpose: string };
+}
+export interface PluginUiInputShowWhen { field: string; anyOf: string[] }
 /**
  * A form input, labels translated and `default` resolved from the card data. Submitted values:
  * text/textarea/password strings, number, toggle boolean, select a choice `value`, datetime epoch ms,
@@ -105,6 +114,12 @@ export interface PluginUiInput {
   max?: number;
   default?: unknown;
   choices?: Array<{ value: string; label: string }>;
+  file?: PluginUiFileInput;
+  /** Earlier unconditional Select in this action form. Hidden values are not
+   * required or submitted. Controller value changes invalidate every dependent
+   * value/upload, even if both old and new values leave the input visible.
+   * Conditional defaults seed visible host state only, never submission fallback. */
+  showWhen?: PluginUiInputShowWhen;
 }
 
 export type PluginFormIssue =
@@ -164,6 +179,8 @@ export interface PluginDetailPage {
  * `{available: false, title: "", unavailableReason}`; the host keeps its own page title.
  */
 export interface PluginPagePresentation extends PluginDetailPresentation {
+  /** Host conversation context returned separately from plugin source data. */
+  conversationId?: string;
   data?: Record<string, unknown>;
 }
 

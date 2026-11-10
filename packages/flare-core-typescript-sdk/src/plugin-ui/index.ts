@@ -1,4 +1,4 @@
-import { pluginFormErrors, pluginViewExtras, type PluginActionOutcome, type PluginCardPresentation, type PluginDetailPage, type PluginDetailPresentation, type PluginPagePage, type PluginPagePresentation, type PluginPresentation } from "./view";
+import { pluginFormErrors, pluginViewExtras, type PluginActionOutcome, type PluginCardPresentation, type PluginDetailPage, type PluginDetailPresentation, type PluginPagePage, type PluginPagePresentation, type PluginPresentation, type UiFileReference } from "./view";
 export * from "./view";
 /** Runtime adaptation only. Rust owns schema evaluation, lease/permission
  * checks, action declaration and history fallback on every platform. */
@@ -21,7 +21,7 @@ export interface PluginUiPort {
    * fetches the next page and returns it appended to `previous`; with `refresh: true` and `previous` it
    * re-reads the sheet from the first page, as many pages as `previous` had loaded. */
   pluginDetail?(request: Record<string, unknown>): Promise<unknown>;
-  /** `capability.plugin_page`: a plugin page. Request: `{pluginId, page, platform, locale, arguments?,
+  /** `capability.plugin_page`: a plugin page. Request: `{pluginId, page, platform, conversationId?, locale, arguments?,
    * filters?, cursor?, previous?, refresh?}`; returns the resolved view plus `data`, with `nextCursor`
    * while its source has more. Paging and refresh as for `pluginDetail`. A page action goes through
    * `invokePageAction`. */
@@ -29,6 +29,8 @@ export interface PluginUiPort {
   /** `capability.plugin_ui_invoke` for an action run on a plugin page: the host's plugin facade frames the request,
    * naming the page `{pluginId, page}` in place of a message, and returns Core's answer as `invokeAction` does. */
   invokePageAction(request: PluginPageActionRequest): Promise<unknown>;
+  /** Core validates the real page declaration and owns private prepare/PUT/complete. */
+  uploadFile(request: PluginFileUploadRequest): Promise<UiFileReference>;
   dispatch(request: { capabilityId: string; payload: unknown; conversationId?: string; tenantId?: string; userId?: string }): Promise<unknown>;
 }
 /**
@@ -42,6 +44,23 @@ export type PluginPageActionRequest = {
   data?: Record<string, unknown>; row?: { key: string; input: Record<string, unknown> }; conversationId?: string;
   formValues?: Record<string, unknown>; selection?: readonly number[];
 };
+/** `capability.plugin_file_upload` payload. Reuse commandId for an explicit
+ * retry of this file/scope; grants and intermediate upload replies never leave
+ * Core or enter the financial command journal. */
+export interface PluginFileUploadRequest {
+  page: { pluginId: string; page: string };
+  inputId: string;
+  platform: PluginPlatform;
+  locale?: string;
+  conversationId?: string;
+  arguments?: Record<string, unknown>;
+  data?: Record<string, unknown>;
+  formValues?: Record<string, unknown>;
+  fileName: string;
+  contentType: string;
+  bytes: readonly number[];
+  commandId: string;
+}
 export interface PluginMessageEnvelope {
   pluginId: string; contributionId: string; schemaVersion: number;
   summary: string; payload: Record<string, unknown>;
@@ -59,7 +78,7 @@ export function pluginManifestLocale(tag: string | null | undefined): PluginMani
   return String(tag ?? "").trim().toLowerCase().startsWith("en") ? "en-US" : "zh-CN";
 }
 /** A page target: the plugin page an action opens, always of the plugin that declared the action. */
-export interface PluginPageTarget { pluginId: string; page: string }
+export interface PluginPageTarget { pluginId: string; page: string; /** Host route context; never read from business payload. */ conversationId?: string }
 /** Core's rule for a card's `messageId`: non-empty, at most 256 bytes, no whitespace or control characters. */
 export function validPluginMessageId(id: string): boolean {
   return id.length > 0 && new TextEncoder().encode(id).length <= 256 && !/[\s\p{Cc}]/u.test(id);
@@ -77,6 +96,16 @@ export class PluginUiSession {
      * opening action bound). */
     private readonly navigate?: (target: PluginPageTarget, args?: Record<string, unknown>) => void) {}
   reset(): void { this.generation++; this.catalogInFlight = null; }
+  async uploadFile(request: Omit<PluginFileUploadRequest, "platform" | "locale">): Promise<UiFileReference> {
+    const generation = this.generation;
+    const value = await this.port.uploadFile({ ...request, platform: this.platform, locale: this.locale() });
+    if (generation !== this.generation) throw new Error("Plugin file upload session changed");
+    if (!value || typeof value !== "object" || Object.keys(value).length !== 1
+        || typeof value.fileId !== "string" || !/^[A-Za-z0-9_:-]{1,128}$/.test(value.fileId)) {
+      throw new Error("Invalid plugin file upload reference");
+    }
+    return value;
+  }
   private catalogForView(): Promise<unknown> {
     if (this.catalogInFlight) return this.catalogInFlight;
     const pending = this.port.catalog();
@@ -153,7 +182,7 @@ export class PluginUiSession {
       ...(conversationId ? { conversationId } : {}), platform: this.platform, actionId, userGesture, nativeAllowlist: this.native?.capabilities ?? [],
       ...(formValues ? { formValues } : {}), ...(selection ? { selection } : {}) });
     if (generation !== this.generation) throw new Error("Plugin session changed");
-    return this.actionOutcome(value, message.pluginId);
+    return this.actionOutcome(value, message.pluginId, conversationId);
   }
   /**
    * A plugin page (a `page` contribution, such as a wallet) through Core: its source query is called
@@ -163,13 +192,14 @@ export class PluginUiSession {
    * unreachable) gives an inert page with `unavailableReason` on the first page and on a refresh; a
    * next page throws instead. Throws when the port has no page call or the session changed meanwhile.
    */
-  async page(pluginId: string, page: string, options: { args?: Record<string, unknown>; filters?: Record<string, unknown>; page?: PluginPagePage; refresh?: PluginPagePresentation } = {}): Promise<PluginPagePresentation> {
+  async page(pluginId: string, page: string, options: { conversationId?: string; args?: Record<string, unknown>; filters?: Record<string, unknown>; page?: PluginPagePage; refresh?: PluginPagePresentation } = {}): Promise<PluginPagePresentation> {
     const generation = this.generation;
     if (!this.port.pluginPage) throw new Error("Plugin page unavailable");
     const { args, filters, page: next, refresh } = options;
+    const conversationId = options.conversationId ?? next?.previous.conversationId ?? refresh?.conversationId;
     if (next && refresh) throw new Error("Plugin page: page and refresh exclude each other");
     const value = await this.port.pluginPage({ pluginId, page, platform: this.platform, locale: this.locale(),
-      ...(args ? { arguments: args } : {}), ...(filters ? { filters } : {}),
+      ...(conversationId ? { conversationId } : {}), ...(args ? { arguments: args } : {}), ...(filters ? { filters } : {}),
       ...(next ? { cursor: next.cursor, previous: next.previous } : {}), ...(refresh ? { refresh: true, previous: refresh } : {}) });
     if (generation !== this.generation) throw new Error("Plugin session changed");
     const view = value as PluginPagePresentation | null;
@@ -179,7 +209,7 @@ export class PluginUiSession {
     const nextCursor = typeof view.nextCursor === "string" && view.nextCursor ? view.nextCursor : undefined;
     const data = view.available && view.data && typeof view.data === "object" && !Array.isArray(view.data) ? view.data : undefined;
     return { available: view.available, title: view.title, fields: view.fields, actions: view.actions,
-      ...pluginViewExtras(view as unknown as Record<string, unknown>), ...(nextCursor ? { nextCursor } : {}), ...(data ? { data } : {}) };
+      ...pluginViewExtras(view as unknown as Record<string, unknown>), ...(nextCursor ? { nextCursor } : {}), ...(typeof view.conversationId === "string" ? { conversationId: view.conversationId } : conversationId ? { conversationId } : {}), ...(data ? { data } : {}) };
   }
   /**
    * Run a page action through Core: a document action binds over the page's `data`, a row action
@@ -195,19 +225,21 @@ export class PluginUiSession {
       nativeAllowlist: this.native?.capabilities ?? [], ...(data ? { data } : {}), ...(row ? { row } : {}),
       ...(conversationId ? { conversationId } : {}), ...(formValues ? { formValues } : {}), ...(selection ? { selection } : {}) });
     if (generation !== this.generation) throw new Error("Plugin session changed");
-    return this.actionOutcome(value, pluginId);
+    return this.actionOutcome(value, pluginId, conversationId);
   }
   /** Core's answer to a card or page action: an operation's response, form problems, or a host target run here (a
    * page target of the plugin that declared the action, unless it names another, or an allowed native capability). */
-  private async actionOutcome(value: unknown, pluginId: string): Promise<PluginActionOutcome> {
-    const result = value as { kind?: unknown; response?: unknown; errors?: unknown; target?: { kind: string; page?: string; pluginId?: string; capability?: string }; payload?: Record<string, unknown> } | null;
+  private async actionOutcome(value: unknown, pluginId: string, conversationId?: string): Promise<PluginActionOutcome> {
+    const result = value as { kind?: unknown; response?: unknown; errors?: unknown; conversationId?: unknown; target?: { kind: string; page?: string; pluginId?: string; capability?: string }; payload?: Record<string, unknown> } | null;
     if (result?.kind === "operation" && result.response && typeof result.response === "object") {
       return { kind: "operation", response: result.response as Extract<PluginActionOutcome, { kind: "operation" }>["response"] };
     }
     if (result?.kind === "formErrors") return { kind: "formErrors", errors: pluginFormErrors(result.errors) };
     const target = result?.kind === "host" ? result.target : undefined;
     if (target?.kind === "page" && typeof target.page === "string" && this.navigate) {
-      return { kind: "host", result: this.navigate({ pluginId: typeof target.pluginId === "string" ? target.pluginId : pluginId, page: target.page }, result?.payload ?? {}) };
+      const context = conversationId ?? (typeof result?.conversationId === "string" ? result.conversationId : undefined);
+      if (conversationId && typeof result?.conversationId === "string" && conversationId !== result.conversationId) throw new Error("Plugin page conversation changed");
+      return { kind: "host", result: this.navigate({ pluginId: typeof target.pluginId === "string" ? target.pluginId : pluginId, page: target.page, ...(context ? { conversationId: context } : {}) }, result?.payload ?? {}) };
     }
     if (target?.kind === "native" && typeof target.capability === "string" && this.native?.capabilities.includes(target.capability as never)) {
       return { kind: "host", result: await this.native.invoke(target.capability, result?.payload ?? {}) };

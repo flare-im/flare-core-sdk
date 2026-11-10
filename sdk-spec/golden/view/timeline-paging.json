@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Timeline view paging vectors. A case gives the conversation summary, the visible messages the server holds, the local rows and the proven ranges, then steps; each step lists what the view must show and the server requests it made during that step. Proven ranges are the per-conversation closed seq ranges [from, to] the server has shown to be complete: every seq in one has a local row or is proven to hold no visible message. hasOlder is decided only by those ranges, the visibility floor and the local rows below the window, never by whether a page came back full or the oldest row is seq 1. hasNewer is true exactly when the window is not attachedToLatest; a window attaches when its newer end reaches the highest proven seq, and only an attached window takes live messages. A request is a backfill {before, limit} or a newer page {after, limit}; a newer page writes the range it proves and never moves the sync cursor. When a backfill or a newer page fails, the rows already read inside a proven range join the window first and the step then fails. Seq lists are written as inclusive [from, to] ranges; window lists the sent rows and pending the row keys of rows still waiting for their ack. updates lists the kinds of the view.updated events a step published. core-sdk reads every case in src/client/api/view_paging_tests.rs.",
+  "description": "Timeline view paging vectors. A case gives the conversation summary, the visible messages the server holds, the local rows and the proven ranges, then steps; each step lists what the view must show and the server requests it made during that step. Proven ranges are the per-conversation closed seq ranges [from, to] the server has shown to be complete: every seq in one has a local row or is proven to hold no visible message. hasOlder is decided only by those ranges, the visibility floor and the local rows below the window, never by whether a page came back full or the oldest row is seq 1. hasNewer is true exactly when the window is not attachedToLatest; a window attaches when its newer end reaches the highest proven seq, and only an attached window takes live messages. A request is a backfill {before, limit} or a newer page {after, limit}; a newer page writes the range it proves and never moves the sync cursor. Opening latest or jumping to latest is local-first when visible sent rows exist or emptiness is proven. Otherwise pending rows alone do not count as loaded history: before open completes, Core resolves one historical page through the existing proof rules, at most three backfill requests within the standard 15-second request budget. It re-reads local state after that work, including proof-only pages and concurrent live rows. A valid latest window is retained if an older gap fails; an unresolved empty window returns an error, never a successful true-empty snapshot. Offline or transport errors remain typed; sdk.view.timeline_incomplete (ServiceUnavailable) and sdk.view.timeline_timeout (NetworkTimeout) are retryable initial-load failures. No synchronization cursor is advanced. Anchored windows are not replaced by this latest bootstrap. When a user backfill or a newer page fails, the rows already read inside a proven range join the window first and the step then fails. Seq lists are written as inclusive [from, to] ranges; window lists the sent rows and pending the row keys of rows still waiting for their ack. updates lists the kinds of the view.updated events a step published. core-sdk reads every case in src/client/api/view_paging_tests.rs.",
   "olderPaging": {
     "description": "Paging towards older messages (view.timeline.open with no anchor, then view.timeline.load_older). Step kinds: open, loadOlder, offline and online (the server fails or answers backfill requests), liveMessage (one realtime push stored locally, no range written), gapFilled (a sync proves [from, to] and the view reloads on sync finish), event (reaction, recall or syncFinished reload the window). A backfill request is {before, limit}: the server returns the newest limit visible messages below before and has_more; has_more true proves [oldest returned seq, before - 1], false proves [1, before - 1]. When a backfill fails, the rows already read inside the proven range join the window (the range proves them contiguous with it) and the step returns an error; local rows across the gap are never read.",
     "cases": [
@@ -139,17 +139,13 @@
       },
       {
         "name": "a new device opens a conversation with a million messages",
-        "boundaryCase": "A new device opens a conversation with 1,000,000 messages: the first window is what is local (empty here); every older page is one backfill that extends the proven range, and hasOlder stays true until the real start.",
+        "boundaryCase": "A new device opens a conversation with 1,000,000 messages: unknown empty local history triggers one bounded first-page backfill before open completes; every older page extends the proven range, and hasOlder stays true until the real start.",
         "pageSize": 40,
         "conversation": { "maxSeq": 1000000, "visibleAfterSeq": 0 },
         "server": { "visibleMessages": [[1, 1000000]] },
         "local": { "messages": [], "coverage": [] },
         "steps": [
-          { "do": "open", "expect": { "window": [], "hasOlder": true, "requests": [] } },
-          {
-            "do": "loadOlder",
-            "expect": { "window": [[999961, 1000000]], "hasOlder": true, "requests": [{ "before": 1000001, "limit": 40 }] }
-          },
+          { "do": "open", "expect": { "window": [[999961, 1000000]], "hasOlder": true, "requests": [{ "before": 1000001, "limit": 40 }] } },
           {
             "do": "loadOlder",
             "expect": {
@@ -159,6 +155,33 @@
               "coverage": [[999921, 1000000]]
             }
           }
+        ]
+      },
+      {
+        "name": "an event-only latest range does not hide cached visible messages on open",
+        "boundaryCase": "The sync cursor is already beyond an unproven cached message. Forward sync cannot fill that historical gap. Opening latest proves the missing range with backfill, without advancing the cursor or requiring a loadOlder gesture; reopening uses the repaired cache.",
+        "pageSize": 40,
+        "conversation": { "maxSeq": 17, "visibleAfterSeq": 0 },
+        "server": { "visibleMessages": [[1, 4], [7, 7], [10, 10], [13, 13], [15, 15], [17, 17]] },
+        "local": { "messages": [[1, 4], [7, 7], [10, 10], [13, 13], [15, 15], [17, 17]], "coverage": [[1, 16], [18, 18]] },
+        "steps": [
+          { "do": "open", "expect": { "window": [[1, 4], [7, 7], [10, 10], [13, 13], [15, 15], [17, 17]], "hasOlder": false, "requests": [{ "before": 18, "limit": 40 }], "coverage": [[1, 18]] } },
+          { "do": "event", "kind": "syncFinished", "expect": { "window": [[1, 4], [7, 7], [10, 10], [13, 13], [15, 15], [17, 17]], "hasOlder": false, "requests": [] } },
+          { "do": "open", "expect": { "window": [[1, 4], [7, 7], [10, 10], [13, 13], [15, 15], [17, 17]], "hasOlder": false, "requests": [] } }
+        ]
+      },
+      {
+        "name": "unknown empty history fails offline and recovers on open retry",
+        "boundaryCase": "An unknown empty first window is a loading failure while offline, not No messages yet. Retry after reconnection uses the same coverage boundary and yields the visible history.",
+        "pageSize": 40,
+        "conversation": { "maxSeq": 17, "visibleAfterSeq": 0 },
+        "server": { "visibleMessages": [[1, 17]] },
+        "local": { "messages": [[1, 17]], "coverage": [[1, 16], [18, 18]] },
+        "steps": [
+          { "do": "offline" },
+          { "do": "open", "expect": { "error": true, "requests": [{ "before": 18, "limit": 40 }], "coverage": [[1, 16], [18, 18]] } },
+          { "do": "online" },
+          { "do": "open", "expect": { "window": [[1, 17]], "hasOlder": false, "requests": [{ "before": 18, "limit": 40 }], "coverage": [[1, 18]] } }
         ]
       },
       {

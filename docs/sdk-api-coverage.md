@@ -90,8 +90,8 @@ Legend:
 
 | API | Status | Entry point |
 |-----|--------|-------------|
-| `listCapabilities`, `listUserCapabilities` | Lab | SDK Lab Capability Center. |
-| `dispatchCapability`, `grantCapability`, `revokeCapability` | Lab | SDK Lab Capability probes. |
+| `listCapabilities` | Lab | SDK Lab Capability Center. |
+| `dispatchCapability` | Lab | SDK Lab Capability probes. |
 | `subscribeEvents`, typed listeners, local listener unsubscribe | Real | App event bridge and SDK Lab event console. |
 | `unsubscribe`, `unsubscribeAll` | Lab | SDK Lab reset/lifecycle controls. |
 | `getSdkVersion`, `getFfiContractVersion`, `getDataRoot` | Lab | SDK Lab diagnostics. |

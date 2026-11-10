@@ -40,7 +40,6 @@ export type SdkLabInputs = {
   query: string;
   reaction: string;
   capability: string;
-  capabilityTargetUserId: string;
   fileId: string;
   mediaUrl: string;
   mediaCacheRoot: string;

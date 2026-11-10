@@ -5,8 +5,24 @@ function port(): PluginUiPort { return { catalog: async () => ({}), resolveMessa
   presentMessage: async () => ({ available: true, title: "Poll", fields: [], actions: [], data: { packetId: "one", status: "completed" }, stateVersion: 3 }),
   invokeAction: async () => ({ kind: "operation", response: { success: true, data: { messageState: { version: 4, values: { status: "completed" } } } } }),
   invokePageAction: async () => ({ kind: "operation", response: { success: true, data: {} } }),
+  uploadFile: async () => ({ fileId: "file-1" }),
   dispatch: async () => ({ success: true }) }; }
 describe("plugin UI runtime adapter", () => {
+  it("frames private uploads and rejects a completion from a reset session", async () => {
+    const api = port(); let release!: (value: { fileId: string }) => void; let seen: unknown;
+    api.uploadFile = async (request) => { seen = request; return await new Promise((resolve) => { release = resolve; }); };
+    const session = new PluginUiSession(api, "web", () => "zh-CN");
+    const pending = session.uploadFile({ page: { pluginId: "example.poll", page: "example.poll.page.form" },
+      inputId: "proof", fileName: "proof.png", contentType: "image/png", bytes: [1, 2], commandId: "upload-1" });
+    expect(seen).toMatchObject({ platform: "web", locale: "zh-CN", commandId: "upload-1", bytes: [1, 2] });
+    session.reset(); release({ fileId: "file-1" });
+    await expect(pending).rejects.toThrow("session changed");
+  });
+  it("never exposes an upload URL or mixed file reference returned by a bad port", async () => {
+    const api = port(); api.uploadFile = async () => ({ fileId: "file-1", uploadUrl: "/private/secret?grant=secret" });
+    await expect(new PluginUiSession(api, "web").uploadFile({ page: { pluginId: "example.poll", page: "example.poll.page.form" },
+      inputId: "proof", fileName: "proof.png", contentType: "image/png", bytes: [1], commandId: "upload-1" })).rejects.toThrow("Invalid");
+  });
   it("coalesces simultaneous timeline reads while actions still refresh", async () => {
     const api = port(); let calls = 0;
     api.catalog = async () => { calls++; await Promise.resolve(); return {}; };
@@ -201,6 +217,20 @@ describe("plugin UI card protocol v2", () => {
     const pending = host.invokePageAction("flare.wallet", "flare.wallet.home", "refresh", { userGesture: false });
     host.reset(); release({ kind: "operation", response: { success: true } });
     await expect(pending).rejects.toThrow("Plugin session changed");
+  });
+  it("carries the host conversation through page reads and navigation outside business arguments", async () => {
+    const api=port(); const reads:Record<string,unknown>[]=[]; const opened:unknown[]=[];
+    api.pluginPage=async (request)=>{reads.push(request);return {available:true,title:"Group",fields:[],actions:[],conversationId:request.conversationId,data:{conversationId:"injected"}};};
+    api.invokeAction=async ()=>({kind:"host",target:{kind:"page",page:"flare.checkin.plans"},conversationId:"group-1",payload:{conversationId:"injected"}});
+    api.invokePageAction=async ()=>({kind:"host",target:{kind:"page",page:"flare.checkin.plan"},conversationId:"group-1",payload:{planId:"p1",conversationId:"injected"}});
+    const session=new PluginUiSession(api,"web",undefined,undefined,(target,args)=>opened.push([target,args]));
+    await session.invokeAction({...message,pluginId:"flare.checkin"},"open",{conversationId:"group-1",userGesture:true});
+    expect(opened[0]).toEqual([{pluginId:"flare.checkin",page:"flare.checkin.plans",conversationId:"group-1"},{conversationId:"injected"}]);
+    const view=await session.page("flare.checkin","flare.checkin.plans",{conversationId:"group-1",args:{conversationId:"injected"}});
+    expect(reads[0]).toMatchObject({conversationId:"group-1",arguments:{conversationId:"injected"}});
+    expect(view.conversationId).toBe("group-1");
+    await session.invokePageAction("flare.checkin","flare.checkin.plans","open",{conversationId:"group-1",data:view.data,userGesture:true});
+    expect(opened[1]).toEqual([{pluginId:"flare.checkin",page:"flare.checkin.plan",conversationId:"group-1"},{planId:"p1",conversationId:"injected"}]);
   });
   it("maps the host's UI language onto the manifest locales", () => {
     for (const tag of ["en", "en-US", "en-GB", " EN-au "]) expect(pluginManifestLocale(tag)).toBe("en-US");

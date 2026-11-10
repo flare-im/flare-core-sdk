@@ -475,7 +475,7 @@ export function useRnWorkbenchController() {
     const service = sdkServiceRef.current;
     if (!service) return;
     try {
-      const result = await service.runCapabilityOperation(op, sdkLabInputs, currentUserId);
+      const result = await service.runCapabilityOperation(op, sdkLabInputs);
       setSdkLabResult(result);
     } catch (error) {
       setSdkLabResult(error instanceof Error ? error.message : String(error));

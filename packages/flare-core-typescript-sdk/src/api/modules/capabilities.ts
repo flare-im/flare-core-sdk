@@ -4,7 +4,7 @@
  * Module API: `capabilities` — Capability discovery and optional plugin dispatch through capability dispatch ops.
  */
 import type { PluginCommandRequest, PluginUiEvaluationRequest } from '../../model';
-import type { DispatchCapabilityRequest, DispatchCapabilityResponse, GrantCapabilityRequest, JsonObject, ListCapabilitiesRequest, ListCapabilitiesResponse, ListUserCapabilitiesRequest, ListUserCapabilitiesResponse, RevokeCapabilityRequest } from '../types';
+import type { DispatchCapabilityRequest, DispatchCapabilityResponse, JsonObject, ListCapabilitiesRequest, ListCapabilitiesResponse } from '../types';
 
 /** Capability discovery and optional plugin dispatch through capability dispatch ops. */
 export interface CapabilitiesApi {
@@ -34,18 +34,14 @@ export interface CapabilitiesApi {
   pluginDetail(request: PluginUiEvaluationRequest): Promise<JsonObject>;
   /** pluginPage maps to `flare_capability_dispatch_json`, dispatch op `plugin_page`. Operation: `capability.plugin_page`. */
   pluginPage(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** pluginFileUpload maps to `flare_capability_dispatch_json`, dispatch op `plugin_file_upload`. Operation: `capability.plugin_file_upload`. */
+  pluginFileUpload(request: PluginUiEvaluationRequest): Promise<JsonObject>;
   /** pluginAccountEntries maps to `flare_capability_dispatch_json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`. */
   pluginAccountEntries(request: PluginUiEvaluationRequest): Promise<JsonObject>;
   /** invalidatePluginCatalog maps to `flare_capability_dispatch_json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`. */
   invalidatePluginCatalog(request: ListCapabilitiesRequest): Promise<void>;
   /** listCapabilities maps to `flare_capability_dispatch_json`, dispatch op `capability_list`. Operation: `capability.list`. */
   listCapabilities(request: ListCapabilitiesRequest): Promise<ListCapabilitiesResponse>;
-  /** listUserCapabilities maps to `flare_capability_dispatch_json`, dispatch op `capability_list_user`. Operation: `capability.list_user`. */
-  listUserCapabilities(request: ListUserCapabilitiesRequest): Promise<ListUserCapabilitiesResponse>;
   /** dispatchCapability maps to `flare_capability_dispatch_json`, dispatch op `capability_dispatch`. Operation: `capability.dispatch`. */
   dispatchCapability(request: DispatchCapabilityRequest): Promise<DispatchCapabilityResponse>;
-  /** grantCapability maps to `flare_capability_dispatch_json`, dispatch op `capability_grant`. Operation: `capability.grant`. */
-  grantCapability(request: GrantCapabilityRequest): Promise<void>;
-  /** revokeCapability maps to `flare_capability_dispatch_json`, dispatch op `capability_revoke`. Operation: `capability.revoke`. */
-  revokeCapability(request: RevokeCapabilityRequest): Promise<void>;
 }

@@ -184,10 +184,7 @@ abstract final class SdkOperations {
   static const String mediaDownloadFileToDownloads =
       'media.download_file_to_downloads';
   static const String capabilityList = 'capability.list';
-  static const String capabilityListUser = 'capability.list_user';
   static const String capabilityDispatch = 'capability.dispatch';
-  static const String capabilityGrant = 'capability.grant';
-  static const String capabilityRevoke = 'capability.revoke';
   static const String eventSubscribe = 'event.subscribe';
   static const String eventSubscribeBatch = 'event.subscribe_batch';
   static const String eventUnsubscribe = 'event.unsubscribe';

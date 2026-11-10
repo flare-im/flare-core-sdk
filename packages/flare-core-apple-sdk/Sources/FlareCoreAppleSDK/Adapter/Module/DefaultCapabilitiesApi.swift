@@ -60,6 +60,10 @@ public final class DefaultCapabilitiesApi: CapabilitiesApiProtocol {
         return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginPage, request: pluginUiEvaluationRequestToMap(request))
     }
 
+    public func pluginFileUpload(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginFileUpload, request: pluginUiEvaluationRequestToMap(request))
+    }
+
     public func pluginAccountEntries(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
         return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginAccountEntries, request: pluginUiEvaluationRequestToMap(request))
     }
@@ -72,19 +76,7 @@ public final class DefaultCapabilitiesApi: CapabilitiesApiProtocol {
         return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityList, request: unwrapRequest(AnySendable(request)))
     }
 
-    public func listUserCapabilities(_ request: [String: AnySendable]) async throws -> [String: AnySendable] {
-        return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityListUser, request: unwrapRequest(AnySendable(request)))
-    }
-
     public func dispatchCapability(_ request: [String: AnySendable]) async throws -> [String: AnySendable] {
         return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityDispatch, request: unwrapRequest(AnySendable(request)))
-    }
-
-    public func grantCapability(_ request: [String: AnySendable]) async throws -> Void {
-        try await invokeVoid(bridge, descriptor: NativeCallMap.capabilityGrant, request: AnySendable(request))
-    }
-
-    public func revokeCapability(_ request: [String: AnySendable]) async throws -> Void {
-        try await invokeVoid(bridge, descriptor: NativeCallMap.capabilityRevoke, request: AnySendable(request))
     }
 }

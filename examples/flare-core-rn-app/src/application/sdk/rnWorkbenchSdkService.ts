@@ -83,7 +83,7 @@ export type RnWorkbenchSdkService = {
     limit?: number,
   ): Promise<TimelineMessage[]>;
   runMediaQuery(op: RnMediaLabOperation, input: SdkLabInputs): Promise<string>;
-  runCapabilityOperation(op: RnCapabilityOperation, input: SdkLabInputs, currentUserId: string): Promise<string>;
+  runCapabilityOperation(op: RnCapabilityOperation, input: SdkLabInputs): Promise<string>;
   runConnectionOperation(op: RnConnectionOperation): Promise<string>;
   runSessionOperation(op: RnSessionOperation, input: SdkLabInputs, form: LoginFormState): Promise<string>;
   subscribeWorkbenchEvents(): Promise<string>;
@@ -120,7 +120,6 @@ export const defaultSdkLabInputs: SdkLabInputs = {
   query: '',
   reaction: '👍',
   capability: '',
-  capabilityTargetUserId: '',
   fileId: '',
   mediaUrl: '',
   mediaCacheRoot: 'memory://flare-core-rn-app/media-cache',
@@ -314,27 +313,10 @@ export function createRnWorkbenchSdkService(client: FlareImClient): RnWorkbenchS
       return compactJson(result);
     },
 
-    async runCapabilityOperation(op, input, currentUserId) {
+    async runCapabilityOperation(op, input) {
       assertKnownOperation(op, RN_CAPABILITY_OPERATIONS, 'capability');
       const params = parseJsonParams(input.jsonParams);
       if (op === 'list') return compactJson(await client.capabilities.listCapabilities({}));
-      if (op === 'list_user') return compactJson(await client.capabilities.listUserCapabilities({ userId: currentUserId }));
-      if (op === 'grant') {
-        await client.capabilities.grantCapability({
-          userId: input.capabilityTargetUserId,
-          capability: input.capability,
-          payload: params,
-        });
-        return compactJson({ granted: input.capability, userId: input.capabilityTargetUserId });
-      }
-      if (op === 'revoke') {
-        await client.capabilities.revokeCapability({
-          userId: input.capabilityTargetUserId,
-          capability: input.capability,
-          payload: params,
-        });
-        return compactJson({ revoked: input.capability, userId: input.capabilityTargetUserId });
-      }
       return compactJson(await client.capabilities.dispatchCapability({
         operation: 'rn.echo',
         capability: input.capability,

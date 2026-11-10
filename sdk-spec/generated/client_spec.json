@@ -6966,7 +6966,7 @@
         {
           "fields": [
             {
-              "description": "Typed UI evaluation envelope defined by the shared UI protocol. presentPluginMessage, invokePluginAction and pluginDetail accept an optional messageId (server id or clientMsgId) of the message the card belongs to: the card resolves over the shared and local state layers stored on that message, and invoke stores a successful operation's data.sharedState and data.messageState on it. invokePluginAction also takes formValues and selection; pluginDetail also takes cursor and previous for the next page of a paged detail, and refresh with previous to re-read a shown sheet keeping the pages it had loaded. pluginPage takes {pluginId, page, platform, locale?, arguments?, filters?, cursor?, previous?, refresh?}; invokePluginAction takes page {pluginId, page}, data and row {key, input} instead of message for a page action.",
+              "description": "Typed UI evaluation envelope defined by the shared UI protocol. presentPluginMessage, invokePluginAction and pluginDetail accept an optional messageId (server id or clientMsgId) of the message the card belongs to: the card resolves over the shared and local state layers stored on that message, and invoke stores a successful operation's data.sharedState and data.messageState on it. invokePluginAction also takes formValues and selection; pluginDetail also takes cursor and previous for the next page of a paged detail, and refresh with previous to re-read a shown sheet keeping the pages it had loaded. pluginPage takes {pluginId, page, platform, conversationId?, locale?, arguments?, filters?, cursor?, previous?, refresh?}; conversationId is host route context outside the business arguments and source DTO. Page results and page navigation host results retain this reserved top-level conversationId. invokePluginAction takes page {pluginId, page}, the same top-level conversationId, data and row {key, input} instead of message for a page action. Plugin data, arguments, filters and row input never select the invocation conversation; Core revalidates current membership. pluginFileUpload carries {page:{pluginId,page},inputId,platform,locale?,conversationId?,arguments?,data?,formValues?,fileName,contentType,bytes:[0..255],commandId}; one completed private file reference {fileId} is returned. File inputs declare exact accept MIME types, maxBytes<=5242880 and same-plugin upload prepare/complete/purpose. showWhen:{field,anyOf:[strings]} reads an earlier unconditional Select in the same collected action scope. Hidden inputs are not required or forwarded, conditional inputs do not fall back to defaults on submission, and hosts invalidate every dependent value/upload on any controller value change.",
               "name": "payload",
               "required": true,
               "type": "JsonObject",
@@ -10188,6 +10188,25 @@
         },
         {
           "cApi": "flare_capability_dispatch_json",
+          "description": "Upload one file declared by an authenticated page input. payload is {page:{pluginId,page},inputId,platform,locale?,conversationId?,arguments?,data?,formValues?,fileName,contentType,bytes:[0..255],commandId}. Core re-reads the actual page declaration and resolved form, requires a visible file input and its current allowed MIME/byte bounds (at most 5 MiB), computes SHA-256, invokes that same plugin's declared prepare operation with its fixed purpose, PUTs only a relative /private/ grant on the configured SocialApi origin without credentials/redirects, then invokes complete. A ready prepare reply returns immediately. Retries explicitly reuse the same commandId/metadata/file; grants, bytes and intermediate replies never enter durable financial command storage. Returns exactly {fileId}; a hidden input is unavailable, never uploaded.",
+          "dispatchOp": "plugin_file_upload",
+          "name": "pluginFileUpload",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_file_upload",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
           "description": "payload {platform, locale}. Returns {entries: [{pluginId, contributionId, title, icon?, order, page, summary?}]}: the account-entry contributions (\"Me\" screen entries, such as a wallet) of the authorized catalog for that platform, title in locale (exact tag, then language), sorted by order (default 1000) then title. page is the plugin's page contribution the entry opens. summary {operation, path} names a query operation and the pointer of a scalar in its result data to show as the subtitle; listing never calls it: dispatch the operation with payload {} when the entry is shown. Reads a fresh catalog every call; the server already trimmed it by grant, capability policy and user consent.",
           "dispatchOp": "plugin_account_entries",
           "name": "pluginAccountEntries",
@@ -10207,7 +10226,7 @@
         },
         {
           "cApi": "flare_capability_dispatch_json",
-          "description": "The plugin catalog may have changed: a catalog read in flight is no longer shared, and the cards presented in the last minutes (inert ones included) are announced through onMessagePluginStateChanged, so present them again against a fresh catalog. Call it when the app returns to the foreground; the SDK does the same for a plugin's cards by itself when a call to it answers disabled, not installed, no permission or unsupported platform.",
+          "description": "The plugin catalog may have changed: a catalog read in flight is no longer shared, and the cards presented in the last minutes (inert ones included) are announced through onMessagePluginStateChanged, so present them again against a fresh catalog. Call it when the app returns to the foreground; the SDK does the same for a plugin's cards by itself when a call to it answers disabled (the plugin or one of its features), not installed, no permission or unsupported platform.",
           "dispatchOp": "plugin_catalog_invalidate",
           "name": "invalidatePluginCatalog",
           "nativeBinding": {
@@ -10244,24 +10263,6 @@
         },
         {
           "cApi": "flare_capability_dispatch_json",
-          "dispatchOp": "capability_list_user",
-          "name": "listUserCapabilities",
-          "nativeBinding": {
-            "asyncReturn": "i32 immediate_submit_code",
-            "callback": "FlareResultCallback",
-            "handlePolicy": "client-handle",
-            "requestEncoding": "json",
-            "responseEncoding": "json-object",
-            "returnMode": "callback"
-          },
-          "operation": "capability.list_user",
-          "request": "ListUserCapabilitiesRequest",
-          "response": "ListUserCapabilitiesResponse",
-          "stability": "stable",
-          "transport": "capability-dispatch-json"
-        },
-        {
-          "cApi": "flare_capability_dispatch_json",
           "dispatchOp": "capability_dispatch",
           "name": "dispatchCapability",
           "nativeBinding": {
@@ -10275,42 +10276,6 @@
           "operation": "capability.dispatch",
           "request": "DispatchCapabilityRequest",
           "response": "DispatchCapabilityResponse",
-          "stability": "stable",
-          "transport": "capability-dispatch-json"
-        },
-        {
-          "cApi": "flare_capability_dispatch_json",
-          "dispatchOp": "capability_grant",
-          "name": "grantCapability",
-          "nativeBinding": {
-            "asyncReturn": "i32 immediate_submit_code",
-            "callback": "FlareResultCallback",
-            "handlePolicy": "client-handle",
-            "requestEncoding": "json",
-            "responseEncoding": "unit",
-            "returnMode": "callback-unit"
-          },
-          "operation": "capability.grant",
-          "request": "GrantCapabilityRequest",
-          "response": "Unit",
-          "stability": "stable",
-          "transport": "capability-dispatch-json"
-        },
-        {
-          "cApi": "flare_capability_dispatch_json",
-          "dispatchOp": "capability_revoke",
-          "name": "revokeCapability",
-          "nativeBinding": {
-            "asyncReturn": "i32 immediate_submit_code",
-            "callback": "FlareResultCallback",
-            "handlePolicy": "client-handle",
-            "requestEncoding": "json",
-            "responseEncoding": "unit",
-            "returnMode": "callback-unit"
-          },
-          "operation": "capability.revoke",
-          "request": "RevokeCapabilityRequest",
-          "response": "Unit",
           "stability": "stable",
           "transport": "capability-dispatch-json"
         }

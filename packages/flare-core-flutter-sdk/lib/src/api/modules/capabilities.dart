@@ -30,18 +30,14 @@ abstract interface class CapabilitiesApi {
   Future<Map<String, Object?>> pluginDetail(PluginUiEvaluationRequest request);
   /// pluginPage maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_page`. Operation: `capability.plugin_page`.
   Future<Map<String, Object?>> pluginPage(PluginUiEvaluationRequest request);
+  /// pluginFileUpload maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_file_upload`. Operation: `capability.plugin_file_upload`.
+  Future<Map<String, Object?>> pluginFileUpload(PluginUiEvaluationRequest request);
   /// pluginAccountEntries maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`.
   Future<Map<String, Object?>> pluginAccountEntries(PluginUiEvaluationRequest request);
   /// invalidatePluginCatalog maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`.
   Future<void> invalidatePluginCatalog(Map<String, Object?> request);
   /// listCapabilities maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_list`. Operation: `capability.list`.
   Future<Map<String, Object?>> listCapabilities(Map<String, Object?> request);
-  /// listUserCapabilities maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_list_user`. Operation: `capability.list_user`.
-  Future<Map<String, Object?>> listUserCapabilities(Map<String, Object?> request);
   /// dispatchCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_dispatch`. Operation: `capability.dispatch`.
   Future<Map<String, Object?>> dispatchCapability(Map<String, Object?> request);
-  /// grantCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_grant`. Operation: `capability.grant`.
-  Future<void> grantCapability(Map<String, Object?> request);
-  /// revokeCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_revoke`. Operation: `capability.revoke`.
-  Future<void> revokeCapability(Map<String, Object?> request);
 }

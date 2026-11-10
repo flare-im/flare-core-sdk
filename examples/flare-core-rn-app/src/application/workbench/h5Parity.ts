@@ -80,10 +80,7 @@ export type RnMediaLabOperation = (typeof RN_MEDIA_LAB_OPERATIONS)[number];
 
 export const RN_CAPABILITY_OPERATIONS = [
   'list',
-  'list_user',
   'dispatch',
-  'grant',
-  'revoke',
 ] as const;
 
 export type RnCapabilityOperation = (typeof RN_CAPABILITY_OPERATIONS)[number];

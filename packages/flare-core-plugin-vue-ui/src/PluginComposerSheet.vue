@@ -4,7 +4,7 @@
 // 那个动作(创建)直接在面板里用 Kit PluginForm 收集,不再弹第二层面板;Core 校验不过时把
 // formErrors 交回表单。卡片由平台以用户名义代发:结果带 data.posted 时把它交给宿主定位,卡片本身
 // 随会话推送进时间线,这里从不发消息。
-import { computed, inject, ref, shallowRef, watch } from "vue";
+import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import {
   FlareBottomSheet, FlareDangerConfirm, FlarePluginForm, FlarePluginView, useFlareI18n,
   type FlarePluginAction, type FlarePluginActionPayload, type FlarePluginFormError, type FlarePluginInput,
@@ -12,7 +12,8 @@ import {
 } from "@flare-im/vue-ui";
 import type { PluginMessageEnvelope } from "@flare-im/sdk/plugin-ui";
 import { pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiSessionKey } from "./context";
-import { pluginPostedCard, type ComposerPluginItem, type PluginPostedCard } from "./composerMenu";
+import { type ComposerPluginItem, type PluginPostedCard } from "./composerMenu";
+import { pluginPagePostedCard } from "./pluginPage";
 
 const props = defineProps<{
   /** The tapped plugin item; the sheet is open while there is one. */
@@ -43,6 +44,7 @@ const formErrors = shallowRef<FlarePluginFormError[]>([]);
 const settleToken = ref(0);
 const confirming = shallowRef<{ action: FlarePluginAction; payload: FlarePluginActionPayload } | null>(null);
 let generation = 0;
+onBeforeUnmount(() => { generation++; });
 
 /** The contribution's own document, rendered for this conversation. */
 function message(item: ComposerPluginItem): PluginMessageEnvelope {
@@ -87,8 +89,9 @@ async function invoke(id: string, payload: FlarePluginActionPayload): Promise<vo
     if (outcome.kind === "formErrors") { formErrors.value = outcome.errors; return; }
     if (outcome.kind === "operation") {
       if (outcome.response.success === false) { error.value = t("pluginRuntime.rejected"); return; }
-      const posted = pluginPostedCard(outcome.response.data);
-      if (posted) emit("posted", posted);
+      const posted = outcome.response.success === true ? pluginPagePostedCard(outcome.response.data, props.conversationId) : null;
+      if (!posted) return;
+      emit("posted", posted);
     }
     done = mine === generation;
   } catch (failure) {

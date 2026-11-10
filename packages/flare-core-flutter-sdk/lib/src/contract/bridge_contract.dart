@@ -2333,6 +2333,20 @@ abstract final class NativeCallMap {
       dispatchOp: "plugin_page",
       callback: "FlareResultCallback");
 
+  /// pluginFileUpload maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_file_upload`. Operation: `capability.plugin_file_upload`.
+  static const capabilityPluginFileUpload = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginFileUpload",
+      operation: "capability.plugin_file_upload",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_file_upload",
+      callback: "FlareResultCallback");
+
   /// pluginAccountEntries maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`.
   static const capabilityPluginAccountEntries = NativeCallDescriptor(
       module: "capabilities",
@@ -2375,20 +2389,6 @@ abstract final class NativeCallMap {
       dispatchOp: "capability_list",
       callback: "FlareResultCallback");
 
-  /// listUserCapabilities maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_list_user`. Operation: `capability.list_user`.
-  static const capabilityListUser = NativeCallDescriptor(
-      module: "capabilities",
-      method: "listUserCapabilities",
-      operation: "capability.list_user",
-      transport: "capability-dispatch-json",
-      cApi: "flare_capability_dispatch_json",
-      requestEncoding: "json",
-      responseEncoding: "json-object",
-      returnMode: "callback",
-      handlePolicy: "client-handle",
-      dispatchOp: "capability_list_user",
-      callback: "FlareResultCallback");
-
   /// dispatchCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_dispatch`. Operation: `capability.dispatch`.
   static const capabilityDispatch = NativeCallDescriptor(
       module: "capabilities",
@@ -2401,34 +2401,6 @@ abstract final class NativeCallMap {
       returnMode: "callback",
       handlePolicy: "client-handle",
       dispatchOp: "capability_dispatch",
-      callback: "FlareResultCallback");
-
-  /// grantCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_grant`. Operation: `capability.grant`.
-  static const capabilityGrant = NativeCallDescriptor(
-      module: "capabilities",
-      method: "grantCapability",
-      operation: "capability.grant",
-      transport: "capability-dispatch-json",
-      cApi: "flare_capability_dispatch_json",
-      requestEncoding: "json",
-      responseEncoding: "unit",
-      returnMode: "callback-unit",
-      handlePolicy: "client-handle",
-      dispatchOp: "capability_grant",
-      callback: "FlareResultCallback");
-
-  /// revokeCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_revoke`. Operation: `capability.revoke`.
-  static const capabilityRevoke = NativeCallDescriptor(
-      module: "capabilities",
-      method: "revokeCapability",
-      operation: "capability.revoke",
-      transport: "capability-dispatch-json",
-      cApi: "flare_capability_dispatch_json",
-      requestEncoding: "json",
-      responseEncoding: "unit",
-      returnMode: "callback-unit",
-      handlePolicy: "client-handle",
-      dispatchOp: "capability_revoke",
       callback: "FlareResultCallback");
 
   /// openTimeline maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `view.timeline.open`.

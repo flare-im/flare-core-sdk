@@ -15,6 +15,7 @@ export function fakePort(overrides: Partial<Record<"presentMessage" | "invokeAct
     resolveMessage: vi.fn(async (): Promise<unknown> => ({})),
     action: vi.fn(async (): Promise<unknown> => ({})),
     dispatch: vi.fn(async (): Promise<unknown> => ({})),
+    uploadFile: vi.fn(async (_request: import("@flare-im/sdk/plugin-ui").PluginFileUploadRequest) => ({ fileId: "test-file" })),
     presentMessage: vi.fn<Call>(overrides.presentMessage ?? (async () => ({ available: false, title: "", fields: [], actions: [], stateVersion: 0 }))),
     invokeAction: vi.fn<Call>(overrides.invokeAction ?? (async () => ({ kind: "operation", response: { success: true, data: {} } }))),
     invokePageAction: vi.fn<Call>(overrides.invokePageAction ?? (async () => ({ kind: "operation", response: { success: true, data: {} } }))),

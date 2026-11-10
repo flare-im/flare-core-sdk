@@ -208,7 +208,6 @@ function back(): void {
         <div class="lab-field">
           <span>Capability dispatch</span>
           <FlareInput v-model="sdk.sdkLab.capability" placeholder="plugin capability id" />
-          <FlareInput v-model="sdk.sdkLab.capabilityTargetUserId" placeholder="grant/revoke target user id" />
           <FlareInput
             v-model="sdk.sdkLab.jsonParams"
             multiline
@@ -218,10 +217,7 @@ function back(): void {
         </div>
         <div class="lab-grid">
           <FlareButton variant="secondary" @click="sdk.runCapabilityOperation('list')">Global capabilities</FlareButton>
-          <FlareButton variant="secondary" @click="sdk.runCapabilityOperation('list_user')">Current user</FlareButton>
           <FlareButton variant="secondary" @click="sdk.runCapabilityOperation('dispatch')">Dispatch</FlareButton>
-          <FlareButton variant="secondary" @click="sdk.runCapabilityOperation('grant')">Grant</FlareButton>
-          <FlareButton variant="secondary" @click="sdk.runCapabilityOperation('revoke')">Revoke</FlareButton>
         </div>
         <pre class="drawer-json">{{ labResultText }}</pre>
       </section>

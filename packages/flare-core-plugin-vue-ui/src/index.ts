@@ -14,6 +14,7 @@ export * from "./composerMenu";
 /** A plugin page (a 我 entry, a card's page target) over the core SDK's `pluginPage`, with its own page stack. */
 export { default as CorePluginPage } from "./CorePluginPage.vue";
 export { corePluginPageEntry, corePluginPageSession, type CorePluginPageEntry } from "./pluginPage";
+export { usePluginMemberSearch } from "./memberSearch";
 export { CORE_PLUGIN_STATE_CHANNEL, createCorePluginStateFeed, usePluginPostedCards, type CorePluginStateHub } from "./hostFeeds";
 export type { CorePluginDirectory, CorePluginErrorText, CorePluginStateChange, CorePluginStateFeed } from "./context";
 

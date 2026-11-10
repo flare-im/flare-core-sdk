@@ -140,6 +140,17 @@
       "stability": "experimental"
     },
     {
+      "name": "pluginFileUpload",
+      "description": "Upload one file declared by an authenticated page input. payload is {page:{pluginId,page},inputId,platform,locale?,conversationId?,arguments?,data?,formValues?,fileName,contentType,bytes:[0..255],commandId}. Core re-reads the actual page declaration and resolved form, requires a visible file input and its current allowed MIME/byte bounds (at most 5 MiB), computes SHA-256, invokes that same plugin's declared prepare operation with its fixed purpose, PUTs only a relative /private/ grant on the configured SocialApi origin without credentials/redirects, then invokes complete. A ready prepare reply returns immediately. Retries explicitly reuse the same commandId/metadata/file; grants, bytes and intermediate replies never enter durable financial command storage. Returns exactly {fileId}; a hidden input is unavailable, never uploaded.",
+      "operation": "capability.plugin_file_upload",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_file_upload",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
       "name": "pluginAccountEntries",
       "description": "payload {platform, locale}. Returns {entries: [{pluginId, contributionId, title, icon?, order, page, summary?}]}: the account-entry contributions (\"Me\" screen entries, such as a wallet) of the authorized catalog for that platform, title in locale (exact tag, then language), sorted by order (default 1000) then title. page is the plugin's page contribution the entry opens. summary {operation, path} names a query operation and the pointer of a scalar in its result data to show as the subtitle; listing never calls it: dispatch the operation with payload {} when the entry is shown. Reads a fresh catalog every call; the server already trimmed it by grant, capability policy and user consent.",
       "operation": "capability.plugin_account_entries",
@@ -152,7 +163,7 @@
     },
     {
       "name": "invalidatePluginCatalog",
-      "description": "The plugin catalog may have changed: a catalog read in flight is no longer shared, and the cards presented in the last minutes (inert ones included) are announced through onMessagePluginStateChanged, so present them again against a fresh catalog. Call it when the app returns to the foreground; the SDK does the same for a plugin's cards by itself when a call to it answers disabled, not installed, no permission or unsupported platform.",
+      "description": "The plugin catalog may have changed: a catalog read in flight is no longer shared, and the cards presented in the last minutes (inert ones included) are announced through onMessagePluginStateChanged, so present them again against a fresh catalog. Call it when the app returns to the foreground; the SDK does the same for a plugin's cards by itself when a call to it answers disabled (the plugin or one of its features), not installed, no permission or unsupported platform.",
       "operation": "capability.plugin_catalog_invalidate",
       "transport": "capability-dispatch-json",
       "cApi": "flare_capability_dispatch_json",
@@ -172,16 +183,6 @@
       "stability": "stable"
     },
     {
-      "name": "listUserCapabilities",
-      "operation": "capability.list_user",
-      "transport": "capability-dispatch-json",
-      "cApi": "flare_capability_dispatch_json",
-      "dispatchOp": "capability_list_user",
-      "request": "ListUserCapabilitiesRequest",
-      "response": "ListUserCapabilitiesResponse",
-      "stability": "stable"
-    },
-    {
       "name": "dispatchCapability",
       "operation": "capability.dispatch",
       "transport": "capability-dispatch-json",
@@ -189,26 +190,6 @@
       "dispatchOp": "capability_dispatch",
       "request": "DispatchCapabilityRequest",
       "response": "DispatchCapabilityResponse",
-      "stability": "stable"
-    },
-    {
-      "name": "grantCapability",
-      "operation": "capability.grant",
-      "transport": "capability-dispatch-json",
-      "cApi": "flare_capability_dispatch_json",
-      "dispatchOp": "capability_grant",
-      "request": "GrantCapabilityRequest",
-      "response": "Unit",
-      "stability": "stable"
-    },
-    {
-      "name": "revokeCapability",
-      "operation": "capability.revoke",
-      "transport": "capability-dispatch-json",
-      "cApi": "flare_capability_dispatch_json",
-      "dispatchOp": "capability_revoke",
-      "request": "RevokeCapabilityRequest",
-      "response": "Unit",
       "stability": "stable"
     }
   ]

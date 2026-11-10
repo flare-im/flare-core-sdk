@@ -1,6 +1,6 @@
 # 示例应用能力覆盖
 
-契约真源是 `sdk-spec/modules/*.json`——12 个模块、115 个操作。本文记录各示例应用对这些操作的覆盖情况，用于发现示例的功能盲区。`flare-core-flutter-app` 是覆盖最完整的基准实现。
+契约真源是 `sdk-spec/modules/*.json`——12 个模块、112 个操作。本文记录各示例应用对这些操作的覆盖情况，用于发现示例的功能盲区。`flare-core-flutter-app` 是覆盖最完整的基准实现。
 
 ## 示例应用的构成
 
@@ -30,12 +30,12 @@
 
 | 端 | 覆盖 | 形态 | 说明 |
 |---|:--:|---|---|
-| Flutter | 112 | 原生 Dart | 基准实现，覆盖最完整 |
-| Android | 104 | 原生 Kotlin (Compose) | MVVM 分层 + Compose 六屏 + FlareTheme 设计系统 + 中英双语 |
-| web | 98 | Vue + `@flare-im/sdk`（WASM） | 共享 workbench blocks + web 应用壳 |
-| uni | 98 | Vue + uni 跨端（`uniFlarePlatform`） | 共享 workbench blocks + uni 应用壳 |
-| tauri | 98 | Vue + `@flare-im/sdk/tauri`（桌面 / Rust） | 共享 workbench blocks + Tauri 应用壳 |
-| iOS | 96 | 原生 SwiftUI | MVVM 分层 + String Catalog 双语 + 平台服务收敛 + 设计 token |
+| Flutter | 109 | 原生 Dart | 基准实现，覆盖最完整 |
+| Android | 101 | 原生 Kotlin (Compose) | MVVM 分层 + Compose 六屏 + FlareTheme 设计系统 + 中英双语 |
+| web | 95 | Vue + `@flare-im/sdk`（WASM） | 共享 workbench blocks + web 应用壳 |
+| uni | 95 | Vue + uni 跨端（`uniFlarePlatform`） | 共享 workbench blocks + uni 应用壳 |
+| tauri | 95 | Vue + `@flare-im/sdk/tauri`（桌面 / Rust） | 共享 workbench blocks + Tauri 应用壳 |
+| iOS | 93 | 原生 SwiftUI | MVVM 分层 + String Catalog 双语 + 平台服务收敛 + 设计 token |
 
 web / uni / tauri 三列数值相同，因为它们共享同一套 Vue UI。三者的真实差异在平台集成层：
 
@@ -51,7 +51,7 @@ web / uni / tauri 三列数值相同，因为它们共享同一套 Vue UI。三�
 
 **Flutter** —— 未覆盖的三项：`events.subscribeEvents`（已用 `subscribeEventsBatch` 等价覆盖）、`views.loadOlderTimeline`、`sync.syncConversationSummariesWithVersions`。
 
-**Android** —— `flare-core-android-sdk` 本身 1:1 暴露全部 115 个操作，示例应用覆盖 104 个。分层为 `core/{session,data,domain}` 加五个特性 ViewModel，其中 `ViewDataRepository` 采用 re-fetch-on-signal 策略（Kotlin SDK 无 snapshot/delta 解码器，`onViewUpdated` 后重拉 typed 快照）。剩余 11 个 `·` 均为等价覆盖：`getConversation` / `getMultipleConversations` 走 `getOne`，`listConversationsByQuery` 走 paginated 变体，`deleteMessage` / `markMessage` / `pinMessage` / `unmarkMessage` / `unpinMessage` 走 `*ById` 或 ForSelf/ForEveryone 变体，`dispatchMessage` / `editRichDocByMessageId` 走 send / editText，`syncConversationSummariesWithVersions` 走 summaries。
+**Android** —— `flare-core-android-sdk` 本身 1:1 暴露全部 112 个操作，示例应用覆盖 101 个。分层为 `core/{session,data,domain}` 加五个特性 ViewModel，其中 `ViewDataRepository` 采用 re-fetch-on-signal 策略（Kotlin SDK 无 snapshot/delta 解码器，`onViewUpdated` 后重拉 typed 快照）。剩余 11 个 `·` 均为等价覆盖：`getConversation` / `getMultipleConversations` 走 `getOne`，`listConversationsByQuery` 走 paginated 变体，`deleteMessage` / `markMessage` / `pinMessage` / `unmarkMessage` / `unpinMessage` 走 `*ById` 或 ForSelf/ForEveryone 变体，`dispatchMessage` / `editRichDocByMessageId` 走 send / editText，`syncConversationSummariesWithVersions` 走 summaries。
 
 > 接线注意：SDK 多数动作方法签名为 `Map<String, Any?>`。类型归属容易记错——`ForwardSourceMessage` 在 content，`MediaSourceInfo` 在 media，`Normalize*` / `Heartbeat*` 在 command，`MessageSearchKind` 在 common.enums。
 
@@ -81,17 +81,14 @@ web / uni / tauri 三列数值相同，因为它们共享同一套 Vue UI。三�
 2. **各端平台集成层**——这部分无法共享，只能逐端补。
 3. 每补一批跑各端 parity 测试（uni 已有 `tests/uni-app-parity.test.mjs`，Android / iOS 可补类似断言对照本表）。
 
-## 完整矩阵（115 操作 × 6 端）
+## 完整矩阵（112 操作 × 6 端）
 
 `✓` 表示操作名出现，`·` 表示未出现（其中部分为等价覆盖，见上文）。web / uni / tau 三列相同，因为共享同一套 Vue UI。
 
 | module.operation | Flu | And | iOS | web | uni | tau |
 |---|:--:|:--:|:--:|:--:|:--:|:--:|
 | capabilities.dispatchCapability | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| capabilities.grantCapability | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | capabilities.listCapabilities | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| capabilities.listUserCapabilities | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| capabilities.revokeCapability | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | connection.disconnect | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | connection.getStatus | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | connection.notifyNetworkChange | · | · | · | · | · | · |

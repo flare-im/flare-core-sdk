@@ -20,7 +20,6 @@ defineProps<{
     fileId: string;
     reaction?: string;
     capability: string;
-    capabilityTargetUserId?: string;
     mediaUrl?: string;
     mediaCacheRoot?: string;
     mediaCacheMaxBytes?: number;
@@ -108,10 +107,7 @@ const emit = defineEmits<{
       <FlareButton size="sm" variant="secondary" @click="emit('media', 'cache_remote')">Cache</FlareButton>
       <FlareButton size="sm" variant="secondary" @click="emit('media', 'clear')">Clear Media</FlareButton>
       <FlareButton size="sm" variant="secondary" @click="emit('capability', 'list')">Caps</FlareButton>
-      <FlareButton size="sm" variant="secondary" @click="emit('capability', 'list_user')">User Caps</FlareButton>
       <FlareButton size="sm" variant="secondary" @click="emit('capability', 'dispatch')">Cap Dispatch</FlareButton>
-      <FlareButton size="sm" variant="secondary" @click="emit('capability', 'grant')">Grant</FlareButton>
-      <FlareButton size="sm" variant="secondary" @click="emit('capability', 'revoke')">Revoke</FlareButton>
     </div>
 
     <div class="lab-field">
@@ -127,7 +123,6 @@ const emit = defineEmits<{
         @update:model-value="sdkLab.mediaCacheMaxBytes = Number(($event || '').replace(/[^0-9]/g, '')) || 0"
       />
       <FlareInput v-model="sdkLab.downloadSubfolder" size="sm" placeholder="download subfolder" />
-      <FlareInput v-model="sdkLab.capabilityTargetUserId" size="sm" placeholder="capability target user id" />
       <div class="lab-grid">
         <FlareButton size="sm" variant="secondary" @click="emit('media', 'set_root')">Set Root</FlareButton>
         <FlareButton size="sm" variant="secondary" @click="emit('media', 'set_max')">Set Max</FlareButton>

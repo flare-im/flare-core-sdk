@@ -35,8 +35,6 @@ export const flutterAlignedWorkbenchCapabilities = [
   "media.resolveAccess",
   "media.cacheStats",
   "capability.dispatch",
-  "capability.grant",
-  "capability.revoke",
   "connection.getStatus",
   "connection.reconnectNow",
   "connection.disconnect",
