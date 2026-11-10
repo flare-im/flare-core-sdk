@@ -22,17 +22,19 @@ export interface WebAppInfo {
 declare const __FLARE_APP_VERSION__: string | undefined;
 declare const __FLARE_APP_BUILD__: string | number | undefined;
 declare const __FLARE_APP_CHANNEL__: string | undefined;
+declare const __FLARE_APP_DISTRIBUTION__: string | undefined;
 declare const __FLARE_WEB_BUILD_ID__: string | undefined;
 
 /**
  * The app identity injected at build time (the Flare Vite config defines `__FLARE_APP_VERSION__` from the app's
  * package.json, `__FLARE_APP_BUILD__` from `VITE_FLARE_APP_BUILD`, `__FLARE_APP_CHANNEL__` from
- * `VITE_FLARE_APP_CHANNEL`, and `__FLARE_WEB_BUILD_ID__` on a production web build). Empty outside such a build; the
+ * `VITE_FLARE_APP_CHANNEL`, `__FLARE_APP_DISTRIBUTION__` from `VITE_FLARE_DISTRIBUTION` (or the app config's `appDistribution`, `electron` for the Electron shell), and `__FLARE_WEB_BUILD_ID__` on a production web build). Empty outside such a build; the
  * core then reports no version.
  */
 export function webAppInfoFromBuild(): WebAppInfo {
   const version = typeof __FLARE_APP_VERSION__ === "string" ? __FLARE_APP_VERSION__.trim() : "";
   const channel = typeof __FLARE_APP_CHANNEL__ === "string" ? __FLARE_APP_CHANNEL__.trim() : "";
+  const distribution = typeof __FLARE_APP_DISTRIBUTION__ === "string" ? __FLARE_APP_DISTRIBUTION__.trim() : "";
   const buildId = typeof __FLARE_WEB_BUILD_ID__ === "string" ? __FLARE_WEB_BUILD_ID__.trim() : "";
   const rawBuild = typeof __FLARE_APP_BUILD__ === "number" || typeof __FLARE_APP_BUILD__ === "string"
     ? Number(__FLARE_APP_BUILD__)
@@ -40,6 +42,7 @@ export function webAppInfoFromBuild(): WebAppInfo {
   return {
     ...(version ? { version } : {}),
     ...(Number.isSafeInteger(rawBuild) && rawBuild >= 0 ? { build: rawBuild } : {}),
+    ...(distribution ? { distribution } : {}),
     ...(channel ? { channel } : {}),
     ...(buildId ? { buildId } : {}),
   };

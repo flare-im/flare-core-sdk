@@ -34,9 +34,10 @@ function pickEnvList(env, key, fallback) {
 }
 /**
  * Build-time app identity for CONNECT: the app's package.json version and an integer build number
- * from VITE_FLARE_APP_BUILD. The web bridge reads them as __FLARE_APP_VERSION__ / __FLARE_APP_BUILD__.
+ * from VITE_FLARE_APP_BUILD. The web bridge reads them as __FLARE_APP_VERSION__ / __FLARE_APP_BUILD__. The distribution
+ * is VITE_FLARE_DISTRIBUTION, else the config's `appDistribution` (the Electron shell sets `electron`).
  */
-function appIdentityDefines(appDir, env) {
+function appIdentityDefines(appDir, env, defaultDistribution = "") {
   let version = "";
   try {
     const manifest = JSON.parse(fs.readFileSync(path.join(appDir, "package.json"), "utf8"));
@@ -48,6 +49,7 @@ function appIdentityDefines(appDir, env) {
   return {
     __FLARE_APP_VERSION__: version ? JSON.stringify(version) : "undefined",
     __FLARE_APP_BUILD__: Number.isSafeInteger(build) && build >= 0 && pickEnv(env, "VITE_FLARE_APP_BUILD", "") ? String(build) : "undefined",
+    __FLARE_APP_DISTRIBUTION__: pickEnv(env, "VITE_FLARE_DISTRIBUTION", defaultDistribution) ? JSON.stringify(pickEnv(env, "VITE_FLARE_DISTRIBUTION", defaultDistribution)) : "undefined",
     __FLARE_APP_CHANNEL__: pickEnv(env, "VITE_FLARE_APP_CHANNEL", "") ? JSON.stringify(pickEnv(env, "VITE_FLARE_APP_CHANNEL", "")) : "undefined"
   };
 }
@@ -389,7 +391,7 @@ function createFlareCoreWebAppViteConfig(options) {
       ],
       define: {
         "import.meta.env.VITE_FLARE_WASM_BUILD_ID": JSON.stringify(wasmBuildId),
-        ...appIdentityDefines(appDir, env),
+        ...appIdentityDefines(appDir, env, options.appDistribution ?? ""),
         ...(options.extraDefine ?? {})
       },
       resolve: {

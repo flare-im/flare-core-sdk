@@ -9,6 +9,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default createFlareCoreWebAppViteConfig({
   appDir: __dirname,
+  // The renderer is the web build; tell the core it runs inside the Electron shell so CONNECT carries it.
+  appDistribution: "electron",
   serverPort: 1433,
   defineConfig,
   loadEnv,

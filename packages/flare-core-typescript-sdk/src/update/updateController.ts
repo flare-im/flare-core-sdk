@@ -43,7 +43,7 @@ const CHECK_STATES: ReadonlySet<string> = new Set(["checking"]);
 const DOWNLOAD_STATES: ReadonlySet<string> = new Set(["downloading", "verifying"]);
 const NOTHING_TO_UPDATE: ReadonlySet<string> = new Set(["idle", "checking", "upToDate"]);
 /** No store serves these channels: a failed update points to the website. */
-const WEBSITE_DISTRIBUTIONS: ReadonlySet<string> = new Set(["direct", "web", "tauri"]);
+const WEBSITE_DISTRIBUTIONS: ReadonlySet<string> = new Set(["direct", "web", "tauri", "electron"]);
 
 /**
  * Whether a store ships this build. Stores forbid an app to update itself, so such a build has no updater. Unset is no
