@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const failures = [];
 const contracts = [
-  ["examples/shared/vue-reference/ReferenceApp.vue", ["provideFlareSdk", "createAppMediaResolver"]],
-  ["examples/shared/vue-reference/workbench/app/sdk/flareSdkContext.ts", ["createProductionAppClient", "createClient: createProductionAppClient"]],
-  ["examples/shared/vue-reference/workbench/composables/useFlareCoreClient.ts", ["options.createClient()", "subscribeEvents", "client.messages.sendMessage"]],
-  ["examples/shared/vue-reference/router.ts", ["FlareWorkbenchLayout", "FlareChatWorkspace", "resumeSavedSession"]],
+  ["../flare-core-examples/shared/vue-reference/ReferenceApp.vue", ["provideFlareSdk", "createAppMediaResolver"]],
+  ["../flare-core-examples/shared/vue-reference/workbench/app/sdk/flareSdkContext.ts", ["createProductionAppClient", "createClient: createProductionAppClient"]],
+  ["../flare-core-examples/shared/vue-reference/workbench/composables/useFlareCoreClient.ts", ["options.createClient()", "subscribeEvents", "client.messages.sendMessage"]],
+  ["../flare-core-examples/shared/vue-reference/router.ts", ["FlareWorkbenchLayout", "FlareChatWorkspace", "resumeSavedSession"]],
   ["../flare-core-examples/apps/flare-core-web-app/src/integration/referenceRuntime.ts", ["WebFlareImClient", "WebProductionBridge", "createWasmRuntime"]],
   // P0-2 moved the Tauri media picker onto the platform adapter, and
   // ../flare-core-examples/apps/flare-core-tauri-app/tests/transport-selector.test.mjs now asserts the
@@ -25,7 +25,7 @@ const contracts = [
 ];
 
 const focusedReferenceSurfaces = [
-  ["examples/shared/vue-reference/ReferenceApp.vue", [/id:\s*"contacts"/, /id:\s*"groups"/, /Flare(?:Contact|Friend|Group|Relation)/]],
+  ["../flare-core-examples/shared/vue-reference/ReferenceApp.vue", [/id:\s*"contacts"/, /id:\s*"groups"/, /Flare(?:Contact|Friend|Group|Relation)/]],
   ["../flare-core-examples/apps/flare-core-web-app/src/router.ts", [/contacts/, /groups/]],
   ["../flare-core-examples/apps/flare-core-tauri-app/src/router.ts", [/contacts/, /groups/]],
   ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/shell/workbench_shell.dart", [/id:\s*'contacts'/, /id:\s*'groups'/]],

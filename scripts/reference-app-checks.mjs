@@ -11,8 +11,8 @@ const postcss = require('postcss');
 const uiPackage = JSON.parse(fs.readFileSync(path.join(root, '../flare-im-design/packages/vue-im-ui/package.json'), 'utf8'));
 const exports = new Set(Object.keys(uiPackage.exports).map(key => key === '.' ? '@flare-im/vue-ui' : `@flare-im/vue-ui/${key.slice(2)}`));
 const roots = [
-  'examples/shared/vue-reference',
-  ...['web', 'tauri'].map(platform => `../flare-core-examples/apps/flare-core-${platform}-app/src`),
+  '../flare-core-examples/shared/vue-reference',
+  ...['web', 'tauri', 'electron', 'uni'].map(platform => `../flare-core-examples/apps/flare-core-${platform}-app/src`),
   '../flare-core-examples/apps/flare-core-flutter-app/lib',
   '../flare-core-examples/apps/flare-core-android-app/app/src/main',
   '../flare-core-examples/apps/flare-core-ios-app/Sources',

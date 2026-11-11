@@ -1,7 +1,9 @@
 # Flare IM 客户端 — 多端传输与存储架构设计报告
 
+> 2026-11-11 路径收敛：完整应用在 `flare-core-examples/apps`，应用组合在 `flare-core-examples/shared/vue-reference`。`webProductionBridge.ts` 和 IndexedDB host 已在 SDK 的 `packages/flare-core-typescript-sdk/src/adapters/web`；Electron 当前通过公共桥注入 OPFS/SQLite，不宣称 native QUIC。以下诊断保留为历史设计背景。
+
 > 范围:`packages/@flare-im/sdk` 结构与 `src/adapters` 优化;
-> `examples/flare-core-electron-app`、`examples/flare-core-uni-app` 的补全。
+> `../flare-core-examples/apps/flare-core-electron-app`、`../flare-core-examples/apps/flare-core-uni-app` 的补全。
 > 目标剖面:Web/H5 = WebSocket + IndexedDB;PC/Android/iOS = WebSocket + QUIC + 协议竞速 + SQLite。
 
 ## 0. 一句话结论
@@ -39,7 +41,7 @@ examples/<app>            产品组合 / 路由 / 主题            (web, electr
 | RN | `adapters/react-native` | `FfiNativeBridge` | QUIC+WS 竞速 | SQLite | ✓ |
 | **Electron** | **无专属 adapter** | **回退 `WebProductionBridge`(WASM)** | **仅 WebSocket** | **IndexedDB** | ✗ **缺口** |
 
-证据:`examples/flare-core-electron-app/src/main.ts` 调了
+证据:`../flare-core-examples/apps/flare-core-electron-app/src/main.ts` 调了
 `configureAppTransportSelector({ runtimeStatus: "electron-native" })`,但**没有**调
 `configureProductionAppClientFactory(...)`;而 uni-app/tauri 的 `main.ts` 都调了。于是
 `createProductionAppClient()` 命中默认分支,构造 `WebProductionBridge`(WASM)。
@@ -230,7 +232,7 @@ invoke 汇聚到唯一 core。禁止每窗口一个 core、禁止两进程开同
 ### 10.3 已完成并验证(typecheck/单测/无漂移全部通过)
 - **结构下沉(§2.1)**:`webProductionBridge`+`idbWasmStorageHost` 下沉 `typescript-sdk/src/adapters/web`(注入式 `loadRuntime`);`wasmLoader` 留 UI 注入。
 - **存储 host 可注入**:`WebProductionBridge` 增 `createStorageHost?`(默认 IndexedDB)。
-- **SQLite host(app 自有)**:`examples/flare-core-electron-app/src/storage/{sqliteOpfsStorageHost,sqliteOpfsWorker}.ts` + `wa-sqlite.d.ts`(wa-sqlite+OPFS,4 张 KV 表镜像 IndexedDB host 键策略 + storage-changed 事件)。**共享包不 import wa-sqlite**——只有 electron 用,按放置规则归示例;web/H5/uni/tauri 包零 wa-sqlite。
+- **SQLite host(app 自有)**:`../flare-core-examples/apps/flare-core-electron-app/src/storage/{sqliteOpfsStorageHost,sqliteOpfsWorker}.ts` + `wa-sqlite.d.ts`(wa-sqlite+OPFS,4 张 KV 表镜像 IndexedDB host 键策略 + storage-changed 事件)。**共享包不 import wa-sqlite**——只有 electron 用,按放置规则归示例;web/H5/uni/tauri 包零 wa-sqlite。
 - **后端选择**:`configureProductionStorageBackend('indexeddb' | 'sqlite', hostFactory?)`(sqlite 必须显式传 host 工厂);electron `src/main.ts` 据 `flareDesktop.runtime==='electron'` 注入 app 自有的 `createSqliteOpfsStorageHost`。
 - **TransportProfile(§3.2)**:`adapters/_shared/transportProfile.ts` + `./transport` 导出;登录屏 `enabled && profileSupportsQuic` 消费。
 - **uni-app**:FFI/WASM 自动分流核实正确 + README 传输矩阵。

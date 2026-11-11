@@ -51,6 +51,7 @@
     "build": "tsc --noEmit",
     "check": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
+    "smoke": "vitest run test/minimal_example.test.ts",
     "verify:architecture": "node scripts/verify-no-client-shadow-views.mjs",
     "test": "node scripts/verify-no-client-shadow-views.mjs && vitest run"
   },

@@ -20,11 +20,11 @@ paths="$(node -e '
 ' "$manifest" "$@")"
 
 if [ ! -e "$checkout/.git" ]; then
-  if [ -n "${BRANCH:-}" ] && git ls-remote --exit-code --heads "$repo" "refs/heads/$BRANCH" >/dev/null; then
-    git clone --depth 1 --branch "$BRANCH" "$repo" "$checkout"
-  else
-    git clone --depth 1 "$repo" "$checkout"
+  branch="${BRANCH:-dev}"
+  if ! git ls-remote --exit-code --heads "$repo" "refs/heads/$branch" >/dev/null; then
+    branch=dev
   fi
+  git clone --depth 1 --branch "$branch" "$repo" "$checkout"
 fi
 while IFS= read -r path; do
   test -d "$checkout/$path" || { echo "Missing $checkout/$path" >&2; exit 1; }

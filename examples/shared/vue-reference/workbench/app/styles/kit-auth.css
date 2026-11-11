@@ -1,4 +1,0 @@
-.auth-route { width: 100%; height: 100dvh; min-height: 0; background: var(--flare-color-bg-primary); }
-.auth-screen { height: 100%; }
-.auth-panel__form { display: flex; flex-direction: column; gap: var(--flare-size-spacing-lg); }
-.auth-hint { margin: 0; color: var(--flare-color-text-secondary); font-size: var(--flare-size-font-size-sm); line-height: 1.7; }

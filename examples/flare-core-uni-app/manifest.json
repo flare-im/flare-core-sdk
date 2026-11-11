@@ -1,9 +1,0 @@
-{
-  "name": "Flare IM",
-  "appid": "__UNI__FLARE_IM",
-  "description": "flare-core-uni-app IM template",
-  "versionName": "0.1.0",
-  "versionCode": "100",
-  "transformPx": false,
-  "vueVersion": "3"
-}

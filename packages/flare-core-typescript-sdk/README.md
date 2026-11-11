@@ -80,7 +80,7 @@ a `--previous` that does not exist is an error, so a wrong path cannot drop the 
 ## A complete, runnable example
 
 This package is the SDK layer; running it needs the matching runtime bridge and
-a server. For complete, runnable apps see [`examples/`](../../examples/) in the
+a server. For complete, runnable apps see [`flare-core-examples`](https://github.com/flare-im/flare-core-examples) in the
 repository — `flare-core-uni-app` is the most fully wired one.
 
 For how to start the server, see `QUICKSTART.md` in the flare-im-core repository

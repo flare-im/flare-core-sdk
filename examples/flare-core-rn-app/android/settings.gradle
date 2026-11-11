@@ -1,8 +1,0 @@
-pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
-plugins { id("com.facebook.react.settings") }
-extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
-rootProject.name = 'FlareCoreRnApp'
-include ':app'
-include ':flare-core-android-sdk'
-project(':flare-core-android-sdk').projectDir = new File(settingsDir, '../../../packages/flare-core-android-sdk')
-includeBuild('../node_modules/@react-native/gradle-plugin')

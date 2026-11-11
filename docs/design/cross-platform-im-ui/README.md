@@ -2,11 +2,11 @@
 
 This package defines one shared UI direction for:
 
-- `examples/flare-core-web-app`
-- `examples/flare-core-tauri-app`
-- `examples/flare-core-ios-app`
-- `examples/flare-core-flutter-app`
-- `examples/flare-core-android-app`
+- `../flare-core-examples/apps/flare-core-web-app`
+- `../flare-core-examples/apps/flare-core-tauri-app`
+- `../flare-core-examples/apps/flare-core-ios-app`
+- `../flare-core-examples/apps/flare-core-flutter-app`
+- `../flare-core-examples/apps/flare-core-android-app`
 
 It is based on the current Vue shared IM UI, Flutter chat implementation, iOS SwiftUI design system, and Android Compose theme. The intent is to make every first-party example feel like the same production IM product while still adapting to each platform.
 

@@ -9,7 +9,7 @@ The open-source stack provides business-neutral messaging and pluggable authenti
 
 This workspace contains typed client SDK adapters for `flare-im-core-sdk`.
 
-The Rust core remains the only place for IM behavior. This workspace owns platform API shape, generated contracts, native artifact placement, docs, examples and contract tests.
+The Rust core remains the only place for IM behavior. This workspace owns platform API shape, generated contracts, native artifact placement, docs and contract tests. Complete reference apps live in the sibling `flare-core-examples` repository.
 
 ## Architecture
 
@@ -27,7 +27,7 @@ App
 sdk-spec/        split contract source of truth
 native/          C ABI index and produced native artifacts
 packages/        platform SDK packages
-examples/        platform smoke apps
+examples/        conformance fixtures and external-app bootstrap
 docs/            generated and hand-written SDK docs
 ```
 

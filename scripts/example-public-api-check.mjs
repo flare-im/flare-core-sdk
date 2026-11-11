@@ -5,9 +5,11 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const failures = [];
 const sourceRoots = [
-  "examples/shared/vue-reference",
+  "../flare-core-examples/shared/vue-reference",
   "../flare-core-examples/apps/flare-core-web-app/src",
   "../flare-core-examples/apps/flare-core-tauri-app/src",
+  "../flare-core-examples/apps/flare-core-electron-app/src",
+  "../flare-core-examples/apps/flare-core-uni-app/src",
   "../flare-core-examples/apps/flare-core-flutter-app/lib",
   "../flare-core-examples/apps/flare-core-android-app/app/src/main",
   "../flare-core-examples/apps/flare-core-ios-app/Sources",

@@ -5,7 +5,7 @@ CORE_DIR ?= $(CURDIR)/../flare-core-sdk-engine
 # Single source of truth for built native artifacts: the core repo's dist/ folder.
 # Populate it from the core repo with:  cd $(CORE_DIR) && make dist
 CORE_DIST ?= $(CORE_DIR)/dist
-EXAMPLES_DIR ?= examples
+EXAMPLES_DIR ?= ../flare-core-examples/apps
 PACKAGES_DIR ?= packages
 
 FFI_A := libflare_im_core_sdk_ffi.a
@@ -26,7 +26,7 @@ help:
 	@printf '%s\n' 'Sync core-sdk artifacts (from $(CORE_DIST)) into each platform location:'
 	@printf '  %-20s %s\n' 'make sync' 'android + ios + flutter (one command)'
 	@printf '  %-20s %s\n' 'make sync-android' 'dist/android/<abi>/*.so -> app + SDK + flutter jniLibs'
-	@printf '  %-20s %s\n' 'make sync-ios' 'dist/{host,ios} -> examples/flare-core-ios-app/FFI'
+	@printf '  %-20s %s\n' 'make sync-ios' 'dist/{host,ios} -> ../flare-core-examples/apps/flare-core-ios-app/FFI'
 	@printf '  %-20s %s\n' 'make sync-flutter' 'dist/{host,ios} -> flutter macOS dylib + iOS universal .a'
 	@printf '%s\n' '(tauri/web wasm: the bundler resolves it from flare-core-sdk-engine/bindings/wasm/pkg; no copy needed)'
 

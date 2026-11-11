@@ -1,9 +1,0 @@
-{
-  "app": {
-    "bundleName": "com.flare.im",
-    "vendor": "flare",
-    "versionCode": 1000000,
-    "versionName": "0.1.0",
-    "label": "$string:app_name"
-  }
-}

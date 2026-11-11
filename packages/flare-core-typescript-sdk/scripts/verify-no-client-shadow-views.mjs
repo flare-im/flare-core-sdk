@@ -9,16 +9,16 @@ const repoRoot = resolve(sdkRoot, "..");
 const examplesRoot = join(repoRoot, "flare-core-examples");
 
 const scanRoots = [
-  "examples/shared/vue-reference",
+  "../flare-core-examples/shared/vue-reference",
   "packages/flare-core-apple-sdk/Sources/FlareCoreAppleSDK/Bridge",
   "packages/flare-core-flutter-sdk/lib/src/bridge",
   "../flare-core-examples/apps/flare-core-web-app/src",
   "../flare-core-examples/apps/flare-core-tauri-app/src",
-  "examples/flare-core-electron-app/src",
-  "examples/flare-core-uni-app/src",
+  "../flare-core-examples/apps/flare-core-electron-app/src",
+  "../flare-core-examples/apps/flare-core-uni-app/src",
   "../flare-core-examples/apps/flare-core-flutter-app/lib/application",
   "../flare-core-examples/apps/flare-core-flutter-app/lib/interface",
-  "examples/flare-core-rn-app/src",
+  "../flare-core-examples/apps/flare-core-rn-app/src",
   "../flare-core-examples/apps/flare-core-ios-app/Sources",
 ];
 
@@ -183,11 +183,9 @@ const forbiddenPatterns = [
 const runtimeSeedScanRoots = [
   { base: sdkRoot, rel: "../flare-core-examples/apps/flare-core-flutter-app/lib/interface" },
   { base: sdkRoot, rel: "../flare-core-examples/apps/flare-core-tauri-app/src" },
-  { base: sdkRoot, rel: "examples/flare-core-electron-app/src" },
-  { base: sdkRoot, rel: "examples/flare-core-uni-app/src" },
-  { base: sdkRoot, rel: "examples/flare-core-rn-app/src" },
-  { base: repoRoot, rel: "examples/flare-core-tauri/src" },
-  { base: repoRoot, rel: "examples/flare-base-tauri/src" },
+  { base: sdkRoot, rel: "../flare-core-examples/apps/flare-core-electron-app/src" },
+  { base: sdkRoot, rel: "../flare-core-examples/apps/flare-core-uni-app/src" },
+  { base: sdkRoot, rel: "../flare-core-examples/apps/flare-core-rn-app/src" },
 ];
 
 const forbiddenRuntimeSeedPatterns = [
@@ -225,12 +223,12 @@ const forbiddenAssetPatterns = new Map([
 const sharedAssetSources = new Map([
   [
     "emoji-locales.json",
-    new Set(["examples/shared/assets/i18n/emoji-locales.json"]),
+    new Set(["../flare-core-examples/shared/assets/i18n/emoji-locales.json"]),
   ],
   [
     "app_defaults.json",
     new Set([
-      "examples/shared/assets/config/app_defaults.json",
+      "../flare-core-examples/shared/assets/config/app_defaults.json",
       "../flare-core-examples/apps/flare-core-flutter-app/assets/config/app_defaults.json",
     ]),
   ],

@@ -1,5 +1,5 @@
 {
-  "$comment": "The five external reference apps are maintained in the sibling flare-core-examples checkout.",
+  "$comment": "All complete reference apps and platform scaffolds are maintained in the sibling flare-core-examples checkout.",
   "apps": [
     {
       "dir": "flare-core-web-app",
@@ -30,6 +30,36 @@
       "platform": "Android (Jetpack Compose)",
       "sdk": "packages/flare-core-android-sdk",
       "path": "apps/flare-core-android-app"
+    },
+    {
+      "dir": "flare-core-rn-app",
+      "platform": "React Native",
+      "sdk": "packages/flare-core-typescript-sdk",
+      "path": "apps/flare-core-rn-app"
+    },
+    {
+      "dir": "flare-core-electron-app",
+      "platform": "Electron",
+      "sdk": "packages/flare-core-typescript-sdk",
+      "path": "apps/flare-core-electron-app"
+    },
+    {
+      "dir": "flare-core-uni-app",
+      "platform": "uni-app",
+      "sdk": "packages/flare-core-typescript-sdk",
+      "path": "apps/flare-core-uni-app"
+    },
+    {
+      "dir": "flare-core-arkts-app",
+      "platform": "HarmonyOS ArkTS",
+      "sdk": "packages/flare-core-harmony-arkts-sdk",
+      "path": "apps/flare-core-arkts-app"
+    },
+    {
+      "dir": "flare-core-cangjie-app",
+      "platform": "HarmonyOS Cangjie",
+      "sdk": "packages/flare-core-harmony-cangjie-sdk",
+      "path": "apps/flare-core-cangjie-app"
     }
   ],
   "repository": "https://github.com/flare-im/flare-core-examples.git"

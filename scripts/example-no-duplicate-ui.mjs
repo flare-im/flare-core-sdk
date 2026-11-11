@@ -28,11 +28,11 @@ for (const relative of removedUiIslands) {
 }
 
 const publicDelegates = [
-  ["examples/shared/vue-reference/ReferenceApp.vue", ["FlareUiProvider", "provideFlareSdk", "router-view"]],
-  ["examples/shared/vue-reference/workbench/app/components/FlareChatWorkspace.vue", ["FlareChatWorkspace", "FlareConversationHeader", "FlareComposer", "FlareMessageList", "FlareMessageBatchToolbar", "FlarePinnedMessageBar"]],
-  ["examples/shared/vue-reference/workbench/app/components/FlareWorkbenchLayout.vue", ["WorkbenchShell", "FlareComposerActionPanel", "MessagePreviewModal"]],
-  ["examples/shared/vue-reference/workbench/app/components/MessagePreviewModal.vue", ["FlareMessageContentView", "FlareMarkdownPreview"]],
-  ["examples/shared/vue-reference/workbench/app/components/ConversationListPanel.vue", ["FlareConversationListContainer", "FlareConversationList", "FlareConversationRow", "FlareScreenHeader"]],
+  ["../flare-core-examples/shared/vue-reference/ReferenceApp.vue", ["FlareUiProvider", "provideFlareSdk", "router-view"]],
+  ["../flare-core-examples/shared/vue-reference/workbench/app/components/FlareChatWorkspace.vue", ["FlareChatWorkspace", "FlareConversationHeader", "FlareComposer", "FlareMessageList", "FlareMessageBatchToolbar", "FlarePinnedMessageBar"]],
+  ["../flare-core-examples/shared/vue-reference/workbench/app/components/FlareWorkbenchLayout.vue", ["WorkbenchShell", "FlareComposerActionPanel", "MessagePreviewModal"]],
+  ["../flare-core-examples/shared/vue-reference/workbench/app/components/MessagePreviewModal.vue", ["FlareMessageContentView", "FlareMarkdownPreview"]],
+  ["../flare-core-examples/shared/vue-reference/workbench/app/components/ConversationListPanel.vue", ["FlareConversationListContainer", "FlareConversationList", "FlareConversationRow", "FlareScreenHeader"]],
   ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/shell/workbench_shell.dart", ["FlareIMAppKit"]],
   ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/conversation_item/conversation_item.dart", ["FlareConversationRow"]],
   ["../flare-core-examples/apps/flare-core-flutter-app/lib/interface/widgets/composer/message_composer.dart", ["FlareComposer"]],
@@ -98,7 +98,7 @@ for (const [relative, pattern, reason] of forbiddenExampleSources) {
 }
 
 const webChatStyles = fs.readFileSync(
-  path.join(root, "examples/shared/vue-reference/workbench/app/styles/routes/chat.css"),
+  path.join(root, "../flare-core-examples/shared/vue-reference/workbench/app/styles/routes/chat.css"),
   "utf8",
 );
 const forbiddenMessageSelectors = [

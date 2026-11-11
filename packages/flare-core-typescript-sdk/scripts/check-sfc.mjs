@@ -20,11 +20,9 @@ import { createRequire } from "node:module";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "../../..");
-const examplesDir = path.join(repoRoot, "examples");
+const examplesDir = path.resolve(repoRoot, "../flare-core-examples");
 function appDirectory(name) {
-  const root = name === "web" || name === "tauri"
-    ? path.resolve(repoRoot, "../flare-core-examples/apps")
-    : examplesDir;
+  const root = path.join(examplesDir, "apps");
   return path.join(root, `flare-core-${name}-app`);
 }
 

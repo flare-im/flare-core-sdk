@@ -8,7 +8,7 @@ test('public API gate reads import/export nodes, including lazy imports', () => 
   assert.equal(checkPublicApi('view.dart', "export 'package:flare_im_ui/src/components/hidden.dart';").length, 1);
 });
 test('relocation into shared composition cannot conceal a duplicate', () => {
-  assert.equal(checkDuplicateUi('examples/shared/view.vue', '<template><n-modal /></template>').length, 1);
+  assert.equal(checkDuplicateUi('../flare-core-examples/shared/view.vue', '<template><n-modal /></template>').length, 1);
   assert.equal(checkDuplicateUi('view.swift', 'struct HeaderIconButton: View {}').length, 1);
   assert.equal(checkDuplicateUi('view.kt', 'object FlareType {}').length, 1);
   assert.equal(checkDuplicateUi('view.vue', '<template><NModal /></template>').length, 1);

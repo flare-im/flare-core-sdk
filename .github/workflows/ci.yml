@@ -104,7 +104,7 @@ jobs:
           # tauri 的 parity 测试是**横向比对**：它要同时读 web / electron / uni 三个
           # app 的入口，以及核心 SDK 的 tauri 绑定——所以 web 那个也得拉。
           # 仓库地址只在 examples/EXTERNAL-APPS.json 维护一份。
-          BRANCH="$BR" bash examples/bootstrap-external-apps.sh tauri web
+          BRANCH="$BR" bash examples/bootstrap-external-apps.sh tauri web electron uni
           # 同级仓：uni 的 parity 测试读 flare-im-design 的组合式源码，
           # tauri 的测试读 flare-im-core-sdk 的 bindings/tauri/Cargo.toml（验 QUIC feature 链）。
           clone https://github.com/flare-im/flare-im-design.git "../flare-im-design"
@@ -114,10 +114,7 @@ jobs:
         run: |
           fail=0
           for app in flare-core-tauri-app flare-core-electron-app flare-core-uni-app; do
-            dir="examples/$app"
-            if [ "$app" = flare-core-tauri-app ]; then
-              dir="../flare-core-examples/apps/$app"
-            fi
+            dir="../flare-core-examples/apps/$app"
             # 点了名却没有 tests 目录 → **判红**，不是 notice 跳过。
             # 「没验到」和「验过没问题」必须是两种结果：上面那个 tauri 就是被
             # 一行 notice 悄悄放过的，而 job 照样在跑别的 app、看起来一切正常。
@@ -153,6 +150,9 @@ jobs:
       # 这里把每个示例 app 的 src/**/*.vue 全量过一遍编译器。
       - name: 安装 SFC 编译器
         run: npm i --no-save @vue/compiler-sfc
+
+      - name: 拉取示例源码
+        run: BRANCH="${GITHUB_REF_NAME:-dev}" bash examples/bootstrap-external-apps.sh web tauri electron uni
 
       - name: 编译全部 SFC
         run: node packages/flare-core-typescript-sdk/scripts/check-sfc.mjs

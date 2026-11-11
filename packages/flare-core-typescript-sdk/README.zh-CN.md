@@ -69,7 +69,7 @@ npx flare-web-retain-builds --previous /srv/site --out dist --keep 3
 ## 可运行的完整示例
 
 本包是 SDK 层，跑起来需要配套的运行时桥与服务端。完整可运行的应用见仓库
-[`examples/`](../../examples/)，其中 `flare-core-uni-app` 是接线最完整的一个。
+[`flare-core-examples`](https://github.com/flare-im/flare-core-examples)，其中 `flare-core-uni-app` 是接线最完整的一个。
 
 服务端起法见 flare-im-core 仓库的 `QUICKSTART.md`（五分钟跑通，无需自建用户体系）。
 

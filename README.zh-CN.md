@@ -45,7 +45,7 @@ App
 sdk-spec/        split contract source of truth
 native/          C ABI index and produced native artifacts
 packages/        platform SDK packages
-examples/        platform smoke apps
+examples/        契约验证数据与独立示例仓入口
 docs/            generated and hand-written SDK docs
 ```
 
