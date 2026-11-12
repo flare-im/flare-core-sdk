@@ -1,4 +1,10 @@
 <script setup lang="ts">
+/**
+ * The reference workbench with its providers (kit, SDK, updates). The host puts its own pieces that belong to the
+ * signed-in app (the new-message banner, the notification soft-ask) in the default slot, so they render inside the
+ * same providers (language, theme, layout) as the routes. `notificationPermission` is the host's system notification
+ * permission; with it the settings sheet shows the "New message notifications" row.
+ */
 import { computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { FlareConnectionNotice, FlareUiProvider } from "@flare-im/vue-ui/components";
@@ -10,10 +16,18 @@ import {
   productionAppHost,
   provideFlareSdk,
   provideFlareUpdates,
+  provideNotificationPermission,
+  type NotificationPermission,
 } from "./workbench/app";
 import ToastHost from "./workbench/app/components/ToastHost.vue";
 
+const props = withDefaults(defineProps<{
+  notificationPermission?: NotificationPermission | null;
+}>(), { notificationPermission: null });
+defineSlots<{ default?(): unknown }>();
+
 const sdk = provideFlareSdk();
+provideNotificationPermission(props.notificationPermission);
 const updates = provideFlareUpdates(sdk.client);
 const mediaResolver = createAppMediaResolver(sdk);
 const platform = appPlatformOptions();
@@ -65,6 +79,7 @@ onMounted(() => {
     <router-view />
     <FlareUpdatePromptHost />
     <ToastHost />
+    <slot />
   </FlareUiProvider>
 </template>
 

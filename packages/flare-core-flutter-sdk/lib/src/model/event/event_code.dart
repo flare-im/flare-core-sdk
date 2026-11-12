@@ -34,7 +34,9 @@ final class EventCode {
   static const int conversationUnreadCountChanged = 3004;
   static const int conversationDeleted = 3005;
   static const int notificationReceived = 3501;
-  static const int notificationMessageSound = 3502;
+  static const int notificationPresent = 3503;
+  static const int notificationClear = 3504;
+  static const int notificationBadge = 3505;
   static const int syncStarted = 4001;
   static const int syncFinished = 4002;
   static const int syncFailed = 4003;

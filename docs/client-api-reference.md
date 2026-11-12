@@ -32,6 +32,8 @@ SDK lifecycle, authenticated session and process-level utilities.
 | `setPushPermission` | `SetPushPermissionRequest` | `PushLifecycleStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `reconcilePush` | `Unit` | `PushLifecycleStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `pushStatus` | `Unit` | `PushLifecycleStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `handleRemoteMessage` | `HandleRemoteMessageRequest` | `RemoteMessageOutcome` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `resolveNotificationTap` | `ResolveNotificationTapRequest` | `NotificationTapResult` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 
 ## client.connection
 
@@ -105,6 +107,7 @@ Conversation query and local conversation state.
 | `markConversationRead` | `MarkConversationReadRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `setConversationPinned` | `SetConversationPinnedRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `setConversationMuted` | `SetConversationMutedRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `setConversationNotifyAll` | `SetConversationNotifyAllRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `setConversationArchived` | `SetConversationArchivedRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `markConversationUnread` | `MarkConversationUnreadRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `deleteConversation` | `DeleteConversationRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
@@ -305,3 +308,16 @@ SDK version and FFI contract diagnostics.
 | `getFfiContractVersion` | `Unit` | `FfiContractVersion` | `ffi-symbol` | `flare_sdk_ffi_contract_version` |
 | `getDataRoot` | `Unit` | `DataRootResponse` | `ffi-symbol` | `flare_sdk_data_root` |
 | `getRuntimeHealth` | `Unit` | `RuntimeHealthResponse` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+
+## client.notification
+
+Notifications while the live link is up: which conversation is on screen, the user's notification settings, and whether the platform presents alerts in the background. The engine decides and renders every alert itself and hands it over as notification.present, notification.clear and notification.badge events.
+
+| Method | Request | Response | Transport | C API |
+|--------|---------|----------|-----------|-------|
+| `setFocus` | `SetNotificationFocusRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `getSettings` | `Unit` | `UserNotificationSettings` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `updateSettings` | `UpdateUserNotificationSettingsRequest` | `UserNotificationSettings` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `setBackgroundPresenter` | `SetBackgroundPresenterRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `setSnapshotDirectory` | `SetNotificationSnapshotDirectoryRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `backgroundRefresh` | `BackgroundRefreshRequest` | `BackgroundRefreshResult` | `contract-invoke-json` | `flare_sdk_invoke_json` |

@@ -6,9 +6,11 @@ import {
   createAppMediaResolver,
   provideFlareSdk,
 } from "@flare-im/vue-ui/app";
+import { useElectronNotifications } from "./notifications";
 
 const sdk = provideFlareSdk();
 const mediaResolver = createAppMediaResolver(sdk);
+useElectronNotifications(sdk);
 const router = useRouter();
 
 watch(

@@ -1,49 +1,10 @@
+/**
+ * The app's message sound for desktop and web hosts. Which message alerts, and whether it rings, is the engine's call
+ * (`notification.present` with `sound`); the hosts play this when it asks.
+ */
 export type DesktopNotificationKind = "message" | "call";
 
-export type DesktopNotificationPayload = {
-  kind: DesktopNotificationKind;
-  title: string;
-  body: string;
-  conversationId?: string;
-  messageId?: string;
-  senderId?: string;
-  unreadCount?: number;
-  requireAttention?: boolean;
-  playSound?: boolean;
-  dedupeKey?: string;
-};
-
-export type DesktopNotificationAdapter = {
-  notify(payload: DesktopNotificationPayload): void | Promise<void>;
-  setUnreadCount?(count: number): void | Promise<void>;
-};
-
-const dedupeTtlMs = 4_000;
-const recentNotificationKeys = new Map<string, number>();
-
-let desktopNotificationAdapter: DesktopNotificationAdapter | null = null;
 let audioContext: AudioContext | undefined;
-
-export function configureDesktopNotifications(adapter: DesktopNotificationAdapter | null | undefined): void {
-  desktopNotificationAdapter = adapter ?? null;
-}
-
-export function emitDesktopNotification(payload: DesktopNotificationPayload): void {
-  const adapter = desktopNotificationAdapter;
-  if (!adapter) return;
-  if (payload.dedupeKey && isDuplicateNotification(payload.dedupeKey)) return;
-  void Promise.resolve(adapter.notify(payload)).catch((error) => {
-    console.warn("[flare-desktop] notification_failed", error);
-  });
-}
-
-export function setDesktopUnreadCount(count: number): void {
-  const adapter = desktopNotificationAdapter;
-  if (!adapter?.setUnreadCount) return;
-  void Promise.resolve(adapter.setUnreadCount(Math.max(0, count))).catch((error) => {
-    console.warn("[flare-desktop] unread_badge_failed", error);
-  });
-}
 
 export async function playDesktopNotificationSound(kind: DesktopNotificationKind): Promise<void> {
   if (typeof window === "undefined") return;
@@ -72,16 +33,6 @@ export async function playDesktopNotificationSound(kind: DesktopNotificationKind
   for (const tone of pattern) {
     playTone(context, base + tone.start, tone.frequency, tone.duration);
   }
-}
-
-function isDuplicateNotification(key: string): boolean {
-  const now = Date.now();
-  for (const [candidate, seenAt] of recentNotificationKeys) {
-    if (now - seenAt > dedupeTtlMs) recentNotificationKeys.delete(candidate);
-  }
-  const previous = recentNotificationKeys.get(key);
-  recentNotificationKeys.set(key, now);
-  return previous !== undefined && now - previous < dedupeTtlMs;
 }
 
 function playTone(context: AudioContext, start: number, frequency: number, duration: number): void {

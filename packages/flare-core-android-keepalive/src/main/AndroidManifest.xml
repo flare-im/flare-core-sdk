@@ -1,0 +1,37 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 前台服务；Android 14 起还要按类型声明（specialUse）。 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- 开机后按记下的开关重新启动服务。 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 常驻通知；Android 13 起要运行时授权，没授权时服务照样运行，只是通知栏里看不到这条通知。 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+        不声明 REQUEST_IGNORE_BATTERY_OPTIMIZATIONS：模块从不弹豁免框，只打开电池优化的设置页，由用户自己放开。
+    -->
+
+    <application>
+        <!-- 链路要和引擎在同一个进程里，服务不另起进程，也不导出。 -->
+        <service
+            android:name="com.flare.im.keepalive.FlareKeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="im-persistent-connection" />
+        </service>
+
+        <!--
+            开机与应用更新后重新启动服务，只在开关开着时。这两个都是受保护的系统广播，别的应用发不出来；
+            接开机广播要导出。
+        -->
+        <receiver
+            android:name="com.flare.im.keepalive.FlareKeepAliveRestartReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

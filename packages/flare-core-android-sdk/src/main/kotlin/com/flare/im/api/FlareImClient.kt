@@ -16,6 +16,7 @@ import com.flare.im.api.capabilities.CapabilitiesApi
 import com.flare.im.api.views.ViewsApi
 import com.flare.im.api.events.EventsApi
 import com.flare.im.api.diagnostics.DiagnosticsApi
+import com.flare.im.api.notification.NotificationApi
 
 /** GENERATED. Do not edit by hand. */
 /** Root SDK client. Create one instance per app/session boundary. */
@@ -50,4 +51,6 @@ interface FlareImClient : SessionApi {
     val events: EventsApi
     /** SDK version and FFI contract diagnostics. */
     val diagnostics: DiagnosticsApi
+    /** Notifications while the live link is up: which conversation is on screen, the user's notification settings, and whether the platform presents alerts in the background. The engine decides and renders every alert itself and hands it over as notification.present, notification.clear and notification.badge events. */
+    val notification: NotificationApi
 }

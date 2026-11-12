@@ -203,6 +203,26 @@
       "request": "Unit",
       "response": "PushLifecycleStatus",
       "stability": "stable"
+    },
+    {
+      "name": "handleRemoteMessage",
+      "operation": "sdk.handle_remote_message",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "HandleRemoteMessageRequest",
+      "response": "RemoteMessageOutcome",
+      "stability": "stable",
+      "description": "Headless entry for a remote push (APNs, FCM, Getui). Answers within 150 ms without waiting for the network: ignores payloads for another account or when logged out, deduplicates by collapse id and seq (a push for what the live link already alerted does not sound again), turns an alert the local read state covers into a clear, and maps disposition and alert class onto an action and an Android channel. With budgetMs above zero it also wakes the link for one incremental sync; the answer never waits for it. Web builds return OperationNotSupported."
+    },
+    {
+      "name": "resolveNotificationTap",
+      "operation": "sdk.resolve_notification_tap",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "ResolveNotificationTapRequest",
+      "response": "NotificationTapResult",
+      "stability": "stable",
+      "description": "Where a tapped notification leads: its conversation, message and seq. Every field is absent when the payload is not for the current account. Web builds return OperationNotSupported."
     }
   ]
 }

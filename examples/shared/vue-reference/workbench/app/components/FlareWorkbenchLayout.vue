@@ -40,7 +40,11 @@ import {
   FlareStatusBanner,
   FlareComposerActionPanel as ComposerActionPanel,
   FlareStartConversationDialog,
+  FlareNotificationAlertSettings,
+  FlareNotificationDeliverySettings,
+  type NotificationStatus,
 } from "@flare-im/vue-ui/components";
+import ConversationNotifyAllSetting from "./ConversationNotifyAllSetting.vue";
 import MessagePreviewModal from "./MessagePreviewModal.vue";
 import DeveloperConsole from "./DeveloperConsole.vue";
 import WorkbenchShell from "./WorkbenchShell.vue";
@@ -66,6 +70,8 @@ import { useFlareSdk } from "../sdk/flareSdkContext";
 import { conversationTitle } from "../shared/conversationTitle";
 import { useFlareI18n, type FlareLocale } from "../shared/i18n";
 import { useFlareUpdates } from "../state/update";
+import { useNotificationAlertSettings } from "../state/notificationAlertSettings";
+import { useNotificationPermission } from "../infrastructure/notifications/notificationPermission";
 
 type MessageIdentity = { readonly serverId: string; readonly clientMsgId: string };
 type ChatSearchResultMessage = MessageIdentity & {
@@ -152,8 +158,36 @@ async function confirmClearCache(): Promise<void> {
   }
 }
 
+// ── 新消息通知：系统权限（宿主给的）与账号级的勿扰、预览、多设备（核心）。设置面板打开时各读一次 ─────────────
+const notificationPermission = useNotificationPermission();
+/** The permission as the kit's row says it; null hides the row (no host permission, or the runtime has none). */
+const notificationStatus = computed<NotificationStatus | null>(() => {
+  switch (notificationPermission?.state.value) {
+    case "granted": return "on";
+    case "denied": return "off";
+    case "prompt": return "notTurnedOn";
+    default: return null;
+  }
+});
+// The row asks only while the system still can; on and off are changed in the browser or system settings, which a
+// page cannot open, so the row then only tells.
+const notificationStatusListener = computed(() =>
+  notificationPermission && notificationStatus.value === "notTurnedOn"
+    ? { statusAction: () => void notificationPermission.request() }
+    : {});
+const notificationStatusFooter = computed(() =>
+  notificationStatus.value === "off" ? t("workbench.notificationsOffHint") : undefined);
+const alertSettings = useNotificationAlertSettings(sdk.client, () => {
+  message.error(t("workbench.notificationSettingsSaveFailed"));
+});
+const alertPreferences = alertSettings.preferences;
+const alertSettingsLoadFailed = alertSettings.loadFailed;
+
 watch(settingsOpen, (open) => {
-  if (open) void refreshStorageSettings();
+  if (!open) return;
+  void refreshStorageSettings();
+  void notificationPermission?.refresh();
+  if (sdk.loggedIn.value) void alertSettings.load();
 });
 const startChatOpen = ref(false);
 const moreOpen = ref(false);
@@ -544,6 +578,7 @@ async function buildFromAction(op: string): Promise<void> {
         @delete="conversationDelete"
         @open-devtools="navigate('sdk-lab')"
       />
+      <ConversationNotifyAllSetting :conversation="sdk.activeConversation.value" />
     </template>
 
     <template #more>
@@ -590,6 +625,7 @@ async function buildFromAction(op: string): Promise<void> {
           <AppIcon :icon="TrashOutline" /> {{ t('conversation.delete') }}
         </button>
       </div>
+      <ConversationNotifyAllSetting v-if="route.name === 'chat'" :conversation="activeConversation" />
       <div class="more-action-list more-action-list--grouped">
         <button type="button" @click="navigate('sdk-lab'); moreOpen = false">
           <AppIcon :icon="InformationCircleOutline" /> {{ t('workbench.sdkRuntimeStatus') }}
@@ -708,6 +744,24 @@ async function buildFromAction(op: string): Promise<void> {
           ]"
         />
       </FlareFormField>
+      <FlareNotificationDeliverySettings
+        v-if="notificationStatus"
+        :status="notificationStatus"
+        :footer="notificationStatusFooter"
+        v-on="notificationStatusListener"
+      />
+      <FlareNotificationAlertSettings
+        v-if="alertPreferences"
+        :value="alertPreferences"
+        @change="alertSettings.change"
+      />
+      <FlareStatusBanner
+        v-else-if="alertSettingsLoadFailed"
+        tone="danger"
+        :text="t('workbench.notificationSettingsLoadFailed')"
+        :action-text="t('common.retry')"
+        @action="alertSettings.load"
+      />
       <FlareButton variant="secondary" block @click="settingsOpen = false; router.push({ name: 'network' })">
         {{ t("accessDiagnostics.title") }}
       </FlareButton>

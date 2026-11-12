@@ -668,6 +668,46 @@ void main() {
       );
     });
 
+    test('notification present, clear and badge reach their typed listeners',
+        () async {
+      final bridge = _RecordingBridge();
+      final client = FlareCoreSdk.createClientWithBridge(bridge);
+      final presented = <NotificationPresentation>[];
+      final cleared = <NotificationClearEvent>[];
+      final badges = <NotificationBadgeEvent>[];
+      client.events.onNotificationPresent(presented.add);
+      client.events.onNotificationClear(cleared.add);
+      client.events.onNotificationBadge(badges.add);
+
+      await client.events.subscribeEvents(const {});
+      bridge.emitEvent(EventCode.notificationPresent, {
+        'collapseId': 'c:1',
+        'threadId': 'c:1',
+        'conversationId': '',
+        'messageId': '',
+        'seq': 0,
+        'title': 'Flare',
+        'body': '3 conversations',
+        'count': 3,
+        'sound': false,
+        'channel': 'messages',
+        'surface': 'system',
+      });
+      bridge.emitEvent(EventCode.notificationClear, {
+        'collapseIds': ['c:1'],
+        'all': false,
+      });
+      bridge.emitEvent(EventCode.notificationBadge, {'count': 7});
+
+      expect(presented.single.collapseId, 'c:1');
+      expect(presented.single.conversationId, isEmpty,
+          reason: 'the digest belongs to no conversation');
+      expect(presented.single.surface, 'system');
+      expect(cleared.single.collapseIds, ['c:1']);
+      expect(cleared.single.all, isFalse);
+      expect(badges.single.count, 7);
+    });
+
     test('read receipt event rejects malformed payloads', () async {
       final bridge = _RecordingBridge();
       final client = FlareCoreSdk.createClientWithBridge(bridge);

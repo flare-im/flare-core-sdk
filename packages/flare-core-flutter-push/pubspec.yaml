@@ -1,19 +1,43 @@
 name: flare_core_flutter_push
-description: Optional OS push host for the business-neutral Flare client lifecycle.
+description: >-
+  Flutter bridge over the Flare platform push modules (FlarePlatformPush on
+  iOS, flare-core-android-push on Android): notification permission, tokens,
+  remote messages, taps and the badge, with the engine reached through a host
+  the app attaches after sign-in. The engine's live-link system notifications
+  go to the Android background presenter and to the desktop notification
+  centres of macOS, Linux and Windows.
 version: 0.1.0
 publish_to: none
+
 environment:
-  sdk: ">=3.10.0 <4.0.0"
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.27.0"
+
 dependencies:
   flutter:
     sdk: flutter
-  # HTTP v1 registration-token transport. 17's FID direct-send is a different
-  # vendor contract; do not silently register it as an existing FCM token.
-  firebase_core: ^4.0.0
-  firebase_messaging: ^16.3.0
-  flutter_local_notifications: ^22.3.2
+  # 宿主接口与值类型（FlarePushHost、PlatformPushToken……）在核心 Dart 包里：核心适配器要实现它，
+  # 而核心 Dart 包不能依赖 Flutter 插件。
   flare_core_flutter_sdk:
     path: ../flare-core-flutter-sdk
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.flare.im.push.flutter
+        pluginClass: FlareCoreFlutterPushPlugin
+      ios:
+        pluginClass: FlareCoreFlutterPushPlugin
+      # 桌面只有系统通知的展示方（没有推送绑定）：macOS 是 UNUserNotificationCenter，Linux 是
+      # org.freedesktop.Notifications，Windows 是 toast（退回托盘气泡）。
+      macos:
+        pluginClass: FlareCoreFlutterPushPlugin
+      linux:
+        pluginClass: FlareCoreFlutterPushPlugin
+      windows:
+        pluginClass: FlareCoreFlutterPushPluginCApi

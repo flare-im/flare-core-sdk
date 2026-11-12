@@ -5,4 +5,6 @@ rootProject.name = 'FlareCoreRnApp'
 include ':app'
 include ':flare-core-android-sdk'
 project(':flare-core-android-sdk').projectDir = new File(settingsDir, '../../../packages/flare-core-android-sdk')
+include ':flare-core-android-push'
+project(':flare-core-android-push').projectDir = new File(settingsDir, '../../../packages/flare-core-android-push')
 includeBuild('../node_modules/@react-native/gradle-plugin')

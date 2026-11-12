@@ -19,4 +19,5 @@ public protocol FlareImClientProtocol: SessionApiProtocol {
     var views: any ViewsApiProtocol { get }
     var events: any EventsApiProtocol { get }
     var diagnostics: any DiagnosticsApiProtocol { get }
+    var notification: any NotificationApiProtocol { get }
 }

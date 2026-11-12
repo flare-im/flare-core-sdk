@@ -90,14 +90,15 @@ export {
   type DownloadLocation,
 } from "./infrastructure/media/downloadLocation";
 export {
-  configureDesktopNotifications,
-  emitDesktopNotification,
   playDesktopNotificationSound,
-  setDesktopUnreadCount,
-  type DesktopNotificationAdapter,
   type DesktopNotificationKind,
-  type DesktopNotificationPayload,
 } from "./infrastructure/desktop/desktopNotifications";
+export {
+  createNotificationPermission,
+  provideNotificationPermission,
+  useNotificationPermission,
+  type NotificationPermission,
+} from "./infrastructure/notifications/notificationPermission";
 export { sdkMediaProxyFields } from "./runtime/mediaProxy";
 
 export { messageSearchRange, messageSearchRangeLabels, type MessageSearchRangePreset } from "./shared/messageSearchRanges";

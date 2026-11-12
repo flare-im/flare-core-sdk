@@ -56,6 +56,9 @@ android {
         getByName("main") {
             java.srcDirs("src/main/kotlin")
         }
+        getByName("test") {
+            java.srcDirs("src/test/kotlin")
+        }
     }
 
     defaultConfig {
@@ -65,4 +68,9 @@ android {
     lint {
         disable.add("InvalidPackage")
     }
+}
+
+dependencies {
+    // NetworkMonitorTest checks the link hint against the native lifecycle module's vectors.
+    testImplementation("junit:junit:4.13.2")
 }

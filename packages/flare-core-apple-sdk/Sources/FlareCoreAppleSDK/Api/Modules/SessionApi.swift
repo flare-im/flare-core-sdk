@@ -25,4 +25,6 @@ public protocol SessionApiProtocol: AnyObject {
     func setPushPermission(_ request: SetPushPermissionRequest) async throws -> PushLifecycleStatus
     func reconcilePush() async throws -> PushLifecycleStatus
     func pushStatus() async throws -> PushLifecycleStatus
+    func handleRemoteMessage(_ request: HandleRemoteMessageRequest) async throws -> RemoteMessageOutcome
+    func resolveNotificationTap(_ request: ResolveNotificationTapRequest) async throws -> NotificationTapResult
 }

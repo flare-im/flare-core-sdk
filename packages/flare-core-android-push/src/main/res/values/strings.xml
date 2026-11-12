@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 名称写具体的聊天场景，不用「消息」「推送」这类宽泛的词，原因见 values-zh。 -->
+    <string name="flare_push_channel_messages">Chat messages</string>
+    <string name="flare_push_channel_messages_description">New messages in direct and group chats</string>
+    <string name="flare_push_channel_quiet">Silent chat updates</string>
+    <string name="flare_push_channel_quiet_description">Updates a chat notification already shown, without sound or vibration</string>
+    <string name="flare_push_channel_mentions">Mentions in chats</string>
+    <string name="flare_push_channel_mentions_description">Chat messages that mention you</string>
+    <string name="flare_push_channel_urgent">Urgent chat messages</string>
+    <string name="flare_push_channel_urgent_description">Chat messages the sender marked as urgent</string>
+</resources>

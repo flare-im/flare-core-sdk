@@ -268,7 +268,9 @@
     {
       "names": [
         "received",
-        "message_sound"
+        "present",
+        "clear",
+        "badge"
       ],
       "type": "notification"
     },
@@ -351,7 +353,8 @@
       "modules/capabilities.json",
       "modules/views.json",
       "modules/events.json",
-      "modules/diagnostics.json"
+      "modules/diagnostics.json",
+      "modules/notification.json"
     ],
     "native": "native/c_abi.json",
     "platforms": "platforms/targets.json"
@@ -629,6 +632,27 @@
       "kind": "plugin",
       "name": "onPluginCatalogChanged",
       "payload": "PluginCatalogChangedEvent"
+    },
+    {
+      "description": "Show a notification, or replace the one with the same collapseId: an in-app banner (surface inApp) while the app is in the foreground, a system notification (surface system) while it is in the background and the platform presents alerts itself. Title and body are rendered in the app's language; sound says whether to play one.",
+      "eventName": "present",
+      "kind": "notification",
+      "name": "onNotificationPresent",
+      "payload": "NotificationPresentation"
+    },
+    {
+      "description": "Remove the notifications with these collapse ids (their conversations were read or deleted), or every notification of the app when all is true (the session ended).",
+      "eventName": "clear",
+      "kind": "notification",
+      "name": "onNotificationClear",
+      "payload": "NotificationClearEvent"
+    },
+    {
+      "description": "Set the app badge to count, the unread total as the conversation list counts it. Reported when the total changes, after login and when the app returns to the foreground.",
+      "eventName": "badge",
+      "kind": "notification",
+      "name": "onNotificationBadge",
+      "payload": "NotificationBadgeEvent"
     }
   ],
   "messageBuildCatalog": {
@@ -1246,6 +1270,13 @@
               "required": true,
               "type": "Boolean",
               "wireName": "mentionMe"
+            },
+            {
+              "description": "In a large group, whether the current user turned on notifications for every message (large groups otherwise alert only on mentions). False when never turned on.",
+              "name": "notifyAll",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "notifyAll"
             },
             {
               "description": "服务端成员读模型版本。完整成员通过独立 participants 同步拉取。",
@@ -1969,6 +2000,300 @@
       "source": "../flare-core-sdk-engine/bindings/contract/generated/model_schemas"
     },
     {
+      "description": "Core-owned notification DTOs (user notification settings, focus, background presenter, snapshot directory, background refresh) derived from Rust JsonSchema.",
+      "enums": [
+        {
+          "description": "How much of a message a notification shows.",
+          "name": "NotificationPreview",
+          "source": {
+            "file": "notification_preview.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "NotificationPreview"
+          },
+          "values": [
+            "full",
+            "senderOnly",
+            "hidden"
+          ]
+        },
+        {
+          "description": "What a phone does with an alert while another device of the same user is in use.",
+          "name": "MultiDeviceAlertPolicy",
+          "source": {
+            "file": "multi_device_alert_policy.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "MultiDeviceAlertPolicy"
+          },
+          "values": [
+            "delay",
+            "immediate",
+            "badgeOnly"
+          ]
+        }
+      ],
+      "group": "notification",
+      "models": [
+        {
+          "description": "Payload of notification.clear: remove these notifications of the app.",
+          "fields": [
+            {
+              "description": "Remove every notification of the app (the session ended); collapseIds is then empty.",
+              "name": "all",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "all"
+            },
+            {
+              "description": "Collapse ids of the notifications to remove.",
+              "name": "collapseIds",
+              "required": true,
+              "type": "StringList",
+              "wireName": "collapseIds"
+            }
+          ],
+          "name": "NotificationClearEvent",
+          "source": {
+            "file": "notification_clear_event.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "NotificationClearEvent"
+          }
+        },
+        {
+          "description": "Payload of notification.badge: the app badge as an absolute value.",
+          "fields": [
+            {
+              "description": "Unread total, counted like the conversation list (archived conversations do not count, muted ones only with mentions).",
+              "name": "count",
+              "required": true,
+              "type": "UInt32",
+              "wireName": "count"
+            }
+          ],
+          "name": "NotificationBadgeEvent",
+          "source": {
+            "file": "notification_badge_event.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "NotificationBadgeEvent"
+          }
+        },
+        {
+          "description": "Do-not-disturb hours, in the device's local time.",
+          "fields": [
+            {
+              "description": "Whether messages that mention the user still ring inside the window.",
+              "name": "allowMentions",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "allowMentions"
+            },
+            {
+              "description": "End, minute of the day (0..1439), exclusive. Equal to the start: all day. Smaller than the start: the window crosses midnight.",
+              "name": "endMinute",
+              "required": true,
+              "type": "UInt32",
+              "wireName": "endMinute"
+            },
+            {
+              "description": "Start, minute of the day (0..1439), inclusive.",
+              "name": "startMinute",
+              "required": true,
+              "type": "UInt32",
+              "wireName": "startMinute"
+            },
+            {
+              "description": "Days the window starts on: bit0 Monday .. bit6 Sunday; 0 means every day.",
+              "name": "weekdays",
+              "required": true,
+              "type": "UInt32",
+              "wireName": "weekdays"
+            }
+          ],
+          "name": "QuietHours",
+          "source": {
+            "file": "quiet_hours.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "QuietHours"
+          }
+        },
+        {
+          "description": "The user's notification settings, shared by all of the user's devices.",
+          "fields": [
+            {
+              "description": "What a phone does while another device of the user is in use.",
+              "name": "multiDevice",
+              "required": true,
+              "type": "MultiDeviceAlertPolicy",
+              "wireName": "multiDevice"
+            },
+            {
+              "description": "How much a notification shows.",
+              "name": "preview",
+              "required": true,
+              "type": "NotificationPreview",
+              "wireName": "preview"
+            },
+            {
+              "description": "Do-not-disturb hours; absent when the user has none.",
+              "name": "quietHours",
+              "required": false,
+              "type": "QuietHours",
+              "wireName": "quietHours"
+            },
+            {
+              "description": "Version of the settings; 0 when the user never changed them. Pass it back as baseSettingsVersion so a concurrent change elsewhere is not overwritten.",
+              "name": "settingsVersion",
+              "required": true,
+              "type": "UInt64",
+              "wireName": "settingsVersion"
+            }
+          ],
+          "name": "UserNotificationSettings",
+          "source": {
+            "file": "user_notification_settings.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "UserNotificationSettings"
+          }
+        },
+        {
+          "description": "A partial update of the user's notification settings: items left out keep their value; at least one item must be given.",
+          "fields": [
+            {
+              "description": "The settingsVersion the change is based on; 0 skips the check. When the stored settings changed in the meantime the whole update is rejected: read them again and retry.",
+              "name": "baseSettingsVersion",
+              "required": true,
+              "type": "UInt64",
+              "wireName": "baseSettingsVersion"
+            },
+            {
+              "description": "Remove the do-not-disturb hours. Rejected together with quietHours.",
+              "name": "clearQuietHours",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "clearQuietHours"
+            },
+            {
+              "description": "New multi-device policy.",
+              "name": "multiDevice",
+              "required": false,
+              "type": "MultiDeviceAlertPolicy",
+              "wireName": "multiDevice"
+            },
+            {
+              "description": "New preview mode.",
+              "name": "preview",
+              "required": false,
+              "type": "NotificationPreview",
+              "wireName": "preview"
+            },
+            {
+              "description": "New do-not-disturb hours, replacing the old ones.",
+              "name": "quietHours",
+              "required": false,
+              "type": "QuietHours",
+              "wireName": "quietHours"
+            }
+          ],
+          "name": "UpdateUserNotificationSettingsRequest",
+          "source": {
+            "file": "update_user_notification_settings_request.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "UpdateUserNotificationSettingsRequest"
+          }
+        },
+        {
+          "description": "The conversation the user is looking at.",
+          "fields": [
+            {
+              "description": "Conversation on screen; absent when no conversation is open.",
+              "name": "conversationId",
+              "required": false,
+              "type": "String",
+              "wireName": "conversationId"
+            }
+          ],
+          "name": "SetNotificationFocusRequest",
+          "source": {
+            "file": "set_notification_focus_request.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "SetNotificationFocusRequest"
+          }
+        },
+        {
+          "description": "Whether the platform presents alerts itself while the app is in the background.",
+          "fields": [
+            {
+              "description": "The platform push module posts local notifications for the engine while the app is in the background.",
+              "name": "attached",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "attached"
+            }
+          ],
+          "name": "SetBackgroundPresenterRequest",
+          "source": {
+            "file": "set_background_presenter_request.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "SetBackgroundPresenterRequest"
+          }
+        },
+        {
+          "description": "Where the engine keeps the notification snapshot an iOS notification service extension reads.",
+          "fields": [
+            {
+              "description": "Directory shared with the extension (the App Group container on iOS). The engine writes snapshot.json there and reads the extension's receipts.log from it. Absent: stop writing; files already there are left alone.",
+              "name": "directory",
+              "required": false,
+              "type": "String",
+              "wireName": "directory"
+            }
+          ],
+          "name": "SetNotificationSnapshotDirectoryRequest",
+          "source": {
+            "file": "set_notification_snapshot_directory_request.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "SetNotificationSnapshotDirectoryRequest"
+          }
+        },
+        {
+          "description": "One background refresh the platform granted the app (iOS BGAppRefreshTask).",
+          "fields": [
+            {
+              "description": "Time the platform grants, in milliseconds; the engine uses at most 25000 of it.",
+              "name": "budgetMs",
+              "required": true,
+              "type": "UInt32",
+              "wireName": "budgetMs"
+            }
+          ],
+          "name": "BackgroundRefreshRequest",
+          "source": {
+            "file": "background_refresh_request.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "BackgroundRefreshRequest"
+          }
+        },
+        {
+          "description": "How a background refresh ended.",
+          "fields": [
+            {
+              "description": "The link came up and the incremental sync finished within the budget. False when the budget ran out or no session could connect.",
+              "name": "completed",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "completed"
+            }
+          ],
+          "name": "BackgroundRefreshResult",
+          "source": {
+            "file": "background_refresh_result.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "BackgroundRefreshResult"
+          }
+        }
+      ],
+      "source": "../flare-core-sdk-engine/bindings/contract/generated/model_schemas"
+    },
+    {
       "description": "Core-owned DTOs derived from Rust JsonSchema.",
       "enums": [],
       "group": "session",
@@ -1976,6 +2301,41 @@
         {
           "description": "PushTokenInput",
           "fields": [
+            {
+              "description": "iOS bundle id or Android applicationId. The server sends APNs to this topic.",
+              "name": "appBundle",
+              "required": false,
+              "type": "String",
+              "wireName": "appBundle"
+            },
+            {
+              "description": "App version string.",
+              "name": "appVersion",
+              "required": false,
+              "type": "String",
+              "wireName": "appVersion"
+            },
+            {
+              "description": "What the app can do with a push: dataMessages (Android FCM data messages) and serviceExtension (iOS notification service extension). Unknown values are rejected.",
+              "name": "capabilities",
+              "required": false,
+              "type": "StringList",
+              "wireName": "capabilities"
+            },
+            {
+              "description": "APNs only: sandbox or production, the APNs host the token belongs to.",
+              "name": "environment",
+              "required": false,
+              "type": "String",
+              "wireName": "environment"
+            },
+            {
+              "description": "BCP 47 language tag the server renders notification text in, e.g. zh-CN.",
+              "name": "locale",
+              "required": false,
+              "type": "String",
+              "wireName": "locale"
+            },
             {
               "description": "Native platform: android, ios or harmony.",
               "name": "platform",
@@ -1989,6 +2349,13 @@
               "required": true,
               "type": "String",
               "wireName": "provider"
+            },
+            {
+              "description": "IANA time zone, e.g. Asia/Shanghai.",
+              "name": "timeZone",
+              "required": false,
+              "type": "String",
+              "wireName": "timeZone"
             },
             {
               "description": "OS-issued token. Never log or persist outside protected native storage.",
@@ -2085,6 +2452,222 @@
             "file": "push_lifecycle_status.schema.json",
             "kind": "rust-json-schema",
             "rustType": "PushLifecycleStatus"
+          }
+        },
+        {
+          "description": "One remote push the platform push module received.",
+          "fields": [
+            {
+              "description": "Background execution time the platform holds for this push, in milliseconds. Above zero the engine also wakes the link for one incremental sync within it; the answer never waits for that.",
+              "name": "budgetMs",
+              "required": false,
+              "type": "UInt32",
+              "wireName": "budgetMs"
+            },
+            {
+              "description": "The push payload flattened to strings (snake_case keys): uid, tenant_id, conversation_id, message_id, seq, collapse_id, thread_id, disposition, alert_class, count, badge, title, body, sound. Keys the engine does not know are ignored.",
+              "name": "payload",
+              "required": true,
+              "type": "StringMap",
+              "wireName": "payload"
+            },
+            {
+              "description": "Push channel that delivered it: apns, fcm or getui.",
+              "name": "provider",
+              "required": true,
+              "type": "String",
+              "wireName": "provider"
+            }
+          ],
+          "name": "HandleRemoteMessageRequest",
+          "source": {
+            "file": "handle_remote_message_request.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "HandleRemoteMessageRequest"
+          }
+        },
+        {
+          "description": "How the platform should show one remote push.",
+          "fields": [
+            {
+              "description": "present (a new notification, may sound), update (silently replace the notification with the same collapse id), clear (remove the notifications in clearCollapseIds), badgeOnly (only set the badge) or ignore.",
+              "name": "action",
+              "required": true,
+              "type": "String",
+              "wireName": "action"
+            },
+            {
+              "description": "Absolute app badge, when the payload carried one.",
+              "name": "badge",
+              "required": false,
+              "type": "UInt32",
+              "wireName": "badge"
+            },
+            {
+              "description": "Collapse ids of the notifications to remove, for clear.",
+              "name": "clearCollapseIds",
+              "required": true,
+              "type": "StringList",
+              "wireName": "clearCollapseIds"
+            },
+            {
+              "description": "What to show, for present and update.",
+              "name": "presentation",
+              "required": false,
+              "type": "NotificationPresentation",
+              "wireName": "presentation"
+            },
+            {
+              "description": "Why the push is ignored (diagnostic): otherAccount, notLoggedIn, stale, alreadyAlerted or malformed.",
+              "name": "reason",
+              "required": false,
+              "type": "String",
+              "wireName": "reason"
+            }
+          ],
+          "name": "RemoteMessageOutcome",
+          "source": {
+            "file": "remote_message_outcome.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "RemoteMessageOutcome"
+          }
+        },
+        {
+          "description": "One notification to show (or to replace in place).",
+          "fields": [
+            {
+              "description": "Body, already rendered in the app's language.",
+              "name": "body",
+              "required": true,
+              "type": "String",
+              "wireName": "body"
+            },
+            {
+              "description": "messages, quiet, mentions or urgent (Android channel flare.<channel>).",
+              "name": "channel",
+              "required": true,
+              "type": "String",
+              "wireName": "channel"
+            },
+            {
+              "description": "Notification identity: one per conversation. Used as the iOS notification identifier and the Android notification tag, so a later notification for the same conversation replaces it.",
+              "name": "collapseId",
+              "required": true,
+              "type": "String",
+              "wireName": "collapseId"
+            },
+            {
+              "description": "Conversation the notification belongs to; empty for the digest notification.",
+              "name": "conversationId",
+              "required": true,
+              "type": "String",
+              "wireName": "conversationId"
+            },
+            {
+              "description": "Unread messages the notification stands for, at least 1.",
+              "name": "count",
+              "required": true,
+              "type": "UInt32",
+              "wireName": "count"
+            },
+            {
+              "description": "Server id of the newest message it stands for; empty for a catch-up without a loaded message and for the digest notification.",
+              "name": "messageId",
+              "required": true,
+              "type": "String",
+              "wireName": "messageId"
+            },
+            {
+              "description": "Conversation seq of the newest message it stands for; 0 for the digest notification.",
+              "name": "seq",
+              "required": true,
+              "type": "UInt64",
+              "wireName": "seq"
+            },
+            {
+              "description": "Whether to play a sound; a silent replacement never sounds.",
+              "name": "sound",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "sound"
+            },
+            {
+              "description": "system (an OS notification) or inApp (a banner inside the running app).",
+              "name": "surface",
+              "required": true,
+              "type": "String",
+              "wireName": "surface"
+            },
+            {
+              "description": "Grouping key in the notification centre.",
+              "name": "threadId",
+              "required": true,
+              "type": "String",
+              "wireName": "threadId"
+            },
+            {
+              "description": "Title, already rendered in the app's language.",
+              "name": "title",
+              "required": true,
+              "type": "String",
+              "wireName": "title"
+            }
+          ],
+          "name": "NotificationPresentation",
+          "source": {
+            "file": "notification_presentation.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "NotificationPresentation"
+          }
+        },
+        {
+          "description": "The payload of a notification the user tapped.",
+          "fields": [
+            {
+              "description": "The push payload flattened to strings, as in handleRemoteMessage.",
+              "name": "payload",
+              "required": true,
+              "type": "StringMap",
+              "wireName": "payload"
+            }
+          ],
+          "name": "ResolveNotificationTapRequest",
+          "source": {
+            "file": "resolve_notification_tap_request.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "ResolveNotificationTapRequest"
+          }
+        },
+        {
+          "description": "Where a tapped notification leads; every field is absent when the payload is not for the current account.",
+          "fields": [
+            {
+              "description": "Conversation to open.",
+              "name": "conversationId",
+              "required": false,
+              "type": "String",
+              "wireName": "conversationId"
+            },
+            {
+              "description": "Message to scroll to, when the payload named one.",
+              "name": "messageId",
+              "required": false,
+              "type": "String",
+              "wireName": "messageId"
+            },
+            {
+              "description": "Conversation seq of that message.",
+              "name": "seq",
+              "required": false,
+              "type": "UInt64",
+              "wireName": "seq"
+            }
+          ],
+          "name": "NotificationTapResult",
+          "source": {
+            "file": "notification_tap_result.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "NotificationTapResult"
           }
         }
       ],
@@ -2417,7 +3000,7 @@
               "wireName": "reason"
             },
             {
-              "description": "Coarse network identity (native: Wi-Fi gateway prefix or cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID.",
+              "description": "Coarse network identity (native: a 16-hex-digit SHA-256 digest of the interface kind and the default gateway, plus the DNS servers on Android, or the cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID or a raw address.",
               "name": "fingerprintHint",
               "required": false,
               "type": "String",
@@ -6300,6 +6883,16 @@
           ]
         },
         {
+          "description": "Notification event name.",
+          "name": "NotificationEventName",
+          "values": [
+            "received",
+            "present",
+            "clear",
+            "badge"
+          ]
+        },
+        {
           "description": "Plugin event notification name.",
           "name": "PluginEventName",
           "values": [
@@ -7379,6 +7972,42 @@
           "response": "PushLifecycleStatus",
           "stability": "stable",
           "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Headless entry for a remote push (APNs, FCM, Getui). Answers within 150 ms without waiting for the network: ignores payloads for another account or when logged out, deduplicates by collapse id and seq (a push for what the live link already alerted does not sound again), turns an alert the local read state covers into a clear, and maps disposition and alert class onto an action and an Android channel. With budgetMs above zero it also wakes the link for one incremental sync; the answer never waits for it. Web builds return OperationNotSupported.",
+          "name": "handleRemoteMessage",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "sdk.handle_remote_message",
+          "request": "HandleRemoteMessageRequest",
+          "response": "RemoteMessageOutcome",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Where a tapped notification leads: its conversation, message and seq. Every field is absent when the payload is not for the current account. Web builds return OperationNotSupported.",
+          "name": "resolveNotificationTap",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "sdk.resolve_notification_tap",
+          "request": "ResolveNotificationTapRequest",
+          "response": "NotificationTapResult",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
         }
       ]
     },
@@ -8079,6 +8708,24 @@
           },
           "operation": "conversation.set_muted",
           "request": "SetConversationMutedRequest",
+          "response": "Unit",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "In a large group, turns notifications for every message on or off for the current user (large groups otherwise alert only on mentions). Request { conversationId, enabled }. The conversation shows the choice at once (notifyAll); when the server does not take it, it goes back and the call fails. Other devices of the user follow.",
+          "name": "setConversationNotifyAll",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "unit",
+            "returnMode": "callback"
+          },
+          "operation": "conversation.set_notify_all",
+          "request": "SetConversationNotifyAllRequest",
           "response": "Unit",
           "stability": "stable",
           "transport": "contract-invoke-json"
@@ -10552,6 +11199,121 @@
           "operation": "diagnostics.runtime_health",
           "request": "Unit",
           "response": "RuntimeHealthResponse",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
+        }
+      ]
+    },
+    {
+      "description": "Notifications while the live link is up: which conversation is on screen, the user's notification settings, and whether the platform presents alerts in the background. The engine decides and renders every alert itself and hands it over as notification.present, notification.clear and notification.badge events.",
+      "facade": "client.notification",
+      "key": "notification",
+      "methods": [
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Reports the conversation on screen (absent when none is open). Messages of the focused conversation do not alert while the app is in the foreground; focusing a conversation restarts the count of its in-app banner. Works before login and never waits for the network.",
+          "name": "setFocus",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "unit",
+            "returnMode": "callback"
+          },
+          "operation": "notification.set_focus",
+          "request": "SetNotificationFocusRequest",
+          "response": "Unit",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "The user's notification settings (quiet hours, preview, multi-device policy), shared by all of the user's devices. The engine reads them after connecting and again when another device changes them; without a copy it reads them from the server. Requires a logged-in session.",
+          "name": "getSettings",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "notification.get_settings",
+          "request": "Unit",
+          "response": "UserNotificationSettings",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Partially updates the user's notification settings and returns the complete settings as stored. Items left out keep their value; at least one item is required. With baseSettingsVersion above zero the update is rejected when the settings changed elsewhere in the meantime: read them again and retry. Other online devices of the user pick up the change at once.",
+          "name": "updateSettings",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "notification.update_settings",
+          "request": "UpdateUserNotificationSettingsRequest",
+          "response": "UserNotificationSettings",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Whether the platform push module posts local notifications for the engine while the app is in the background. Attached, a backgrounded phone keeps alerting from the live link (notification.present with surface system); detached, background alerts are left to the server's push. Desktop and web hosts alert by themselves and need not call it. Works before login.",
+          "name": "setBackgroundPresenter",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "unit",
+            "returnMode": "callback"
+          },
+          "operation": "notification.set_background_presenter",
+          "request": "SetBackgroundPresenterRequest",
+          "response": "Unit",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Directory the engine shares with an iOS notification service extension (the App Group container). While a session is attached the engine keeps snapshot.json there up to date (conversation titles, mute flags, display names, preview setting and fallback texts, at most 256 KiB, replaced atomically) and deletes it on logout; it reads the extension's receipts.log from the same directory. Absent: stop writing and delete nothing. Works before login. Not available in the browser.",
+          "name": "setSnapshotDirectory",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "unit",
+            "returnMode": "callback"
+          },
+          "operation": "notification.set_snapshot_directory",
+          "request": "SetNotificationSnapshotDirectoryRequest",
+          "response": "Unit",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Runs one background refresh the platform granted (iOS BGAppRefreshTask): connects the link, runs one incremental sync and returns the link to its previous state (iOS closes it again). The budget is clamped to 25000 ms; completed is false when it ran out or no session could connect. Not available in the browser.",
+          "name": "backgroundRefresh",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "notification.background_refresh",
+          "request": "BackgroundRefreshRequest",
+          "response": "BackgroundRefreshResult",
           "stability": "stable",
           "transport": "contract-invoke-json"
         }

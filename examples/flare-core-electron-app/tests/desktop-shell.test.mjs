@@ -24,14 +24,22 @@ test("electron shell exposes a menu bar tray icon with unread badge text", () =>
   assert.ok(packageJson.build.files.includes("assets/icons/**"));
 });
 
-test("electron renderer keeps unread count flowing through the desktop bridge", () => {
+test("electron renderer shows the engine's notifications and keeps the badge through the desktop bridge", () => {
   const preload = readFromApp("electron/preload.ts");
-  const rendererBridge = readFromApp("src/desktopNotifications.ts");
+  const main = readFromApp("electron/main.ts");
+  const renderer = readFromApp("src/notifications.ts");
+  const app = readFromApp("src/App.vue");
 
   assert.match(preload, /flare:set-unread-count/);
   assert.match(preload, /setUnreadCount\(count: number\)/);
-  assert.match(rendererBridge, /configureDesktopNotifications/);
-  assert.match(rendererBridge, /bridge\.setUnreadCount/);
+  assert.doesNotMatch(preload, /flare:desktop-notify/);
+  assert.doesNotMatch(main, /flare:desktop-notify/);
+  assert.match(renderer, /startSystemNotifications\(sdk\.client\.events/);
+  assert.match(renderer, /presenter: browserNotificationPresenter\(\)/);
+  assert.match(renderer, /onNotificationBadge\(\(event\) => setBadge\(event\.count\)\)/);
+  assert.match(renderer, /bridge\?\.setUnreadCount\?\.\(count\)/);
+  assert.match(renderer, /sdk\.client\.notification\.setFocus/);
+  assert.match(app, /useElectronNotifications\(sdk\)/);
 });
 
 test("electron renderer vite config stays ESM while main process stays CommonJS", () => {

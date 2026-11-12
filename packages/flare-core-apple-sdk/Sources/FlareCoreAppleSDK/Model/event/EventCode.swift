@@ -35,7 +35,9 @@ public enum EventCode {
     public static let conversationUnreadCountChanged: Int = 3004
     public static let conversationDeleted: Int = 3005
     public static let notificationReceived: Int = 3501
-    public static let notificationMessageSound: Int = 3502
+    public static let notificationPresent: Int = 3503
+    public static let notificationClear: Int = 3504
+    public static let notificationBadge: Int = 3505
     public static let syncStarted: Int = 4001
     public static let syncFinished: Int = 4002
     public static let syncFailed: Int = 4003

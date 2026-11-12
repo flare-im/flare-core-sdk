@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="flare_keepalive_channel">Stay connected in the background</string>
+    <string name="flare_keepalive_channel_description">Shown while the app stays connected in the background so that new messages arrive on time</string>
+    <string name="flare_keepalive_notification_text">Staying connected for new messages</string>
+</resources>

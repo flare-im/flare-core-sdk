@@ -4,7 +4,7 @@
  * Module API: `conversations` — Conversation query and local conversation state.
  */
 import type { BootstrapHomeTimelineRequest, Conversation, ConversationListQuery, ConversationTimelineSnapshot, ConversationTotalUnreadResponse, HomeTimelineSnapshot, ListConversationsResponse, OpenConversationTimelineRequest, UpdateConversationDraftRequest } from '../../model';
-import type { ClearLocalChatHistoryRequest, DeleteConversationRequest, GetConversationRequest, GetGroupConversationByUserIdsRequest, GetMultipleConversationsRequest, GetOneConversationRequest, ListConversationsPaginatedRequest, MarkConversationReadRequest, MarkConversationUnreadRequest, SetConversationArchivedRequest, SetConversationMutedRequest, SetConversationPinnedRequest } from '../types';
+import type { ClearLocalChatHistoryRequest, DeleteConversationRequest, GetConversationRequest, GetGroupConversationByUserIdsRequest, GetMultipleConversationsRequest, GetOneConversationRequest, ListConversationsPaginatedRequest, MarkConversationReadRequest, MarkConversationUnreadRequest, SetConversationArchivedRequest, SetConversationMutedRequest, SetConversationNotifyAllRequest, SetConversationPinnedRequest } from '../types';
 
 /** Conversation query and local conversation state. */
 export interface ConversationsApi {
@@ -38,6 +38,8 @@ export interface ConversationsApi {
   setConversationPinned(request: SetConversationPinnedRequest): Promise<void>;
   /** setConversationMuted maps to `flare_sdk_invoke_json`. Operation: `conversation.set_muted`. */
   setConversationMuted(request: SetConversationMutedRequest): Promise<void>;
+  /** setConversationNotifyAll maps to `flare_sdk_invoke_json`. Operation: `conversation.set_notify_all`. */
+  setConversationNotifyAll(request: SetConversationNotifyAllRequest): Promise<void>;
   /** setConversationArchived maps to `flare_sdk_invoke_json`. Operation: `conversation.set_archived`. */
   setConversationArchived(request: SetConversationArchivedRequest): Promise<void>;
   /** markConversationUnread maps to `flare_sdk_invoke_json`. Operation: `conversation.mark_unread`. */

@@ -1,0 +1,3 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 通知权限、FCM 消息服务与厂商通知的中转页都在 flare-core-android-push 的清单里，随它并入应用。 -->
+</manifest>

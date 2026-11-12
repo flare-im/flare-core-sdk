@@ -64,6 +64,8 @@ final class Conversation {
   final int mentionCount;
   /// wire: `mentionMe`. 
   final bool mentionMe;
+  /// wire: `notifyAll`. In a large group, whether the current user turned on notifications for every message (large groups otherwise alert only on mentions). False when never turned on.
+  final bool notifyAll;
   /// wire: `participantVersion`. 服务端成员读模型版本。完整成员通过独立 participants 同步拉取。
   final int participantVersion;
   /// wire: `participants`. 已按需同步到本地的完整成员快照；会话摘要同步不会填充该字段。
@@ -117,6 +119,7 @@ final class Conversation {
     this.membersCount = 0,
     this.mentionCount = 0,
     this.mentionMe = false,
+    this.notifyAll = false,
     this.participantVersion = 0,
     this.participants = const [],
     this.peerReadSeq = 0,

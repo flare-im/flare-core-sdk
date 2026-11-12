@@ -77,6 +77,7 @@ SDK 层会话类型：内部统一使用，从 proto ConversationSummary 获取�
 | `membersCount` | `membersCount` | `UInt32` | yes |  |
 | `mentionCount` | `mentionCount` | `UInt32` | yes |  |
 | `mentionMe` | `mentionMe` | `Boolean` | yes |  |
+| `notifyAll` | `notifyAll` | `Boolean` | yes | In a large group, whether the current user turned on notifications for every message (large groups otherwise alert only on mentions). False when never turned on. |
 | `participantVersion` | `participantVersion` | `UInt64` | yes | 服务端成员读模型版本。完整成员通过独立 participants 同步拉取。 |
 | `participants` | `participants` | `ConversationParticipantList` | yes | 已按需同步到本地的完整成员快照；会话摘要同步不会填充该字段。 |
 | `peerReadSeq` | `peerReadSeq` | `UInt64` | yes | 对端（其他成员）最大已读序列号；用于发送方已读双勾在重连/重登后恢复。 由服务端同步摘要 `ext.peer_read_seq` 下发并持久化。 |
@@ -232,6 +233,107 @@ MessageSearchQuery
 | `senderId` | `senderId` | `String` | no |  |
 | `toTime` | `toTime` | `UInt64` | no | 截止消息时间（毫秒，含）。 |
 
+## Notification
+
+Core-owned notification DTOs (user notification settings, focus, background presenter, snapshot directory, background refresh) derived from Rust JsonSchema.
+
+### Enums
+
+- `NotificationPreview`: How much of a message a notification shows. Values: `full`, `senderOnly`, `hidden`
+
+- `MultiDeviceAlertPolicy`: What a phone does with an alert while another device of the same user is in use. Values: `delay`, `immediate`, `badgeOnly`
+
+### NotificationClearEvent
+
+Payload of notification.clear: remove these notifications of the app.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `all` | `all` | `Boolean` | yes | Remove every notification of the app (the session ended); collapseIds is then empty. |
+| `collapseIds` | `collapseIds` | `StringList` | yes | Collapse ids of the notifications to remove. |
+
+### NotificationBadgeEvent
+
+Payload of notification.badge: the app badge as an absolute value.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `count` | `count` | `UInt32` | yes | Unread total, counted like the conversation list (archived conversations do not count, muted ones only with mentions). |
+
+### QuietHours
+
+Do-not-disturb hours, in the device's local time.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `allowMentions` | `allowMentions` | `Boolean` | yes | Whether messages that mention the user still ring inside the window. |
+| `endMinute` | `endMinute` | `UInt32` | yes | End, minute of the day (0..1439), exclusive. Equal to the start: all day. Smaller than the start: the window crosses midnight. |
+| `startMinute` | `startMinute` | `UInt32` | yes | Start, minute of the day (0..1439), inclusive. |
+| `weekdays` | `weekdays` | `UInt32` | yes | Days the window starts on: bit0 Monday .. bit6 Sunday; 0 means every day. |
+
+### UserNotificationSettings
+
+The user's notification settings, shared by all of the user's devices.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `multiDevice` | `multiDevice` | `MultiDeviceAlertPolicy` | yes | What a phone does while another device of the user is in use. |
+| `preview` | `preview` | `NotificationPreview` | yes | How much a notification shows. |
+| `quietHours` | `quietHours` | `QuietHours` | no | Do-not-disturb hours; absent when the user has none. |
+| `settingsVersion` | `settingsVersion` | `UInt64` | yes | Version of the settings; 0 when the user never changed them. Pass it back as baseSettingsVersion so a concurrent change elsewhere is not overwritten. |
+
+### UpdateUserNotificationSettingsRequest
+
+A partial update of the user's notification settings: items left out keep their value; at least one item must be given.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `baseSettingsVersion` | `baseSettingsVersion` | `UInt64` | yes | The settingsVersion the change is based on; 0 skips the check. When the stored settings changed in the meantime the whole update is rejected: read them again and retry. |
+| `clearQuietHours` | `clearQuietHours` | `Boolean` | yes | Remove the do-not-disturb hours. Rejected together with quietHours. |
+| `multiDevice` | `multiDevice` | `MultiDeviceAlertPolicy` | no | New multi-device policy. |
+| `preview` | `preview` | `NotificationPreview` | no | New preview mode. |
+| `quietHours` | `quietHours` | `QuietHours` | no | New do-not-disturb hours, replacing the old ones. |
+
+### SetNotificationFocusRequest
+
+The conversation the user is looking at.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `conversationId` | `conversationId` | `String` | no | Conversation on screen; absent when no conversation is open. |
+
+### SetBackgroundPresenterRequest
+
+Whether the platform presents alerts itself while the app is in the background.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `attached` | `attached` | `Boolean` | yes | The platform push module posts local notifications for the engine while the app is in the background. |
+
+### SetNotificationSnapshotDirectoryRequest
+
+Where the engine keeps the notification snapshot an iOS notification service extension reads.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `directory` | `directory` | `String` | no | Directory shared with the extension (the App Group container on iOS). The engine writes snapshot.json there and reads the extension's receipts.log from it. Absent: stop writing; files already there are left alone. |
+
+### BackgroundRefreshRequest
+
+One background refresh the platform granted the app (iOS BGAppRefreshTask).
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `budgetMs` | `budgetMs` | `UInt32` | yes | Time the platform grants, in milliseconds; the engine uses at most 25000 of it. |
+
+### BackgroundRefreshResult
+
+How a background refresh ended.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `completed` | `completed` | `Boolean` | yes | The link came up and the incremental sync finished within the budget. False when the budget ran out or no session could connect. |
+
 ## Session
 
 Core-owned DTOs derived from Rust JsonSchema.
@@ -242,8 +344,14 @@ PushTokenInput
 
 | Field | Wire name | Type | Required | Description |
 |-------|-----------|------|----------|-------------|
+| `appBundle` | `appBundle` | `String` | no | iOS bundle id or Android applicationId. The server sends APNs to this topic. |
+| `appVersion` | `appVersion` | `String` | no | App version string. |
+| `capabilities` | `capabilities` | `StringList` | no | What the app can do with a push: dataMessages (Android FCM data messages) and serviceExtension (iOS notification service extension). Unknown values are rejected. |
+| `environment` | `environment` | `String` | no | APNs only: sandbox or production, the APNs host the token belongs to. |
+| `locale` | `locale` | `String` | no | BCP 47 language tag the server renders notification text in, e.g. zh-CN. |
 | `platform` | `platform` | `String` | yes | Native platform: android, ios or harmony. |
 | `provider` | `provider` | `String` | yes | OS delivery provider: fcm, apns or getui. |
+| `timeZone` | `timeZone` | `String` | no | IANA time zone, e.g. Asia/Shanghai. |
 | `token` | `token` | `String` | yes | OS-issued token. Never log or persist outside protected native storage. |
 
 ### ClearPushTokenRequest
@@ -273,6 +381,64 @@ PushLifecycleStatus
 | `pendingRevocations` | `pendingRevocations` | `UInt32` | yes | Unresolved revoke intents, including writes with an unknown result. |
 | `registeredProviders` | `registeredProviders` | `UInt32` | yes | Providers confirmed for the current session, not vendor delivery. |
 | `state` | `state` | `String` | yes | disabled, waitingForSession, waitingForToken, pending or registered. |
+
+### HandleRemoteMessageRequest
+
+One remote push the platform push module received.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `budgetMs` | `budgetMs` | `UInt32` | no | Background execution time the platform holds for this push, in milliseconds. Above zero the engine also wakes the link for one incremental sync within it; the answer never waits for that. |
+| `payload` | `payload` | `StringMap` | yes | The push payload flattened to strings (snake_case keys): uid, tenant_id, conversation_id, message_id, seq, collapse_id, thread_id, disposition, alert_class, count, badge, title, body, sound. Keys the engine does not know are ignored. |
+| `provider` | `provider` | `String` | yes | Push channel that delivered it: apns, fcm or getui. |
+
+### RemoteMessageOutcome
+
+How the platform should show one remote push.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `action` | `action` | `String` | yes | present (a new notification, may sound), update (silently replace the notification with the same collapse id), clear (remove the notifications in clearCollapseIds), badgeOnly (only set the badge) or ignore. |
+| `badge` | `badge` | `UInt32` | no | Absolute app badge, when the payload carried one. |
+| `clearCollapseIds` | `clearCollapseIds` | `StringList` | yes | Collapse ids of the notifications to remove, for clear. |
+| `presentation` | `presentation` | `NotificationPresentation` | no | What to show, for present and update. |
+| `reason` | `reason` | `String` | no | Why the push is ignored (diagnostic): otherAccount, notLoggedIn, stale, alreadyAlerted or malformed. |
+
+### NotificationPresentation
+
+One notification to show (or to replace in place).
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `body` | `body` | `String` | yes | Body, already rendered in the app's language. |
+| `channel` | `channel` | `String` | yes | messages, quiet, mentions or urgent (Android channel flare.<channel>). |
+| `collapseId` | `collapseId` | `String` | yes | Notification identity: one per conversation. Used as the iOS notification identifier and the Android notification tag, so a later notification for the same conversation replaces it. |
+| `conversationId` | `conversationId` | `String` | yes | Conversation the notification belongs to; empty for the digest notification. |
+| `count` | `count` | `UInt32` | yes | Unread messages the notification stands for, at least 1. |
+| `messageId` | `messageId` | `String` | yes | Server id of the newest message it stands for; empty for a catch-up without a loaded message and for the digest notification. |
+| `seq` | `seq` | `UInt64` | yes | Conversation seq of the newest message it stands for; 0 for the digest notification. |
+| `sound` | `sound` | `Boolean` | yes | Whether to play a sound; a silent replacement never sounds. |
+| `surface` | `surface` | `String` | yes | system (an OS notification) or inApp (a banner inside the running app). |
+| `threadId` | `threadId` | `String` | yes | Grouping key in the notification centre. |
+| `title` | `title` | `String` | yes | Title, already rendered in the app's language. |
+
+### ResolveNotificationTapRequest
+
+The payload of a notification the user tapped.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `payload` | `payload` | `StringMap` | yes | The push payload flattened to strings, as in handleRemoteMessage. |
+
+### NotificationTapResult
+
+Where a tapped notification leads; every field is absent when the payload is not for the current account.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `conversationId` | `conversationId` | `String` | no | Conversation to open. |
+| `messageId` | `messageId` | `String` | no | Message to scroll to, when the payload named one. |
+| `seq` | `seq` | `UInt64` | no | Conversation seq of that message. |
 
 ## Sync
 
@@ -390,7 +556,7 @@ Platform network-change notification. The link supervisor alone decides whether 
 | `expensive` | `expensive` | `Boolean` | no | Whether the active route is considered expensive by the platform. |
 | `metered` | `metered` | `Boolean` | no | Whether the active route is metered. |
 | `reason` | `reason` | `String` | no | Optional platform reason string for diagnostics. |
-| `fingerprintHint` | `fingerprintHint` | `String` | no | Coarse network identity (native: Wi-Fi gateway prefix or cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID. |
+| `fingerprintHint` | `fingerprintHint` | `String` | no | Coarse network identity (native: a 16-hex-digit SHA-256 digest of the interface kind and the default gateway, plus the DNS servers on Android, or the cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID or a raw address. |
 
 ### ConnectionStatus
 
@@ -1655,6 +1821,8 @@ Typed SDK event and notification models for cross-platform subscriptions.
 - `SyncEventName`: Sync orchestration event notification name. Values: `state_changed`, `started`, `finished`, `failed`, `progress`, `task_completed`, `resync_needed`, `readiness`
 
 - `ProgressEventName`: Progress notification name. Values: `sync_progress`, `upload_progress`, `download_progress`
+
+- `NotificationEventName`: Notification event name. Values: `received`, `present`, `clear`, `badge`
 
 - `PluginEventName`: Plugin event notification name. Values: `realtime`, `catalog_changed`
 

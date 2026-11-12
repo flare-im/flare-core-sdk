@@ -3,6 +3,9 @@ import Flutter
 #elseif os(macOS)
 import FlutterMacOS
 #endif
+#if canImport(CryptoKit)
+import CryptoKit
+#endif
 import Foundation
 import Network
 
@@ -12,7 +15,8 @@ import Network
 ///   `{version, build, distribution}` from the main bundle.
 /// - Event channel `flare_core_flutter_lifecycle/network`: network readings
 ///   `{available, interface, expensive, fingerprintHint}` from `NWPathMonitor`,
-///   the current path first.
+///   the current path first. The hint is the native package's (a hash of the interface kind and the
+///   gateway, see `FlareNetworkReading.gatewayFingerprint`), never an address.
 /// - Event channel `flare_core_flutter_lifecycle/links`, macOS only: the URLs the system opens the app
 ///   with. iOS has no need of it: the engine hands a link over as a route, and on macOS it does not.
 public final class FlareCoreFlutterLifecyclePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
@@ -134,33 +138,66 @@ enum FlareNetworkReading {
         reading["interface"] = kind
         reading["expensive"] = path.isExpensive
         // Cellular gives no hint: MCC-MNC needs CoreTelephony carrier APIs that iOS 16.4 retired.
-        if kind == "wifi" || kind == "ethernet", let hint = gatewayPrefix(path.gateways) {
+        if kind != "cellular", let hint = gatewayFingerprint(kind: kind, gateways: path.gateways) {
             reading["fingerprintHint"] = hint
         }
         return reading
     }
 
-    /// The default gateway's IPv4 /24 (`192.168.1`), else a routable IPv6 gateway's /64
-    /// (`2001:db8:1:2`); link-local IPv6 gateways say nothing about the network and give none.
-    /// Never an SSID or BSSID.
-    static func gatewayPrefix(_ gateways: [NWEndpoint]) -> String? {
-        var ipv6: IPv6Address?
+    /// The network's identity as a hash: 16 hex digits of SHA-256 over the interface kind and the
+    /// gateway (see `gatewayIdentity`). The exact algorithm of the native package's
+    /// `SystemNetworkSource.gatewayFingerprint` (`FlarePlatformLifecycle`), so a Flutter app and a
+    /// native app report the same hint on the same network. Without location permission there is no
+    /// SSID or BSSID to go by; the gateway tells most networks apart and is the same every time the
+    /// device joins one. Never an address, an SSID or a BSSID. Nil without a usable gateway.
+    static func gatewayFingerprint(kind: String, gateways: [NWEndpoint]) -> String? {
+        guard let gateway = gatewayIdentity(gateways) else { return nil }
+        #if canImport(CryptoKit)
+        let digest = SHA256.hash(data: Data("flare.gateway.v1\u{0}\(kind)\u{0}\(gateway)".utf8))
+        return hex(digest.prefix(8))
+        #else
+        return nil
+        #endif
+    }
+
+    /// The gateway the fingerprint is taken from: the first IPv4 gateway's address, else the /64 of
+    /// the first global IPv6 gateway, else the first link-local IPv6 gateway (the router's own
+    /// address on the link, which stays put while the advertised prefix may be renumbered).
+    /// IPv4 wins whenever there is one, so a dual-stack network keeps one identity. It only feeds the
+    /// hash and never leaves this type.
+    static func gatewayIdentity(_ gateways: [NWEndpoint]) -> String? {
+        var global: IPv6Address?
+        var linkLocal: IPv6Address?
         for gateway in gateways {
             guard case let .hostPort(host, _) = gateway else { continue }
             switch host {
-            case let .ipv4(address):
-                return address.rawValue.prefix(3).map { String($0) }.joined(separator: ".")
-            case let .ipv6(address) where !address.isLinkLocal:
-                ipv6 = ipv6 ?? address
+            case .ipv4(let address):
+                let bytes = [UInt8](address.rawValue)
+                guard bytes.count == 4 else { continue }
+                return "4:" + bytes.map { String($0) }.joined(separator: ".")
+            case .ipv6(let address):
+                if address.isLoopback {
+                    continue
+                } else if address.isLinkLocal {
+                    linkLocal = linkLocal ?? address
+                } else {
+                    global = global ?? address
+                }
             default:
                 continue
             }
         }
-        guard let ipv6 else { return nil }
-        let bytes = Array(ipv6.rawValue.prefix(8))
-        return stride(from: 0, to: 8, by: 2)
-            .map { String((UInt16(bytes[$0]) << 8) | UInt16(bytes[$0 + 1]), radix: 16) }
-            .joined(separator: ":")
+        if let global {
+            return "6g:" + hex([UInt8](global.rawValue).prefix(8))
+        }
+        if let linkLocal {
+            return "6l:" + hex([UInt8](linkLocal.rawValue))
+        }
+        return nil
+    }
+
+    private static func hex<Bytes: Sequence>(_ bytes: Bytes) -> String where Bytes.Element == UInt8 {
+        bytes.map { String(format: "%02x", $0) }.joined()
     }
 }
 

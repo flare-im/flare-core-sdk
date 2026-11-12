@@ -35,7 +35,9 @@ object EventCode {
     const val CONVERSATION_UNREAD_COUNT_CHANGED: Int = 3004
     const val CONVERSATION_DELETED: Int = 3005
     const val NOTIFICATION_RECEIVED: Int = 3501
-    const val NOTIFICATION_MESSAGE_SOUND: Int = 3502
+    const val NOTIFICATION_PRESENT: Int = 3503
+    const val NOTIFICATION_CLEAR: Int = 3504
+    const val NOTIFICATION_BADGE: Int = 3505
     const val SYNC_STARTED: Int = 4001
     const val SYNC_FINISHED: Int = 4002
     const val SYNC_FAILED: Int = 4003

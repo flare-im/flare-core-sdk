@@ -6,7 +6,6 @@ import {
   sdkMediaProxyFields,
 } from "@flare-im/vue-ui/app";
 import { configureMediaProxy } from "@flare-im/vue-ui/utils";
-import { configureElectronDesktopNotifications } from "./desktopNotifications";
 import { createSqliteOpfsStorageHost } from "./storage/sqliteOpfsStorageHost";
 import "@flare-im/vue-ui/app/style.css";
 import { applyFlareTheme } from "@flare-im/vue-ui/theme";
@@ -25,7 +24,6 @@ if (isDesktopShell) {
 }
 
 configureMediaProxy(sdkMediaProxyFields());
-configureElectronDesktopNotifications();
 
 
 // 显式声明主题，且必须在挂载前调用。

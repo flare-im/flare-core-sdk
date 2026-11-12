@@ -47,4 +47,8 @@ abstract interface class SessionApi {
   Future<PushLifecycleStatus> reconcilePush();
   /// pushStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.push_status`.
   Future<PushLifecycleStatus> pushStatus();
+  /// handleRemoteMessage maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.handle_remote_message`.
+  Future<RemoteMessageOutcome> handleRemoteMessage(HandleRemoteMessageRequest request);
+  /// resolveNotificationTap maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.resolve_notification_tap`.
+  Future<NotificationTapResult> resolveNotificationTap(ResolveNotificationTapRequest request);
 }

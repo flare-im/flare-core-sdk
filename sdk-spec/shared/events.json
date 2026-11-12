@@ -84,7 +84,9 @@
     {
       "names": [
         "received",
-        "message_sound"
+        "present",
+        "clear",
+        "badge"
       ],
       "type": "notification"
     },

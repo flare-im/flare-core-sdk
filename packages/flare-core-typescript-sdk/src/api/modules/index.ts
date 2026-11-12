@@ -15,3 +15,4 @@ export type { CapabilitiesApi } from './capabilities';
 export type { ViewsApi } from './views';
 export type { EventsApi } from './events';
 export type { DiagnosticsApi } from './diagnostics';
+export type { NotificationApi } from './notification';

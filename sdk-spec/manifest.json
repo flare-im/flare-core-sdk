@@ -50,7 +50,8 @@
       "modules/capabilities.json",
       "modules/views.json",
       "modules/events.json",
-      "modules/diagnostics.json"
+      "modules/diagnostics.json",
+      "modules/notification.json"
     ]
   }
 }

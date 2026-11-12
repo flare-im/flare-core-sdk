@@ -331,6 +331,32 @@ abstract final class NativeCallMap {
       handlePolicy: "client-handle",
       callback: "FlareResultCallback");
 
+  /// handleRemoteMessage maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.handle_remote_message`.
+  static const sdkHandleRemoteMessage = NativeCallDescriptor(
+      module: "session",
+      method: "handleRemoteMessage",
+      operation: "sdk.handle_remote_message",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// resolveNotificationTap maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.resolve_notification_tap`.
+  static const sdkResolveNotificationTap = NativeCallDescriptor(
+      module: "session",
+      method: "resolveNotificationTap",
+      operation: "sdk.resolve_notification_tap",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
   /// getStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.get_status`.
   static const connectionGetStatus = NativeCallDescriptor(
       module: "connection",
@@ -817,6 +843,19 @@ abstract final class NativeCallMap {
       module: "conversations",
       method: "setConversationMuted",
       operation: "conversation.set_muted",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// setConversationNotifyAll maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.set_notify_all`.
+  static const conversationSetNotifyAll = NativeCallDescriptor(
+      module: "conversations",
+      method: "setConversationNotifyAll",
+      operation: "conversation.set_notify_all",
       transport: "contract-invoke-json",
       cApi: "flare_sdk_invoke_json",
       requestEncoding: "json",
@@ -2586,6 +2625,84 @@ abstract final class NativeCallMap {
       module: "diagnostics",
       method: "getRuntimeHealth",
       operation: "diagnostics.runtime_health",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// setFocus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `notification.set_focus`.
+  static const notificationSetFocus = NativeCallDescriptor(
+      module: "notification",
+      method: "setFocus",
+      operation: "notification.set_focus",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// getSettings maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `notification.get_settings`.
+  static const notificationGetSettings = NativeCallDescriptor(
+      module: "notification",
+      method: "getSettings",
+      operation: "notification.get_settings",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// updateSettings maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `notification.update_settings`.
+  static const notificationUpdateSettings = NativeCallDescriptor(
+      module: "notification",
+      method: "updateSettings",
+      operation: "notification.update_settings",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// setBackgroundPresenter maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `notification.set_background_presenter`.
+  static const notificationSetBackgroundPresenter = NativeCallDescriptor(
+      module: "notification",
+      method: "setBackgroundPresenter",
+      operation: "notification.set_background_presenter",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// setSnapshotDirectory maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `notification.set_snapshot_directory`.
+  static const notificationSetSnapshotDirectory = NativeCallDescriptor(
+      module: "notification",
+      method: "setSnapshotDirectory",
+      operation: "notification.set_snapshot_directory",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// backgroundRefresh maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `notification.background_refresh`.
+  static const notificationBackgroundRefresh = NativeCallDescriptor(
+      module: "notification",
+      method: "backgroundRefresh",
+      operation: "notification.background_refresh",
       transport: "contract-invoke-json",
       cApi: "flare_sdk_invoke_json",
       requestEncoding: "json",

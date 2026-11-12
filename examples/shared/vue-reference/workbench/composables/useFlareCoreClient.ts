@@ -34,11 +34,6 @@ import {
   type PresenceChangedHint,
   type ReactionChangedHint,
 } from "./useFlareSessionBridge";
-import {
-  emitDesktopNotification,
-  setDesktopUnreadCount,
-  type DesktopNotificationKind,
-} from "../app/infrastructure/desktop/desktopNotifications";
 import { FlareConnectionRefresh, withTimeout } from "@flare-im/vue-ui/utils";
 
 /**
@@ -619,126 +614,6 @@ function contentTypeParam(source: Record<string, unknown>): MessageContentType {
     throw new Error("contentType is invalid");
   }
   return raw as MessageContentType;
-}
-
-export function desktopNotificationBodyForMessage(message: Message): string {
-  switch (message.content?.contentType ?? messageContentTypeFromPreview(message.textPreview)) {
-    case MessageContentType.Text:
-      return translateFlare("notify.sent.text");
-    case MessageContentType.Image:
-      return translateFlare("notify.sent.image");
-    case MessageContentType.ImageGroup:
-      return translateFlare("notify.sent.imageGroup");
-    case MessageContentType.Video:
-      return translateFlare("notify.sent.video");
-    case MessageContentType.Audio:
-      return translateFlare("notify.sent.audio");
-    case MessageContentType.File:
-      return translateFlare("notify.sent.file");
-    case MessageContentType.Sticker:
-    case MessageContentType.Emoji:
-      return translateFlare("notify.sent.emoji");
-    case MessageContentType.Location:
-      return translateFlare("notify.sent.location");
-    case MessageContentType.Card:
-      return translateFlare("notify.sent.card");
-    case MessageContentType.Schedule:
-      return translateFlare("notify.sent.schedule");
-    case MessageContentType.Task:
-      return translateFlare("notify.sent.task");
-    case MessageContentType.Vote:
-      return translateFlare("notify.sent.vote");
-    case MessageContentType.Notification:
-      return translateFlare("notify.sent.notification");
-    case MessageContentType.Announcement:
-      return translateFlare("notify.sent.announcement");
-    case MessageContentType.RichText:
-      return translateFlare("notify.sent.richText");
-    case MessageContentType.LinkCard:
-      return translateFlare("notify.sent.link");
-    case MessageContentType.Forward:
-      return translateFlare("notify.sent.forward");
-    case MessageContentType.Thread:
-      return translateFlare("notify.sent.thread");
-    case MessageContentType.MiniProgram:
-      return translateFlare("notify.sent.miniProgram");
-    case MessageContentType.System:
-      return translateFlare("notify.sent.system");
-    case MessageContentType.Quote:
-      return translateFlare("notify.sent.quote");
-    default:
-      return message.textPreview.trim() ? translateFlare("notify.sent.text") : translateFlare("notify.sent.generic");
-  }
-}
-
-function messageContentTypeFromPreview(preview: string): MessageContentType | undefined {
-  const key = storedPreviewKey(preview);
-  switch (key) {
-    case "im.preview.user_text":
-      return MessageContentType.Text;
-    case "im.preview.rich_text":
-      return MessageContentType.RichText;
-    case "im.preview.file":
-      return MessageContentType.File;
-    case "im.preview.image":
-      return MessageContentType.Image;
-    case "im.preview.video":
-      return MessageContentType.Video;
-    case "im.preview.audio":
-      return MessageContentType.Audio;
-    case "im.preview.location":
-      return MessageContentType.Location;
-    case "im.preview.card":
-      return MessageContentType.Card;
-    case "im.preview.sticker":
-      return MessageContentType.Sticker;
-    case "im.preview.emoji":
-      return MessageContentType.Emoji;
-    case "im.preview.quote":
-      return MessageContentType.Quote;
-    case "im.preview.link":
-      return MessageContentType.LinkCard;
-    case "im.preview.forward_empty":
-    case "im.preview.forward_many":
-      return MessageContentType.Forward;
-    case "im.preview.thread":
-      return MessageContentType.Thread;
-    case "im.preview.mini_program":
-      return MessageContentType.MiniProgram;
-    case "im.preview.image_group":
-      return MessageContentType.ImageGroup;
-    case "im.preview.system":
-      return MessageContentType.System;
-    case "im.preview.notification":
-      return MessageContentType.Notification;
-    case "im.preview.vote":
-      return MessageContentType.Vote;
-    case "im.preview.task":
-      return MessageContentType.Task;
-    case "im.preview.schedule":
-      return MessageContentType.Schedule;
-    case "im.preview.announcement":
-      return MessageContentType.Announcement;
-    case "im.preview.custom":
-      return MessageContentType.Custom;
-    case "im.preview.placeholder":
-      return MessageContentType.Placeholder;
-    default:
-      return undefined;
-  }
-}
-
-function storedPreviewKey(preview: string): string {
-  const trimmed = preview.trim();
-  if (!trimmed.startsWith("{")) return "";
-  try {
-    const parsed = JSON.parse(trimmed) as unknown;
-    if (!parsed || typeof parsed !== "object") return "";
-    const key = (parsed as Record<string, unknown>).k;
-    return typeof key === "string" ? key : "";
-  } catch {
-    return "";
-  }
 }
 
 export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
@@ -2096,12 +1971,6 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     activeLatestMessageId.value =
       activeConversation.value?.lastMessageId || latest?.serverId || latest?.clientMsgId || "";
     pinnedMessages.value = activeMessages.filter(isPinnedMessage);
-    setDesktopUnreadCount(totalUnread.value);
-  }
-
-  function isDocumentForeground(): boolean {
-    if (typeof document === "undefined") return true;
-    return document.visibilityState === "visible" && document.hasFocus();
   }
 
   function isDocumentVisible(): boolean {
@@ -2201,77 +2070,11 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     }, ACTIVE_CONVERSATION_REFRESH_DEBOUNCE_MS);
   }
 
-  function handleIncomingMessageNotification(hint: IncomingMessageHint): void {
+  // 新消息的提示由引擎决定并经 notification.present 交给宿主（各 app 的 MessageAlerts），这里只安排会话列表刷新。
+  function handleIncomingMessage(_hint: IncomingMessageHint): void {
     scheduleIncomingConversationRefresh("incoming_message");
     // 活动会话的时间线由 core 观察视图 delta(applyTimelineViewDelta)实时增量渲染,不在这里做
     // 全量重开(close+open)——那会撕毁/重建视图造成抖动与消息闪烁。对账交给 12s 安全轮询兜底。
-    // scheduleActiveConversationRefresh("event_hint"); // removed: redundant churn vs view delta
-
-    const message = hint.message;
-    if (!message) return;
-    const senderId = message.senderId.trim();
-    const selfUserId = (currentUserId.value || form.userId).trim();
-    if (senderId && selfUserId && senderId === selfUserId) return;
-
-    const conversationId = message.conversationId.trim();
-    const conversation = conversations.value.find((item) => item.conversationId === conversationId);
-    if (conversation?.isMuted) return;
-
-    const kind = desktopNotificationKindForMessage(message);
-    const foregroundInActiveConversation =
-      kind !== "call" &&
-      isDocumentForeground() &&
-      conversationId &&
-      conversationId === activeConversationId.value.trim();
-    if (foregroundInActiveConversation) return;
-
-    const senderLabel = message.senderDisplayName.trim() || message.senderName.trim() || senderId || "Flare IM";
-    const title = kind === "call" ? translateFlare("call.startedBy", { sender: senderLabel }) : senderLabel;
-    const body = kind === "call" ? callNotificationBody(message) : desktopNotificationBodyForMessage(message);
-    emitDesktopNotification({
-      kind,
-      title,
-      body,
-      conversationId,
-      messageId: message.serverId || message.clientMsgId,
-      senderId,
-      unreadCount: Math.max(1, totalUnread.value),
-      requireAttention: true,
-      playSound: true,
-      dedupeKey: message.serverId || message.clientMsgId || `${conversationId}:${message.conversationSeq}`,
-    });
-  }
-
-  function desktopNotificationKindForMessage(message: Message): DesktopNotificationKind {
-    return looksLikeCallMessage(message) ? "call" : "message";
-  }
-
-  function looksLikeCallMessage(message: Message): boolean {
-    const text = [
-      message.textPreview,
-      message.content?.contentType,
-      ...Object.values(message.attributes ?? {}),
-      ...Object.values(message.content?.data ?? {}).map((value) => String(value ?? "")),
-    ].join(" ").toLowerCase();
-    return /\brtc\.call\b|\bcall\b|\bwebrtc\b|\bsfu\b/.test(text);
-  }
-
-  function callNotificationBody(message: Message): string {
-    return firstNonEmpty(
-      message.textPreview,
-      readStringField(message.content?.data, "title"),
-      readStringField(message.content?.data, "body"),
-    ) || translateFlare("call.incoming");
-  }
-
-  function firstNonEmpty(...values: Array<string | undefined>): string {
-    return values.map((value) => value?.trim() ?? "").find(Boolean) ?? "";
-  }
-
-  function readStringField(record: unknown, field: string): string | undefined {
-    if (!record || typeof record !== "object") return undefined;
-    const value = (record as Record<string, unknown>)[field];
-    return typeof value === "string" ? value : undefined;
   }
 
   function stableNotificationKey(payload: unknown): string {
@@ -3706,6 +3509,20 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     log("conversation_operation_complete", `${kind}:${conversationId}`);
   }
 
+  /**
+   * 大群「接收全部消息通知」。核心先改本地会话，服务端没有收下时退回原值并抛错；无论成败都重读会话列表，
+   * 界面跟着核心的值走。
+   */
+  async function setConversationNotifyAll(conversationId: string, enabled: boolean): Promise<void> {
+    log("conversation_notify_all_start", `${enabled}:${conversationId}`);
+    try {
+      await client.conversations.setConversationNotifyAll({ conversationId, enabled });
+    } finally {
+      await refreshConversations();
+    }
+    log("conversation_notify_all_complete", `${enabled}:${conversationId}`);
+  }
+
   async function runSyncOperation(kind: string): Promise<void> {
     if (kind === "read") {
       await markConversationRead(activeConversationId.value);
@@ -4015,7 +3832,7 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
       events,
       connectionStatus,
       loggedIn,
-      onIncomingMessage: handleIncomingMessageNotification,
+      onIncomingMessage: handleIncomingMessage,
       onPresenceChanged: applyPresenceChanged,
       onReactionChanged: applyReactionChanged,
       onViewUpdated: handleViewUpdate,
@@ -4139,6 +3956,7 @@ export function useFlareCoreClient(options: UseFlareCoreClientOptions) {
     runSessionDiagnostics,
     openPeerConversation,
     runConversationOperation,
+    setConversationNotifyAll,
     runSyncOperation,
     runPresenceOperation,
     runMediaOperation,

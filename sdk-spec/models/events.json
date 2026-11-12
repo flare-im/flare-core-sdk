@@ -124,6 +124,16 @@
       ]
     },
     {
+      "name": "NotificationEventName",
+      "description": "Notification event name.",
+      "values": [
+        "received",
+        "present",
+        "clear",
+        "badge"
+      ]
+    },
+    {
       "name": "PluginEventName",
       "description": "Plugin event notification name.",
       "values": [

@@ -492,6 +492,56 @@ describe("DefaultEventsApi direct event callbacks", () => {
     });
   });
 
+  it("hands notification present, clear and badge events to the notification listeners", () => {
+    const events = new DefaultEventsApi(testBridge());
+    const seen: string[] = [];
+    const listened: string[] = [];
+
+    events.onNotificationPresent((event) => {
+      seen.push(`present:${event.collapseId}:${event.conversationId}:${event.surface}:${event.sound}`);
+    });
+    events.onNotificationClear((event) => seen.push(`clear:${event.collapseIds.join(",")}:${event.all}`));
+    events.onNotificationBadge((event) => seen.push(`badge:${event.count}`));
+    events.addEventListener({
+      onNotificationPresent: (event) => listened.push(`present:${event.collapseId}`),
+      onNotificationClear: (event) => listened.push(`clear:${event.all}`),
+      onNotificationBadge: (event) => listened.push(`badge:${event.count}`),
+    });
+
+    events.emitNativeEvent(webEventType("im://notification_present"), {
+      collapseId: "c:0123456789abcdef0123456789abcdef",
+      threadId: "c:0123456789abcdef0123456789abcdef",
+      conversationId: "conv-1",
+      messageId: "m-9",
+      seq: 42,
+      title: "Ann",
+      body: "hi",
+      count: 2,
+      sound: true,
+      channel: "mentions",
+      surface: "system",
+    });
+    events.emitNativeEvent(webEventType("im://notification_clear"), {
+      collapseIds: ["c:0123456789abcdef0123456789abcdef"],
+      all: false,
+    });
+    events.emitNativeEvent(webEventType("im://notification_clear"), { collapseIds: [], all: true });
+    events.emitNativeEvent(webEventType("im://notification_badge"), { count: 7 });
+
+    expect(seen).toEqual([
+      "present:c:0123456789abcdef0123456789abcdef:conv-1:system:true",
+      "clear:c:0123456789abcdef0123456789abcdef:false",
+      "clear::true",
+      "badge:7",
+    ]);
+    expect(listened).toEqual([
+      "present:c:0123456789abcdef0123456789abcdef",
+      "clear:false",
+      "clear:true",
+      "badge:7",
+    ]);
+  });
+
   it("rejects a plugin realtime payload that is not a JSON object", () => {
     expect(() =>
       nativeEventFromCode(webEventType("im://plugin_realtime"), {

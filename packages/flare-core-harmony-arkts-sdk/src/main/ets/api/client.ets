@@ -15,6 +15,7 @@ import type { CapabilitiesApi } from './modules/capabilities';
 import type { ViewsApi } from './modules/views';
 import type { EventsApi } from './modules/events';
 import type { DiagnosticsApi } from './modules/diagnostics';
+import type { NotificationApi } from './modules/notification';
 
 export interface FlareImClient extends SessionApi {
   readonly connection: ConnectionApi;
@@ -32,4 +33,5 @@ export interface FlareImClient extends SessionApi {
   readonly views: ViewsApi;
   readonly events: EventsApi;
   readonly diagnostics: DiagnosticsApi;
+  readonly notification: NotificationApi;
 }

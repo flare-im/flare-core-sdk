@@ -10,8 +10,8 @@ import {
 } from "@flare-im/vue-ui/app";
 
 // Views come from the shared @flare-im/vue-ui/app workbench building blocks.
-// Platform specifics (SQLite/OPFS storage, desktop notifications) are injected
-// via configure* adapters in main.ts and stay decoupled from these views.
+// Platform specifics are injected outside these views: SQLite/OPFS storage via
+// configure* adapters in main.ts, the engine's notifications in App.vue.
 const SdkLabView = () =>
   import("@flare-im/vue-ui/app").then((m) => m.FlareSdkLabPanel);
 

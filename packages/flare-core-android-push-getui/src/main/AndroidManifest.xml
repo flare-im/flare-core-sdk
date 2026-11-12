@@ -1,0 +1,17 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+        个推 SDK 自己的组件与权限由它的 aar 清单并入；它要的 GETUI_APPID 占位符由应用在
+        manifestPlaceholders 里给。这里只声明接收回调的服务。个推 aar 的 <application> 带着
+        android:label，应用的清单要用 tools:replace="android:label" 保留自己的标签。
+    -->
+    <application>
+        <service
+            android:name="com.flare.im.push.getui.FlareGetuiIntentService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
+            <intent-filter>
+                <action android:name="com.igexin.sdk.action.service.message" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

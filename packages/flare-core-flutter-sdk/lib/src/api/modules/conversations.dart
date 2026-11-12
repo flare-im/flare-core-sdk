@@ -34,6 +34,8 @@ abstract interface class ConversationsApi {
   Future<void> setConversationPinned(Map<String, Object?> request);
   /// setConversationMuted maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.set_muted`.
   Future<void> setConversationMuted(Map<String, Object?> request);
+  /// setConversationNotifyAll maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.set_notify_all`.
+  Future<void> setConversationNotifyAll(Map<String, Object?> request);
   /// setConversationArchived maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.set_archived`.
   Future<void> setConversationArchived(Map<String, Object?> request);
   /// markConversationUnread maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.mark_unread`.

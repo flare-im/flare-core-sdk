@@ -4,7 +4,7 @@
  * Module API: `session` — SDK lifecycle, authenticated session and process-level utilities.
  */
 import type { ConnectTokenRefresher } from '../../contract';
-import type { ClearPushTokenRequest, HeartbeatEffectiveIntervalResponse, PushLifecycleStatus, PushTokenInput, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest } from '../../model';
+import type { ClearPushTokenRequest, HandleRemoteMessageRequest, HeartbeatEffectiveIntervalResponse, NotificationTapResult, PushLifecycleStatus, PushTokenInput, RemoteMessageOutcome, ResolveNotificationTapRequest, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest } from '../../model';
 import type { CreateClientRequest, CreateClientResponse, CurrentUserIdResponse, LoginRequest, SdkConfig, UpdateAccessTokenRequest } from '../types';
 
 /** SDK lifecycle, authenticated session and process-level utilities. */
@@ -51,4 +51,8 @@ export interface SessionApi {
   reconcilePush(): Promise<PushLifecycleStatus>;
   /** pushStatus maps to `flare_sdk_invoke_json`. Operation: `sdk.push_status`. */
   pushStatus(): Promise<PushLifecycleStatus>;
+  /** handleRemoteMessage maps to `flare_sdk_invoke_json`. Operation: `sdk.handle_remote_message`. */
+  handleRemoteMessage(request: HandleRemoteMessageRequest): Promise<RemoteMessageOutcome>;
+  /** resolveNotificationTap maps to `flare_sdk_invoke_json`. Operation: `sdk.resolve_notification_tap`. */
+  resolveNotificationTap(request: ResolveNotificationTapRequest): Promise<NotificationTapResult>;
 }

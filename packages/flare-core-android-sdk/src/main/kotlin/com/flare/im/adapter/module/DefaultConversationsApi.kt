@@ -93,6 +93,10 @@ class DefaultConversationsApi(
         invokeUnit(bridge, NativeCallMap.CONVERSATION_SET_MUTED, request)
     }
 
+    override suspend fun setConversationNotifyAll(request: Map<String, Any?>): Unit {
+        invokeUnit(bridge, NativeCallMap.CONVERSATION_SET_NOTIFY_ALL, request)
+    }
+
     override suspend fun setConversationArchived(request: Map<String, Any?>): Unit {
         invokeUnit(bridge, NativeCallMap.CONVERSATION_SET_ARCHIVED, request)
     }

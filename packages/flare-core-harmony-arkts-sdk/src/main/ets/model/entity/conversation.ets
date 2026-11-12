@@ -64,6 +64,8 @@ export interface Conversation {
   mentionCount: number;
   /** wire: `mentionMe`.  */
   mentionMe: boolean;
+  /** wire: `notifyAll`. In a large group, whether the current user turned on notifications for every message (large groups otherwise alert only on mentions). False when never turned on. */
+  notifyAll: boolean;
   /** wire: `participantVersion`. 服务端成员读模型版本。完整成员通过独立 participants 同步拉取。 */
   participantVersion: number;
   /** wire: `participants`. 已按需同步到本地的完整成员快照；会话摘要同步不会填充该字段。 */

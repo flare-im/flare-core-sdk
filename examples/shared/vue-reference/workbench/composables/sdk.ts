@@ -16,7 +16,6 @@
 // 由 `src/utils/messageContent.contract.test.ts` 的可达性门禁强制。
 export {
   useFlareCoreClient,
-  desktopNotificationBodyForMessage,
   readLoginEnvText,
   normalizeLoginIdentityForSdk,
   presenceStatusFromCoreDto,

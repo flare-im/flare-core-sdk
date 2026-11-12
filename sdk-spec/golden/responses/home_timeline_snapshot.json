@@ -18,6 +18,7 @@
       "visibleAfterSeq": 0,
       "isPinned": false,
       "isMuted": false,
+      "notifyAll": false,
       "isArchived": false,
       "updatedAt": 1000,
       "createdAt": 900,

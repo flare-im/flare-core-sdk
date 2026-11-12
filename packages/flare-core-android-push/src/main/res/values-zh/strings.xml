@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        渠道名称要写具体的聊天场景：vivo 的本地通知备案驳回「消息」「推送」「系统消息」这类宽泛名称，
+        未备案渠道上的通知按运营消息静默展示。运营方按渠道标识与这里的中文名称备案，客户端创建渠道时
+        用的名称必须与备案的一致；改名前先在 vivo 后台填「备用渠道名称」与启用时间。
+    -->
+    <string name="flare_push_channel_messages">聊天消息</string>
+    <string name="flare_push_channel_messages_description">单聊和群聊里收到的新消息</string>
+    <string name="flare_push_channel_quiet">聊天消息静默更新</string>
+    <string name="flare_push_channel_quiet_description">不响铃、不振动地更新已经显示的聊天消息通知</string>
+    <string name="flare_push_channel_mentions">聊天中@我的消息</string>
+    <string name="flare_push_channel_mentions_description">聊天里有人@我的消息</string>
+    <string name="flare_push_channel_urgent">紧急聊天消息</string>
+    <string name="flare_push_channel_urgent_description">发送者标为紧急的聊天消息</string>
+</resources>

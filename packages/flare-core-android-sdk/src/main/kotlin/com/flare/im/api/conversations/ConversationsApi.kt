@@ -57,6 +57,8 @@ interface ConversationsApi {
     suspend fun setConversationPinned(request: Map<String, Any?>): Unit
     /** setConversationMuted maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.set_muted`. */
     suspend fun setConversationMuted(request: Map<String, Any?>): Unit
+    /** setConversationNotifyAll maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.set_notify_all`. */
+    suspend fun setConversationNotifyAll(request: Map<String, Any?>): Unit
     /** setConversationArchived maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.set_archived`. */
     suspend fun setConversationArchived(request: Map<String, Any?>): Unit
     /** markConversationUnread maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.mark_unread`. */

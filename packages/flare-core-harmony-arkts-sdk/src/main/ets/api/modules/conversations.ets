@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { AccessChangedEvent, AccessSwitchedEvent, BootstrapHomeTimelineRequest, ConnectionStatus, Conversation, ConversationEvent, ConversationListQuery, ConversationTimelineSnapshot, ConversationTotalUnreadResponse, HomeTimelineSnapshot, LifecycleEvent, ListConversationsResponse, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, OpenConversationTimelineRequest, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateConversationDraftRequest, UpdateStatus, ViewUpdate } from '../../model';
+import { AccessChangedEvent, AccessSwitchedEvent, BootstrapHomeTimelineRequest, ConnectionStatus, Conversation, ConversationEvent, ConversationListQuery, ConversationTimelineSnapshot, ConversationTotalUnreadResponse, HomeTimelineSnapshot, LifecycleEvent, ListConversationsResponse, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, OpenConversationTimelineRequest, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateConversationDraftRequest, UpdateStatus, ViewUpdate } from '../../model';
 
 /** Conversation query and local conversation state. */
 export interface ConversationsApi {
@@ -18,6 +18,7 @@ export interface ConversationsApi {
   markConversationRead(request: Record<string, Object>): Promise<void>;
   setConversationPinned(request: Record<string, Object>): Promise<void>;
   setConversationMuted(request: Record<string, Object>): Promise<void>;
+  setConversationNotifyAll(request: Record<string, Object>): Promise<void>;
   setConversationArchived(request: Record<string, Object>): Promise<void>;
   markConversationUnread(request: Record<string, Object>): Promise<void>;
   deleteConversation(request: Record<string, Object>): Promise<void>;

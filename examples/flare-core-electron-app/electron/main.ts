@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, Notification, shell, Tray } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } from "electron";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -14,14 +14,6 @@ let staticServer: StaticServer | null = null;
 let tray: Tray | null = null;
 let currentUnreadCount = 0;
 const baseWindowTitle = "Flare Core";
-
-type DesktopNotificationPayload = {
-  kind?: unknown;
-  title?: unknown;
-  body?: unknown;
-  unreadCount?: unknown;
-  requireAttention?: unknown;
-};
 
 function contentTypeFor(filePath: string): string {
   if (filePath.endsWith(".html")) return "text/html; charset=utf-8";
@@ -156,7 +148,6 @@ async function createWindow(): Promise<void> {
   window.on("closed", () => {
     if (mainWindow === window) mainWindow = null;
   });
-  window.on("focus", () => window.flashFrame(false));
 
   window.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
@@ -205,7 +196,6 @@ function showMainWindow(): void {
   if (window.isMinimized()) window.restore();
   window.show();
   window.focus();
-  window.flashFrame(false);
 }
 
 ipcMain.handle("flare:app-info", () => ({
@@ -222,51 +212,12 @@ ipcMain.handle("flare:reveal-downloaded-file", async (_event, filePath: unknown)
   return true;
 });
 
-ipcMain.handle("flare:desktop-notify", (_event, payload: DesktopNotificationPayload) => {
-  showDesktopNotification(payload);
-  return true;
-});
-
 ipcMain.handle("flare:set-unread-count", (_event, count: unknown) => {
   setUnreadCount(typeof count === "number" ? count : 0);
   return true;
 });
 
-function showDesktopNotification(payload: DesktopNotificationPayload): void {
-  const title = readNotificationText(payload.title, "Flare IM");
-  const body = readNotificationText(payload.body, "收到新的提醒");
-  const isCall = payload.kind === "call";
-  if (Notification.isSupported()) {
-    const notification = new Notification({
-      title,
-      body,
-      silent: true,
-      urgency: isCall ? "critical" : "normal",
-      timeoutType: isCall ? "never" : "default",
-    });
-    notification.on("click", () => {
-      showMainWindow();
-    });
-    notification.show();
-  }
-  if (payload.requireAttention !== false) {
-    requestDesktopAttention(isCall);
-  }
-  if (typeof payload.unreadCount === "number") {
-    setUnreadCount(payload.unreadCount);
-  }
-}
-
-function requestDesktopAttention(critical: boolean): void {
-  const window = mainWindow;
-  if (window && !window.isFocused()) {
-    window.flashFrame(true);
-  }
-  if (process.platform === "darwin" && app.dock) {
-    app.dock.bounce(critical ? "critical" : "informational");
-  }
-}
-
+/** The dock / taskbar badge, window title and tray title: the engine's unread total, sent by the renderer. */
 function setUnreadCount(rawCount: number): void {
   const count = Math.max(0, Math.trunc(rawCount));
   currentUnreadCount = count;
@@ -274,7 +225,6 @@ function setUnreadCount(rawCount: number): void {
   const window = mainWindow;
   if (window) {
     window.setTitle(count > 0 ? `${baseWindowTitle} (${count})` : baseWindowTitle);
-    if (count === 0) window.flashFrame(false);
   }
   updateTrayUnreadCount(count);
 }
@@ -290,10 +240,6 @@ function updateTrayUnreadCount(count: number): void {
 function badgeLabel(count: number): string {
   if (count <= 0) return "";
   return count > 99 ? "99+" : String(count);
-}
-
-function readNotificationText(value: unknown, fallback: string): string {
-  return typeof value === "string" && value.trim() ? value.trim().slice(0, 180) : fallback;
 }
 
 app.setName(baseWindowTitle);

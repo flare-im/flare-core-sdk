@@ -19,6 +19,7 @@ import type { CapabilitiesApi } from './modules/capabilities';
 import type { ViewsApi } from './modules/views';
 import type { EventsApi } from './modules/events';
 import type { DiagnosticsApi } from './modules/diagnostics';
+import type { NotificationApi } from './modules/notification';
 
 /** Root SDK client. Create one instance per app/session boundary. */
 export interface FlareImClient extends SessionApi {
@@ -52,4 +53,6 @@ export interface FlareImClient extends SessionApi {
   readonly events: EventsApi;
   /** SDK version and FFI contract diagnostics. */
   readonly diagnostics: DiagnosticsApi;
+  /** Notifications while the live link is up: which conversation is on screen, the user's notification settings, and whether the platform presents alerts in the background. The engine decides and renders every alert itself and hands it over as notification.present, notification.clear and notification.badge events. */
+  readonly notification: NotificationApi;
 }

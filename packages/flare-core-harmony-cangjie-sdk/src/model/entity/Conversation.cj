@@ -62,6 +62,8 @@ public class Conversation {
     public let mentionCount: UInt32
     // wire: `mentionMe`. 
     public let mentionMe: Bool
+    // wire: `notifyAll`. In a large group, whether the current user turned on notifications for every message (large groups otherwise alert only on mentions). False when never turned on.
+    public let notifyAll: Bool
     // wire: `participantVersion`. 服务端成员读模型版本。完整成员通过独立 participants 同步拉取。
     public let participantVersion: UInt64
     // wire: `participants`. 已按需同步到本地的完整成员快照；会话摘要同步不会填充该字段。
@@ -85,7 +87,7 @@ public class Conversation {
     // wire: `visibleAfterSeq`. 当前用户的历史可见边界；seq <= visible_after_seq 的消息不可见，不参与冷启动回灌。
     public let visibleAfterSeq: UInt64
 
-    public init(avatarUrl!: String, badge!: ?String, businessType!: String, channelId!: String, conversationId!: String, conversationType!: ConversationType, createdAt!: UInt64, description!: ?String, displayName!: String, draft!: ?String, ext!: String, isArchived!: Bool, isMentionOnly!: ?Bool, isMuted!: Bool, isPinned!: Bool, lastMessage!: ?MessagePreview, lastMessageAt!: ?UInt64, lastMessageId!: ?String, lastMessagePreview!: ?String, lastReadSeq!: UInt64, lastSender!: ?DisplayName, lastSenderAvatarUrl!: String, lastSenderId!: ?String, lastSenderNickname!: String, maxSeq!: UInt64, memberPreview!: String, membersCount!: UInt32, mentionCount!: UInt32, mentionMe!: Bool, participantVersion!: UInt64, participants!: String, peerReadSeq!: UInt64, remark!: ?String, role!: ?String, title!: DisplayName, unreadCount!: UInt32, updatedAt!: UInt64, updatedAtTs!: ?UInt64, version!: UInt64, visibleAfterSeq!: UInt64) {
+    public init(avatarUrl!: String, badge!: ?String, businessType!: String, channelId!: String, conversationId!: String, conversationType!: ConversationType, createdAt!: UInt64, description!: ?String, displayName!: String, draft!: ?String, ext!: String, isArchived!: Bool, isMentionOnly!: ?Bool, isMuted!: Bool, isPinned!: Bool, lastMessage!: ?MessagePreview, lastMessageAt!: ?UInt64, lastMessageId!: ?String, lastMessagePreview!: ?String, lastReadSeq!: UInt64, lastSender!: ?DisplayName, lastSenderAvatarUrl!: String, lastSenderId!: ?String, lastSenderNickname!: String, maxSeq!: UInt64, memberPreview!: String, membersCount!: UInt32, mentionCount!: UInt32, mentionMe!: Bool, notifyAll!: Bool, participantVersion!: UInt64, participants!: String, peerReadSeq!: UInt64, remark!: ?String, role!: ?String, title!: DisplayName, unreadCount!: UInt32, updatedAt!: UInt64, updatedAtTs!: ?UInt64, version!: UInt64, visibleAfterSeq!: UInt64) {
         this.avatarUrl = avatarUrl
         this.badge = badge
         this.businessType = businessType
@@ -115,6 +117,7 @@ public class Conversation {
         this.membersCount = membersCount
         this.mentionCount = mentionCount
         this.mentionMe = mentionMe
+        this.notifyAll = notifyAll
         this.participantVersion = participantVersion
         this.participants = participants
         this.peerReadSeq = peerReadSeq

@@ -19,4 +19,5 @@ public interface FlareImClient <: SessionApi {
     prop views: ViewsApi
     prop events: EventsApi
     prop diagnostics: DiagnosticsApi
+    prop notification: NotificationApi
 }

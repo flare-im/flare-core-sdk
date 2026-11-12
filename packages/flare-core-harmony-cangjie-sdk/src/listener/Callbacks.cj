@@ -43,6 +43,18 @@ public interface MessageSendFailedEventCallback {
     func handle(event: MessageSendFailedEvent): Unit
 }
 
+public interface NotificationBadgeEventCallback {
+    func handle(event: NotificationBadgeEvent): Unit
+}
+
+public interface NotificationClearEventCallback {
+    func handle(event: NotificationClearEvent): Unit
+}
+
+public interface NotificationPresentationCallback {
+    func handle(event: NotificationPresentation): Unit
+}
+
 public interface PluginCatalogChangedEventCallback {
     func handle(event: PluginCatalogChangedEvent): Unit
 }

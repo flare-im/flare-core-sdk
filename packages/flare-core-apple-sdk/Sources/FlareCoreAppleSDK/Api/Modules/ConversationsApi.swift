@@ -18,6 +18,7 @@ public protocol ConversationsApiProtocol: AnyObject {
     func markConversationRead(_ request: [String: AnySendable]) async throws -> Void
     func setConversationPinned(_ request: [String: AnySendable]) async throws -> Void
     func setConversationMuted(_ request: [String: AnySendable]) async throws -> Void
+    func setConversationNotifyAll(_ request: [String: AnySendable]) async throws -> Void
     func setConversationArchived(_ request: [String: AnySendable]) async throws -> Void
     func markConversationUnread(_ request: [String: AnySendable]) async throws -> Void
     func deleteConversation(_ request: [String: AnySendable]) async throws -> Void
