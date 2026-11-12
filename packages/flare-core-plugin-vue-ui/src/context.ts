@@ -1,5 +1,7 @@
 import type { InjectionKey, Ref } from "vue";
-import type { FlarePluginMember, FlarePluginResolveUser } from "@flare-im/vue-ui";
+import type {
+  FlarePluginImageSource, FlarePluginMember, FlarePluginResolveUser, FlarePluginUpgradeStatus,
+} from "@flare-im/vue-ui";
 import type { PluginUiSession } from "@flare-im/sdk/plugin-ui";
 export const pluginUiSessionKey: InjectionKey<Ref<PluginUiSession | null>> = Symbol("core-plugin-ui-session");
 /** The conversation the timeline shows; card actions are dispatched bound to it. */
@@ -36,3 +38,17 @@ export const pluginUiStateFeedKey: InjectionKey<CorePluginStateFeed> = Symbol("c
  */
 export type CorePluginErrorText = (error: unknown) => string | undefined;
 export const pluginUiErrorTextKey: InjectionKey<CorePluginErrorText> = Symbol("core-plugin-ui-error-text");
+
+/**
+ * What the host does for plugin views beyond calling Core: upgrade notices and image blocks. Every member is optional;
+ * without one the kit keeps its fallback (the notice's description without a key, the "image unavailable" frame).
+ */
+export interface CorePluginHost {
+  /** `update.plugin_upgrade_status` for an upgrade placeholder's `minBuild` (the social SDK's `plugins.upgradeStatus`). */
+  upgradeStatus?: (minBuild?: number) => Promise<FlarePluginUpgradeStatus>;
+  /** `update.open_flow`: the "Update" key of an upgrade notice; the app's update prompt draws the flow. */
+  openUpdate?: () => Promise<void>;
+  /** An image block's address: an asset path of the plugin or a private file id, read the host's way. */
+  resolveImage?: (source: FlarePluginImageSource) => string | undefined | Promise<string | undefined>;
+}
+export const pluginUiHostKey: InjectionKey<CorePluginHost> = Symbol("core-plugin-ui-host");

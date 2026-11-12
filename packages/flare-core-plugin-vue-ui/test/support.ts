@@ -4,7 +4,8 @@ import { mount } from "@vue/test-utils";
 import { useFlareI18nProvider } from "@flare-im/vue-ui/i18n";
 import { PluginUiSession, type PluginMessageEnvelope, type PluginUiPort } from "@flare-im/sdk/plugin-ui";
 import {
-  provideCorePluginDirectory, provideCorePluginUi, type CorePluginDirectory, type CorePluginErrorText, type CorePluginStateChange,
+  provideCorePluginDirectory, provideCorePluginUi, type CorePluginDirectory, type CorePluginErrorText, type CorePluginHost,
+  type CorePluginStateChange,
 } from "../src/index";
 
 type Call = (request: Record<string, unknown>) => Promise<unknown>;
@@ -51,11 +52,12 @@ export function stateFeed() {
 
 /** Mounts `child` under the kit i18n provider and the Core plugin UI over `port`. */
 export function mountWithSession(port: PluginUiPort, child: () => ReturnType<typeof h>, directory?: CorePluginDirectory,
-  host: { feed?: ReturnType<typeof stateFeed>; errorText?: CorePluginErrorText } = {}) {
+  host: { feed?: ReturnType<typeof stateFeed>; errorText?: CorePluginErrorText; plugin?: CorePluginHost } = {}) {
   const session = shallowRef<PluginUiSession | null>(new PluginUiSession(port, "web", () => "en-US"));
   const feed = host.feed ?? stateFeed();
   const Host = defineComponent({ setup() {
-    provideCorePluginUi(session, { conversationId: () => "conv-1", stateChanges: feed.subscribe, errorText: host.errorText });
+    provideCorePluginUi(session, { conversationId: () => "conv-1", stateChanges: feed.subscribe, errorText: host.errorText,
+      ...(host.plugin ? { host: host.plugin } : {}) });
     if (directory) provideCorePluginDirectory(directory);
     return child;
   } });

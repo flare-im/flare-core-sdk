@@ -134,13 +134,17 @@ export interface PluginFormError { input: string; issue: PluginFormIssue }
  */
 export type PluginUnavailableReason =
   | "disabled" | "not_installed" | "no_permission" | "unsupported_platform"
-  | "incompatible_version" | "catalog_unreachable" | "unbound_copy";
+  | "incompatible_version" | "catalog_unreachable" | "unbound_copy"
+  /** This build cannot show it: the host offers the update (kit upgrade notice) with `minBuild`. */
+  | "upgrade_required";
 
 /** A resolved document: a card, a composer form, or a detail sheet. */
 export interface PluginPresentation {
   presentation?: { renderer: string; props: Record<string, unknown>; actions: Record<string, string> };
   available: boolean;
   unavailableReason?: PluginUnavailableReason;
+  /** With `upgrade_required`: the lowest build that shows it, when the plugin names one. */
+  minBuild?: number;
   title: string;
   fields: PluginUiField[];
   /** Button-row actions not owned by a block; block actions live in their block. */
@@ -224,10 +228,11 @@ export function pluginFormErrors(value: unknown): PluginFormError[] {
 
 const UNAVAILABLE_REASONS: ReadonlySet<string> = new Set<PluginUnavailableReason>([
   "disabled", "not_installed", "no_permission", "unsupported_platform", "incompatible_version", "catalog_unreachable", "unbound_copy",
+  "upgrade_required",
 ]);
 
 /** The v2 members of a resolved view, copied only when present and well-typed. */
-export function pluginViewExtras(view: Record<string, unknown>): Pick<PluginPresentation, "presentation" | "blocks" | "inputs" | "detail" | "menuActions" | "unavailableReason"> {
+export function pluginViewExtras(view: Record<string, unknown>): Pick<PluginPresentation, "presentation" | "blocks" | "inputs" | "detail" | "menuActions" | "unavailableReason" | "minBuild"> {
   const p = view.presentation as PluginPresentation["presentation"];
   return {
     ...(view.available === true && p && typeof p.renderer === "string" && p.props && typeof p.props === "object"
@@ -238,5 +243,7 @@ export function pluginViewExtras(view: Record<string, unknown>): Pick<PluginPres
     ...(Array.isArray(view.menuActions) && view.menuActions.length ? { menuActions: view.menuActions as PluginUiAction[] } : {}),
     ...(typeof view.unavailableReason === "string" && UNAVAILABLE_REASONS.has(view.unavailableReason)
       ? { unavailableReason: view.unavailableReason as PluginUnavailableReason } : {}),
+    ...(view.unavailableReason === "upgrade_required" && typeof view.minBuild === "number"
+      && Number.isSafeInteger(view.minBuild) && view.minBuild > 0 ? { minBuild: view.minBuild } : {}),
   };
 }

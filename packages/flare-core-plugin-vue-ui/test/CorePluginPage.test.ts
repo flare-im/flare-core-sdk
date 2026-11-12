@@ -351,7 +351,7 @@ describe("CorePluginPage", () => {
       row: { key: "l1", input: { packetId: "p1" } } });
     await flushPromises();
     const request = port.invokePageAction.mock.calls[0][0];
-    expect(request).toEqual({ pluginId: root.pluginId, page: root.page, actionId: "open", userGesture: true, platform: "web", nativeAllowlist: [],
+    expect(request).toEqual({ pluginId: root.pluginId, page: root.page, actionId: "open", userGesture: true, platform: "web",
       data: { balanceText: "¥12.30" }, row: { key: "l1", input: { packetId: "p1" } } });
     expect(port.invokeAction).not.toHaveBeenCalled();
     expect(host().props()).toMatchObject({ busyActionId: undefined, settleToken: 1 });
@@ -441,5 +441,62 @@ describe("CorePluginPage", () => {
     expect(corePluginPageEntry({ pluginId: "acme.task", page: "acme.task.board" }, { boardId: "b1" }, "Board"))
       .toEqual({ pluginId: "acme.task", page: "acme.task.board", title: "Board", args: { boardId: "b1" } });
     expect(corePluginPageEntry({ pluginId: "acme.task", page: "acme.task.board" })).toEqual({ pluginId: "acme.task", page: "acme.task.board", title: "" });
+  });
+
+  it("shows an upgrade placeholder page with the device's update status and opens the update flow on its key", async () => {
+    const placeholder = { available: false, title: "Board", fields: [], actions: [], unavailableReason: "upgrade_required", minBuild: 41020 };
+    let opened!: () => void;
+    const host = {
+      upgradeStatus: vi.fn(async () => ({ available: true, build: 41020 })),
+      openUpdate: vi.fn(() => new Promise<void>((resolve) => { opened = resolve; })),
+    };
+    const { host: kit } = render(pagePort(async () => placeholder), { host });
+    await flushPromises();
+    expect(host.upgradeStatus).toHaveBeenCalledWith(41020);
+    expect(kit().props("upgradeStatus")).toEqual({ available: true, build: 41020 });
+    expect(kit().props("upgradeBusy")).toBe(false);
+    kit().props("onUpdate")?.();
+    await nextTick();
+    expect(host.openUpdate).toHaveBeenCalledOnce();
+    expect(kit().props("upgradeBusy")).toBe(true);
+    kit().props("onUpdate")?.();
+    expect(host.openUpdate).toHaveBeenCalledOnce();
+    opened();
+    await flushPromises();
+    expect(kit().props("upgradeBusy")).toBe(false);
+  });
+
+  it("asks nothing for a page that draws, and leaves the notice keyless without a host", async () => {
+    const host = { upgradeStatus: vi.fn(async () => ({ available: false })) };
+    const { host: kit } = render(pagePort(async () => page()), { host });
+    await flushPromises();
+    expect(host.upgradeStatus).not.toHaveBeenCalled();
+    expect(kit().props("upgradeStatus")).toBeNull();
+    const bare = render(pagePort(async () => ({ available: false, title: "", fields: [], actions: [], unavailableReason: "upgrade_required" })));
+    await flushPromises();
+    expect(bare.host().props("onUpdate")).toBeUndefined();
+  });
+
+  it("refreshes an expired QR code by running the declared query, then reading the page again", async () => {
+    const port = pagePort(async () => page());
+    const { host } = render(port);
+    await flushPromises();
+    host().vm.$emit("qrRefresh", { operation: "flare.wallet.receive_code", valuePath: "/code" });
+    await flushPromises();
+    expect(port.dispatch).toHaveBeenCalledWith({ capabilityId: "flare.wallet.receive_code", payload: {} });
+    expect(calls(port)).toHaveLength(2);
+    expect(calls(port)[1]).toMatchObject({ refresh: true });
+    // A refused query keeps the shown page.
+    port.dispatch.mockRejectedValueOnce(new Error("denied"));
+    host().vm.$emit("qrRefresh", { operation: "flare.wallet.receive_code", valuePath: "/code" });
+    await flushPromises();
+    expect(calls(port)).toHaveLength(2);
+  });
+
+  it("hands the host's image resolver to the page", async () => {
+    const resolveImage = vi.fn(() => "blob:x");
+    const { host } = render(pagePort(async () => page()), { host: { resolveImage } });
+    await flushPromises();
+    expect(host().props("resolveImage")).toBe(resolveImage);
   });
 });

@@ -12,8 +12,8 @@ export interface PluginUiPort {
   presentMessage(request: Record<string, unknown>): Promise<unknown>;
   /** `capability.plugin_ui_invoke`: given `messageId`, Core stores a successful result's
    * `data.sharedState` (this card's entity) and `data.messageState` on that message and emits a
-   * message update. Request adds `actionId`, `userGesture`, `conversationId?`, `nativeAllowlist`,
-   * `formValues?` and `selection?` to the present fields. */
+   * message update. Request adds `actionId`, `userGesture`, `conversationId?`, `formValues?` and `selection?` to the
+   * present fields. The native allowlist is the host profile's (`plugin.set_host_profile`), never sent per call. */
   invokeAction(request: Record<string, unknown>): Promise<unknown>;
   /** `capability.plugin_detail`: the card's "view all" sheet. Request:
    * `{message, messageId?, conversationId?, platform, locale, userGesture, cursor?, previous?, refresh?}`; returns
@@ -40,7 +40,6 @@ export interface PluginUiPort {
  */
 export type PluginPageActionRequest = {
   pluginId: string; page: string; actionId: string; platform: PluginPlatform; userGesture: boolean;
-  nativeAllowlist: readonly string[];
   data?: Record<string, unknown>; row?: { key: string; input: Record<string, unknown> }; conversationId?: string;
   formValues?: Record<string, unknown>; selection?: readonly number[];
 };
@@ -179,7 +178,7 @@ export class PluginUiSession {
     const generation = this.generation;
     const { messageId, conversationId, userGesture, formValues, selection } = options;
     const value = await this.port.invokeAction({ message, ...(messageId && validPluginMessageId(messageId) ? { messageId } : {}),
-      ...(conversationId ? { conversationId } : {}), platform: this.platform, actionId, userGesture, nativeAllowlist: this.native?.capabilities ?? [],
+      ...(conversationId ? { conversationId } : {}), platform: this.platform, actionId, userGesture,
       ...(formValues ? { formValues } : {}), ...(selection ? { selection } : {}) });
     if (generation !== this.generation) throw new Error("Plugin session changed");
     return this.actionOutcome(value, message.pluginId, conversationId);
@@ -222,7 +221,7 @@ export class PluginUiSession {
     const generation = this.generation;
     const { data, row, conversationId, userGesture, formValues, selection } = options;
     const value = await this.port.invokePageAction({ pluginId, page, actionId, platform: this.platform, userGesture,
-      nativeAllowlist: this.native?.capabilities ?? [], ...(data ? { data } : {}), ...(row ? { row } : {}),
+      ...(data ? { data } : {}), ...(row ? { row } : {}),
       ...(conversationId ? { conversationId } : {}), ...(formValues ? { formValues } : {}), ...(selection ? { selection } : {}) });
     if (generation !== this.generation) throw new Error("Plugin session changed");
     return this.actionOutcome(value, pluginId, conversationId);
@@ -276,11 +275,21 @@ export class PluginUiSession {
     return { available: view.available, title: view.title, fields: view.fields, actions: view.actions,
       ...pluginViewExtras(view as unknown as Record<string, unknown>), ...(nextCursor ? { nextCursor } : {}) };
   }
+  /**
+   * A query the shown view declares for the host to run (a QR block's refresh operation), with `{}` as its input. Core
+   * checks the grant as for any call; the host then refreshes the view. Throws when the session changed meanwhile.
+   */
+  async query(operation: string, conversationId?: string): Promise<unknown> {
+    const generation = this.generation;
+    const value = await this.port.dispatch({ capabilityId: operation, payload: {}, ...(conversationId ? { conversationId } : {}) });
+    if (generation !== this.generation) throw new Error("Plugin session changed");
+    return value;
+  }
   async invoke(message: PluginMessageEnvelope, actionId: string, userGesture: boolean): Promise<unknown> {
     const generation = this.generation;
     const catalog = await this.port.catalog(); // Recheck latest grant before each action.
     const value = await this.port.action({ catalog, platform: this.platform, pluginId: message.pluginId,
-      contributionId: message.contributionId, actionId, userGesture, payload: message.payload, nativeAllowlist: this.native?.capabilities ?? [] });
+      contributionId: message.contributionId, actionId, userGesture, payload: message.payload });
     if (generation !== this.generation) throw new Error("Plugin session changed");
     const prepared = value as { target: { kind: string; operation?: string; page?: string; pluginId?: string; capability?: string }; payload: Record<string, unknown> };
     const target = prepared.target;

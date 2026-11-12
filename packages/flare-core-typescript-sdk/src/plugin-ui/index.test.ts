@@ -73,7 +73,7 @@ describe("plugin UI runtime adapter", () => {
     const host = new PluginUiSession(api, "tauri", () => "en-US");
     expect(await host.invokeAction(message, "vote", { messageId: "server-9", conversationId: "group-1", userGesture: true }))
       .toEqual({ kind: "operation", response: { success: true, data: { messageState: { version: 4, values: {} } } } });
-    expect(request).toEqual({ message, messageId: "server-9", conversationId: "group-1", platform: "tauri", actionId: "vote", userGesture: true, nativeAllowlist: [] });
+    expect(request).toEqual({ message, messageId: "server-9", conversationId: "group-1", platform: "tauri", actionId: "vote", userGesture: true });
     api.invokeAction = async () => ({ kind: "host", target: { kind: "page", page: "wallet" }, payload: {} });
     await expect(host.invokeAction(message, "vote", { userGesture: true })).rejects.toThrow("Plugin target unavailable");
     const pages: unknown[] = [];
@@ -194,7 +194,7 @@ describe("plugin UI card protocol v2", () => {
     api.invokePageAction = async (request) => { actions.push({ ...request }); return { kind: "host", target: { kind: "page", page: "example.poll.history" }, payload: { currency: "CNY" } }; };
     await host.invokePageAction("example.poll", "example.poll.wallet", "history", { data: view.data, userGesture: true });
     expect(actions[0]).toEqual({ pluginId: "example.poll", page: "example.poll.wallet", actionId: "history", platform: "web", userGesture: true,
-      nativeAllowlist: [], data: { currency: "CNY" } });
+      data: { currency: "CNY" } });
     expect(opened).toEqual([[{ pluginId: "example.poll", page: "example.poll.history" }, { currency: "CNY" }]]);
     const bare = new PluginUiSession(port(), "web");
     await expect(bare.page("example.poll", "example.poll.wallet")).rejects.toThrow("Plugin page unavailable");
@@ -210,7 +210,7 @@ describe("plugin UI card protocol v2", () => {
     expect(outcome).toEqual({ kind: "formErrors", errors: [{ input: "amount", issue: "required" }] });
     expect(card).toEqual([]);
     expect(pages).toEqual([{ pluginId: "flare.wallet", page: "flare.wallet.history", actionId: "open", platform: "android", userGesture: true,
-      nativeAllowlist: ["clipboardWrite"], row: { key: "e-1", input: { entryId: "e-1" } }, conversationId: "conv-1", formValues: { note: "hi" }, selection: [0] }]);
+      row: { key: "e-1", input: { entryId: "e-1" } }, conversationId: "conv-1", formValues: { note: "hi" }, selection: [0] }]);
     // An answer that arrives after the session changed (sign-out, another account) is not acted on.
     let release!: (value: unknown) => void;
     api.invokePageAction = () => new Promise((resolve) => { release = resolve; });
@@ -235,5 +235,20 @@ describe("plugin UI card protocol v2", () => {
   it("maps the host's UI language onto the manifest locales", () => {
     for (const tag of ["en", "en-US", "en-GB", " EN-au "]) expect(pluginManifestLocale(tag)).toBe("en-US");
     for (const tag of ["zh-CN", "zh-Hant-TW", "ja-JP", "", undefined, null]) expect(pluginManifestLocale(tag)).toBe("zh-CN");
+  });
+  it("keeps an upgrade placeholder's reason and floor so the host can offer the update", async () => {
+    const api = port();
+    api.pluginPage = async () => ({ available: false, title: "看板", fields: [], actions: [], unavailableReason: "upgrade_required", minBuild: 41020 });
+    const host = new PluginUiSession(api, "web");
+    const page = await host.page("acme.board", "acme.board.home");
+    expect(page.unavailableReason).toBe("upgrade_required");
+    expect(page.minBuild).toBe(41020);
+    // A floor on another reason, or a floor that is not a build number, is not kept.
+    api.pluginPage = async () => ({ available: false, title: "", fields: [], actions: [], unavailableReason: "disabled", minBuild: 41020 });
+    expect((await host.page("acme.board", "acme.board.home")).minBuild).toBeUndefined();
+    api.pluginPage = async () => ({ available: false, title: "", fields: [], actions: [], unavailableReason: "upgrade_required", minBuild: -1 });
+    const unknownFloor = await host.page("acme.board", "acme.board.home");
+    expect(unknownFloor.unavailableReason).toBe("upgrade_required");
+    expect(unknownFloor.minBuild).toBeUndefined();
   });
 });

@@ -8,11 +8,14 @@
 import { computed, inject, onBeforeUnmount, ref, shallowReactive, shallowRef, watch } from "vue";
 import {
   FlarePluginDetailSheet, FlarePluginView, useFlareI18n,
-  type FlarePluginActionPayload, type FlarePluginFormError, type FlarePluginMember, type FlarePluginResolveUser,
-  type FlarePluginViewModel,
+  type FlarePluginActionPayload, type FlarePluginFormError, type FlarePluginMember, type FlarePluginQrRefresh,
+  type FlarePluginResolveUser, type FlarePluginViewModel,
 } from "@flare-im/vue-ui";
 import type { PluginDetailPresentation } from "@flare-im/sdk/plugin-ui";
-import { pluginUiConversationKey, pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiSessionKey, pluginUiStateFeedKey } from "./context";
+import {
+  pluginUiConversationKey, pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiHostKey, pluginUiSessionKey, pluginUiStateFeedKey,
+} from "./context";
+import { useCorePluginUpgrade } from "./upgrade";
 
 // The kit hands renderers more than these (isSelf, listeners); a card with a detail sheet has two roots.
 defineOptions({ inheritAttrs: false });
@@ -33,6 +36,7 @@ const hostConversation = inject(pluginUiConversationKey, () => undefined);
 const directory = inject(pluginUiDirectoryKey, {});
 const stateChanges = inject(pluginUiStateFeedKey, null);
 const errorText = inject(pluginUiErrorTextKey, () => undefined);
+const pluginHost = inject(pluginUiHostKey, {});
 const resolver = computed(() => props.resolveUser ?? directory.resolveUser);
 const members = computed(() => props.members ?? directory.members?.() ?? []);
 const conversation = () => props.conversationId || hostConversation();
@@ -58,6 +62,19 @@ async function refresh(reset: boolean): Promise<void> {
   if (mine !== viewGeneration || host !== session.value) return;
   if (!reset && JSON.stringify(result) === JSON.stringify(view.value)) return;
   view.value = result;
+}
+
+// An upgrade placeholder (D-18): the card's notice asks whether this device is offered the build it needs.
+const upgrade = useCorePluginUpgrade(() => view.value, () => pluginHost);
+/**
+ * An expired QR code: run the query the block declares (Core checks the grant), then present the card again. A failed
+ * query keeps the expired code, whose key the viewer can press again.
+ */
+async function refreshQr(request: FlarePluginQrRefresh): Promise<void> {
+  const host = session.value;
+  if (!host || !view.value.available) return;
+  try { await host.query(request.operation, conversation()); } catch { return; }
+  if (host === session.value) void refresh(false);
 }
 
 // ── actions ──────────────────────────────────────────────────────────────
@@ -196,8 +213,13 @@ onBeforeUnmount(() => { viewGeneration++; actionScope++; detailGeneration++; sto
     :settle-token="onCard.settleToken"
     :resolve-user="resolver"
     :members="members"
+    :resolve-image="pluginHost.resolveImage"
+    :upgrade-status="upgrade.status.value"
+    :on-update="upgrade.update.value"
+    :upgrade-busy="upgrade.busy.value"
     @action="cardAction"
     @open-detail="openDetail"
+    @qr-refresh="refreshQr"
   />
   <FlarePluginDetailSheet
     v-if="detailUsed"

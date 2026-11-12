@@ -193,4 +193,29 @@ describe("composer menu exports", () => {
     expect(pluginPostedCard({ message: { pluginId: "acme.task" } })).toBeNull();
     expect(typeof useComposerMenu).toBe("function");
   });
+
+  it("keeps an upgrade placeholder in the panel with its badge and routes it to the upgrade notice", () => {
+    const menu = parseComposerMenu({ tools: ["attachments"], actions: [
+      { ...item },
+      { id: "plugin:acme.board.create", kind: "plugin", pluginId: "acme.board", contributionId: "acme.board.create", label: "Board",
+        order: 20, upgrade: { minBuild: 41020 } },
+      { id: "plugin:acme.relay.create", kind: "plugin", pluginId: "acme.relay", contributionId: "acme.relay.create", label: "Relay",
+        order: 30, upgrade: { minBuild: "soon" } },
+    ] });
+    expect(menu.actions.map((action) => action.kind === "plugin" ? action.upgrade : undefined))
+      .toEqual([undefined, { minBuild: 41020 }, {}]);
+    const panel = composerPanelActions(menu, "Update needed");
+    expect(panel.map((action) => (action as { badge?: string }).badge)).toEqual([undefined, "Update needed", "Update needed"]);
+    expect(composerPanelActions(menu).some((action) => "badge" in action)).toBe(false);
+    const fallback = vi.fn(), upgrade = vi.fn(), native = vi.fn();
+    const routes = { features: {}, plugins: { "acme.board/acme.board.create": native }, fallback, upgrade };
+    expect(routeComposerAction(menu, "plugin:acme.board.create", routes)).toBe(true);
+    expect(upgrade).toHaveBeenCalledWith(expect.objectContaining({ pluginId: "acme.board", upgrade: { minBuild: 41020 } }));
+    expect(native).not.toHaveBeenCalled();
+    expect(fallback).not.toHaveBeenCalled();
+    // Without an upgrade route a placeholder opens nothing, never its form.
+    expect(routeComposerAction(menu, "plugin:acme.relay.create", { features: {}, plugins: {}, fallback })).toBe(false);
+    expect(fallback).not.toHaveBeenCalled();
+  });
 });
+

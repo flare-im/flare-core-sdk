@@ -9,7 +9,7 @@
  * new values), a page action (`invokePageAction` with the view's `data` and the row's `row`, no message). A page target
  * an action opens is pushed with its own plugin; back pops it, and on the root page emits `back`.
  */
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
+import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import {
   FlarePluginPage,
   FlareImagePreview,
@@ -22,6 +22,7 @@ import {
   type FlarePluginPageActionPayload,
   type FlarePluginResolveUser,
   type FlarePluginMember,
+  type FlarePluginQrRefresh,
 } from "@flare-im/vue-ui";
 import {
   pluginManifestLocale,
@@ -30,7 +31,8 @@ import {
   type PluginUiPort,
   type PluginUiSession,
 } from "@flare-im/sdk/plugin-ui";
-import type { CorePluginErrorText } from "./context";
+import { pluginUiHostKey, type CorePluginErrorText, type CorePluginHost } from "./context";
+import { useCorePluginUpgrade } from "./upgrade";
 import { corePluginPageSession, pluginPagePostedCard, type CorePluginPageEntry } from "./pluginPage";
 import type { PluginPostedCard } from "./composerMenu";
 import { PluginFileUploads, choosePluginFile, pluginFileSessionData } from "./pluginFileUploads";
@@ -57,10 +59,14 @@ const props = defineProps<{
   errorText?: CorePluginErrorText;
   /** The host's line for a page that failed to load for any other reason. */
   loadFailedText: string;
+  /** Upgrade notices and image blocks; defaults to the one provided above (`provideCorePluginHost`). */
+  host?: CorePluginHost;
 }>();
 const emit = defineEmits<{ back: []; posted: [card: PluginPostedCard, owner: CorePluginPageEntry] }>();
 
 const { t, locale } = useFlareI18n();
+const providedHost = inject(pluginUiHostKey, undefined);
+const pluginHost = (): CorePluginHost => props.host ?? providedHost ?? {};
 /** The pages opened from the root, the root first. Each keeps its own filters. */
 const stack = ref<Array<CorePluginPageEntry & { filters: Record<string, unknown> }>>([{ ...props.root, filters: {} }]);
 // Reopening the same entry is a new presentation even when every route field is equal.
@@ -76,6 +82,8 @@ watch([() => props.port, () => props.viewerId], ([port]) => {
 }, { immediate: true });
 
 const view = shallowRef<PluginPagePresentation>();
+// A page this build cannot draw (D-18): the whole-page notice asks whether the build it needs is offered here.
+const upgrade = useCorePluginUpgrade(() => view.value, pluginHost);
 const loading = ref(false);
 const refreshing = ref(false);
 const loadingMore = ref(false);
@@ -272,6 +280,15 @@ async function action(actionId: string, payload: FlarePluginPageActionPayload): 
   if (current() && changed && stack.value.length === depth) void load("refresh");
 }
 
+/** An expired QR code on the page: run the query the block declares, then read the page again in place. */
+async function refreshQr(request: FlarePluginQrRefresh): Promise<void> {
+  const active = session.value;
+  const entry = top.value;
+  if (!active || !entry || !view.value?.available) return;
+  try { await active.query(request.operation, entry.conversationId); } catch { return; }
+  if (active === session.value) void load("refresh");
+}
+
 function back(): void {
   if (stack.value.length > 1) stack.value = stack.value.slice(0, -1);
   else emit("back");
@@ -305,6 +322,10 @@ function back(): void {
     :form-errors="formErrors"
     :settle-token="settleToken"
     :file-states="fileStates"
+    :resolve-image="pluginHost().resolveImage"
+    :upgrade-status="upgrade.status.value"
+    :on-update="upgrade.update.value"
+    :upgrade-busy="upgrade.busy.value"
     @back="back"
     @refresh="load('refresh')"
     @retry="load()"
@@ -312,6 +333,7 @@ function back(): void {
     @filter="filter"
     @action="action"
     @file-action="fileAction"
+    @qr-refresh="refreshQr"
   />
   <FlareImagePreview
     :show="Boolean(filePreview)"
