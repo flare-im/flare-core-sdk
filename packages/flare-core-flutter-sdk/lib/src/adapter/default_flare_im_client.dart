@@ -468,6 +468,26 @@ final class _DefaultUpdateApi implements UpdateApi {
       );
 
   @override
+  Future<PluginUpgradeStatus> pluginUpgradeStatus(
+    UpdatePluginUpgradeStatusRequest request,
+  ) async =>
+      pluginUpgradeStatusFromJson(
+        await _bridge.invoke<Object?>(
+          NativeCallMap.updatePluginUpgradeStatus,
+          updatePluginUpgradeStatusRequestToMap(request),
+        ),
+      );
+
+  @override
+  Future<UpdateStatus> openFlow(UpdateOpenFlowRequest request) async =>
+      updateStatusFromJson(
+        await _bridge.invoke<Object?>(
+          NativeCallMap.updateOpenFlow,
+          updateOpenFlowRequestToMap(request),
+        ),
+      );
+
+  @override
   Future<UpdateResources> getResources(
     UpdateGetResourcesRequest request,
   ) async => updateResourcesFromJson(
@@ -1438,6 +1458,14 @@ final class _DefaultCapabilitiesApi implements CapabilitiesApi {
     return _bridge.invoke<void>(
       NativeCallMap.capabilityPluginCatalogInvalidate,
       request,
+    );
+  }
+
+  @override
+  Future<void> setPluginHostProfile(PluginHostProfile request) {
+    return _bridge.invoke<void>(
+      NativeCallMap.pluginSetHostProfile,
+      pluginHostProfileToMap(request),
     );
   }
 
