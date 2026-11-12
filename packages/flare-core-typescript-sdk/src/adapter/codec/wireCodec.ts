@@ -116,6 +116,8 @@ import {
   OpenConversationListViewRequest,
   OpenConversationTimelineRequest,
   OpenTimelineViewRequest,
+  PluginCapabilityCompletion,
+  PluginCapabilityRequestEvent,
   PluginCatalogChangedEvent,
   PluginCommandRequest,
   PluginEventName,
@@ -1593,9 +1595,24 @@ export function pluginCatalogChangedEventToMap(request: PluginCatalogChangedEven
   };
 }
 
+export function pluginCapabilityRequestEventToMap(request: PluginCapabilityRequestEvent): Record<string, unknown> {
+  return {
+  requestId: request.requestId,
+  method: request.method,
+  request: request.request,
+  };
+}
+
 export function pluginUiEvaluationRequestToMap(request: PluginUiEvaluationRequest): Record<string, unknown> {
   return {
   payload: request.payload,
+  };
+}
+
+export function pluginCapabilityCompletionToMap(request: PluginCapabilityCompletion): Record<string, unknown> {
+  return {
+  requestId: request.requestId,
+  result: request.result,
   };
 }
 

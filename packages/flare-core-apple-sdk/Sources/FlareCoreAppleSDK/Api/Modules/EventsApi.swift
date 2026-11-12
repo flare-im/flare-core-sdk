@@ -48,4 +48,5 @@ public protocol EventsApiProtocol: AnyObject {
     func onDownloadProgress(_ listener: @escaping EventCallback<ProgressEvent>) -> any EventSubscription
     func onPluginRealtime(_ listener: @escaping EventCallback<PluginRealtimeEvent>) -> any EventSubscription
     func onPluginCatalogChanged(_ listener: @escaping EventCallback<PluginCatalogChangedEvent>) -> any EventSubscription
+    func onPluginCapabilityRequest(_ listener: @escaping EventCallback<PluginCapabilityRequestEvent>) -> any EventSubscription
 }

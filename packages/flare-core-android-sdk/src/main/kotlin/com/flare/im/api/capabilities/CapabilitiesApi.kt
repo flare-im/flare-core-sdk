@@ -55,6 +55,14 @@ interface CapabilitiesApi {
     suspend fun pluginPage(request: PluginUiEvaluationRequest): Map<String, Any?>
     /** pluginFileUpload maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_file_upload`. Operation: `capability.plugin_file_upload`. */
     suspend fun pluginFileUpload(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** pluginCapabilityInvoke maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_invoke`. Operation: `capability.plugin_capability_invoke`. */
+    suspend fun pluginCapabilityInvoke(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** pluginCapabilityConsents maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_consents`. Operation: `capability.plugin_capability_consents`. */
+    suspend fun pluginCapabilityConsents(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** revokePluginCapabilityConsent maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_consent_revoke`. Operation: `capability.plugin_capability_consent_revoke`. */
+    suspend fun revokePluginCapabilityConsent(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** completePluginCapabilityRequest maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `plugin.capability_complete`. */
+    suspend fun completePluginCapabilityRequest(request: PluginCapabilityCompletion): Unit
     /** pluginAccountEntries maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`. */
     suspend fun pluginAccountEntries(request: PluginUiEvaluationRequest): Map<String, Any?>
     /** invalidatePluginCatalog maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`. */

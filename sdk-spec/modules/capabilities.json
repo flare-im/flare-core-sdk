@@ -151,6 +151,49 @@
       "stability": "experimental"
     },
     {
+      "name": "pluginCapabilityInvoke",
+      "description": "Run a plugin host capability after a user gesture. payload is {pluginId, capability, params?, into?, order?, platform, locale?, page?, conversationId?, arguments?, data?, formValues?, commandId?, userGesture}: capability, params and into from the native target invokePluginAction handed back ({kind: host, target}), or capability paymentConfirmation with order, the confirmation an operation result carried. It runs only when the plugin's manifest declares it, the host profile allows it and the viewer consents (asked through a plugin.capability_request consent, kept per plugin, capability and manifest major; never asked for clipboardWrite, selectImage and selectFile). Then the host's part is asked through plugin.capability_request and the result handled: a captured document or picked file is uploaded privately into the page input into names and returned as {kind: input, input, value: {fileId}}; a location fix is truncated to the declared precision, {kind: location, location: {latitude, longitude, accuracyM, precision}}; an open order is confirmed and its transient operation called with {orderId, confirmation}, {kind: operation, response}. Also {kind: host, capability} (the host goes on: clipboardWrite, microphone, a pick without into), {kind: denied}, {kind: cancelled}, {kind: unavailable}. An expired order fails with sdk.plugin.payment_order_expired; an undeclared or disallowed capability with sdk.plugin.native_capability_unavailable.",
+      "operation": "capability.plugin_capability_invoke",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_capability_invoke",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "pluginCapabilityConsents",
+      "description": "payload {pluginId?}. Returns {consents: [{pluginId, capability, manifestMajor, level, grantedAtMs}]}: the capability consents the signed-in viewer gave on this device, of one plugin or of all, for a settings screen.",
+      "operation": "capability.plugin_capability_consents",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_capability_consents",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "revokePluginCapabilityConsent",
+      "description": "payload {pluginId, capability?}. Drops the viewer's consent to one capability of the plugin, or to all of them; the next use asks again. Returns {revoked}.",
+      "operation": "capability.plugin_capability_consent_revoke",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_capability_consent_revoke",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "completePluginCapabilityRequest",
+      "operation": "plugin.capability_complete",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "PluginCapabilityCompletion",
+      "response": "Unit",
+      "stability": "experimental",
+      "description": "The host's answer to a plugin.capability_request event: {requestId, result}. Refused with sdk.plugin.capability_request_unknown once that request no longer waits (answered, timed out after 10 minutes, or its session ended)."
+    },
+    {
       "name": "pluginAccountEntries",
       "description": "payload {platform, locale}. Returns {entries: [{pluginId, contributionId, title, icon?, order, page, summary?}]}: the account-entry contributions (\"Me\" screen entries, such as a wallet) of the authorized catalog for that platform, title in locale (exact tag, then language), sorted by order (default 1000) then title. page is the plugin's page contribution the entry opens. summary {operation, path} names a query operation and the pointer of a scalar in its result data to show as the subtitle; listing never calls it: dispatch the operation with payload {} when the entry is shown. Reads a fresh catalog every call; the server already trimmed it by grant, capability policy and user consent.",
       "operation": "capability.plugin_account_entries",

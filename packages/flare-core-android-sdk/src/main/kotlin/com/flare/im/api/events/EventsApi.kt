@@ -76,4 +76,5 @@ interface EventsApi {
     fun onDownloadProgress(listener: EventCallback<ProgressEvent>): EventSubscription
     fun onPluginRealtime(listener: EventCallback<PluginRealtimeEvent>): EventSubscription
     fun onPluginCatalogChanged(listener: EventCallback<PluginCatalogChangedEvent>): EventSubscription
+    fun onPluginCapabilityRequest(listener: EventCallback<PluginCapabilityRequestEvent>): EventSubscription
 }

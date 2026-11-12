@@ -275,7 +275,8 @@
     {
       "names": [
         "realtime",
-        "catalog_changed"
+        "catalog_changed",
+        "capability_request"
       ],
       "type": "plugin"
     },
@@ -629,6 +630,13 @@
       "kind": "plugin",
       "name": "onPluginCatalogChanged",
       "payload": "PluginCatalogChangedEvent"
+    },
+    {
+      "description": "The engine asks the host to do its part of a plugin host capability (method consent, captureDocument, pickFile, confirmPayment or locateOnce). Show the kit's screen for it and answer with completePluginCapabilityRequest({requestId, result}); the engine waits up to 10 minutes.",
+      "eventName": "capability_request",
+      "kind": "plugin",
+      "name": "onPluginCapabilityRequest",
+      "payload": "PluginCapabilityRequestEvent"
     }
   ],
   "messageBuildCatalog": {
@@ -6342,7 +6350,8 @@
           "name": "PluginEventName",
           "values": [
             "realtime",
-            "catalog_changed"
+            "catalog_changed",
+            "capability_request"
           ]
         }
       ],
@@ -6993,6 +7002,33 @@
             }
           ],
           "name": "PluginCatalogChangedEvent"
+        },
+        {
+          "description": "The engine asks the host to do its part of a plugin host capability; answer with completePluginCapabilityRequest.",
+          "fields": [
+            {
+              "description": "Pass it back with the result.",
+              "name": "requestId",
+              "required": true,
+              "type": "UInt64",
+              "wireName": "requestId"
+            },
+            {
+              "description": "consent, captureDocument, pickFile, confirmPayment or locateOnce.",
+              "name": "method",
+              "required": true,
+              "type": "String",
+              "wireName": "method"
+            },
+            {
+              "description": "consent: {pluginId, pluginVersion, capability, params?}; captureDocument: {pluginId, side, accept, maxBytes}; pickFile: {pluginId, capability, accept, maxBytes}; confirmPayment: {pluginId, order: {orderId, amount, currency, payee, title, expiresAtMs, operation}}; locateOnce: {pluginId, precision}.",
+              "name": "request",
+              "required": true,
+              "type": "JsonObject",
+              "wireName": "request"
+            }
+          ],
+          "name": "PluginCapabilityRequestEvent"
         }
       ]
     },
@@ -7012,6 +7048,26 @@
             }
           ],
           "name": "PluginUiEvaluationRequest"
+        },
+        {
+          "description": "The host's answer to a plugin.capability_request event.",
+          "fields": [
+            {
+              "description": "The event's requestId.",
+              "name": "requestId",
+              "required": true,
+              "type": "UInt64",
+              "wireName": "requestId"
+            },
+            {
+              "description": "consent: {granted}; captureDocument and pickFile: {file: {fileName, contentType, bytes: [0..255]}} (a document photo compressed, without EXIF); confirmPayment: {confirmation: {...}} (the proof the order's operation takes, at most 4 KiB); locateOnce: {location: {latitude, longitude, accuracyM?}}. Any of them may instead be {cancelled: true} (the viewer backed out) or {unavailable: true} (the host could not); absent counts as unavailable.",
+              "name": "result",
+              "required": false,
+              "type": "JsonObject",
+              "wireName": "result"
+            }
+          ],
+          "name": "PluginCapabilityCompletion"
         },
         {
           "description": "The plugin UI a host can draw.",
@@ -10312,6 +10368,81 @@
           "response": "JsonObject",
           "stability": "experimental",
           "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
+          "description": "Run a plugin host capability after a user gesture. payload is {pluginId, capability, params?, into?, order?, platform, locale?, page?, conversationId?, arguments?, data?, formValues?, commandId?, userGesture}: capability, params and into from the native target invokePluginAction handed back ({kind: host, target}), or capability paymentConfirmation with order, the confirmation an operation result carried. It runs only when the plugin's manifest declares it, the host profile allows it and the viewer consents (asked through a plugin.capability_request consent, kept per plugin, capability and manifest major; never asked for clipboardWrite, selectImage and selectFile). Then the host's part is asked through plugin.capability_request and the result handled: a captured document or picked file is uploaded privately into the page input into names and returned as {kind: input, input, value: {fileId}}; a location fix is truncated to the declared precision, {kind: location, location: {latitude, longitude, accuracyM, precision}}; an open order is confirmed and its transient operation called with {orderId, confirmation}, {kind: operation, response}. Also {kind: host, capability} (the host goes on: clipboardWrite, microphone, a pick without into), {kind: denied}, {kind: cancelled}, {kind: unavailable}. An expired order fails with sdk.plugin.payment_order_expired; an undeclared or disallowed capability with sdk.plugin.native_capability_unavailable.",
+          "dispatchOp": "plugin_capability_invoke",
+          "name": "pluginCapabilityInvoke",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_capability_invoke",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
+          "description": "payload {pluginId?}. Returns {consents: [{pluginId, capability, manifestMajor, level, grantedAtMs}]}: the capability consents the signed-in viewer gave on this device, of one plugin or of all, for a settings screen.",
+          "dispatchOp": "plugin_capability_consents",
+          "name": "pluginCapabilityConsents",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_capability_consents",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
+          "description": "payload {pluginId, capability?}. Drops the viewer's consent to one capability of the plugin, or to all of them; the next use asks again. Returns {revoked}.",
+          "dispatchOp": "plugin_capability_consent_revoke",
+          "name": "revokePluginCapabilityConsent",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_capability_consent_revoke",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "The host's answer to a plugin.capability_request event: {requestId, result}. Refused with sdk.plugin.capability_request_unknown once that request no longer waits (answered, timed out after 10 minutes, or its session ended).",
+          "name": "completePluginCapabilityRequest",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "unit",
+            "returnMode": "callback"
+          },
+          "operation": "plugin.capability_complete",
+          "request": "PluginCapabilityCompletion",
+          "response": "Unit",
+          "stability": "experimental",
+          "transport": "contract-invoke-json"
         },
         {
           "cApi": "flare_capability_dispatch_json",

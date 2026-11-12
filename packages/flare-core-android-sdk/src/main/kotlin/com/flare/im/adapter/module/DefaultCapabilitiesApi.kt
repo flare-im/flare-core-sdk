@@ -89,6 +89,22 @@ class DefaultCapabilitiesApi(
         return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_FILE_UPLOAD, pluginUiEvaluationRequestToMap(request))
     }
 
+    override suspend fun pluginCapabilityInvoke(request: PluginUiEvaluationRequest): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_CAPABILITY_INVOKE, pluginUiEvaluationRequestToMap(request))
+    }
+
+    override suspend fun pluginCapabilityConsents(request: PluginUiEvaluationRequest): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_CAPABILITY_CONSENTS, pluginUiEvaluationRequestToMap(request))
+    }
+
+    override suspend fun revokePluginCapabilityConsent(request: PluginUiEvaluationRequest): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_CAPABILITY_CONSENT_REVOKE, pluginUiEvaluationRequestToMap(request))
+    }
+
+    override suspend fun completePluginCapabilityRequest(request: PluginCapabilityCompletion): Unit {
+        invokeUnit(bridge, NativeCallMap.PLUGIN_CAPABILITY_COMPLETE, pluginCapabilityCompletionToMap(request))
+    }
+
     override suspend fun pluginAccountEntries(request: PluginUiEvaluationRequest): Map<String, Any?> {
         return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_ACCOUNT_ENTRIES, pluginUiEvaluationRequestToMap(request))
     }

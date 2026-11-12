@@ -3,7 +3,7 @@
  *
  * Module API: `capabilities` — Capability discovery and optional plugin dispatch through capability dispatch ops.
  */
-import type { PluginCommandRequest, PluginHostProfile, PluginUiEvaluationRequest } from '../../model';
+import type { PluginCapabilityCompletion, PluginCommandRequest, PluginHostProfile, PluginUiEvaluationRequest } from '../../model';
 import type { DispatchCapabilityRequest, DispatchCapabilityResponse, JsonObject, ListCapabilitiesRequest, ListCapabilitiesResponse } from '../types';
 
 /** Capability discovery and optional plugin dispatch through capability dispatch ops. */
@@ -36,6 +36,14 @@ export interface CapabilitiesApi {
   pluginPage(request: PluginUiEvaluationRequest): Promise<JsonObject>;
   /** pluginFileUpload maps to `flare_capability_dispatch_json`, dispatch op `plugin_file_upload`. Operation: `capability.plugin_file_upload`. */
   pluginFileUpload(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** pluginCapabilityInvoke maps to `flare_capability_dispatch_json`, dispatch op `plugin_capability_invoke`. Operation: `capability.plugin_capability_invoke`. */
+  pluginCapabilityInvoke(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** pluginCapabilityConsents maps to `flare_capability_dispatch_json`, dispatch op `plugin_capability_consents`. Operation: `capability.plugin_capability_consents`. */
+  pluginCapabilityConsents(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** revokePluginCapabilityConsent maps to `flare_capability_dispatch_json`, dispatch op `plugin_capability_consent_revoke`. Operation: `capability.plugin_capability_consent_revoke`. */
+  revokePluginCapabilityConsent(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** completePluginCapabilityRequest maps to `flare_sdk_invoke_json`. Operation: `plugin.capability_complete`. */
+  completePluginCapabilityRequest(request: PluginCapabilityCompletion): Promise<void>;
   /** pluginAccountEntries maps to `flare_capability_dispatch_json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`. */
   pluginAccountEntries(request: PluginUiEvaluationRequest): Promise<JsonObject>;
   /** invalidatePluginCatalog maps to `flare_capability_dispatch_json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`. */

@@ -24,6 +24,7 @@ import {
   MessageReceivedEvent,
   MessageSendAckEvent,
   MessageSendFailedEvent,
+  PluginCapabilityRequestEvent,
   PluginCatalogChangedEvent,
   PluginEventName,
   PluginRealtimeEvent,
@@ -91,6 +92,7 @@ const EVENT_CODE_EXTENSION_EVENT = 5001;
 const EVENT_CODE_VIEW_UPDATED = 6001;
 const EVENT_CODE_PLUGIN_REALTIME = 7001;
 const EVENT_CODE_PLUGIN_CATALOG_CHANGED = 7002;
+const EVENT_CODE_PLUGIN_CAPABILITY_REQUEST = 7003;
 
 const WEB_EVENT_TYPE_BY_CHANNEL: Record<string, number> = {
   "im://sync_state_changed": EVENT_CODE_CONNECTION_SYNC_STATE_CHANGED,
@@ -139,6 +141,7 @@ const WEB_EVENT_TYPE_BY_CHANNEL: Record<string, number> = {
   "im://view_updated": EVENT_CODE_VIEW_UPDATED,
   "im://plugin_realtime": EVENT_CODE_PLUGIN_REALTIME,
   "im://plugin_catalog_changed": EVENT_CODE_PLUGIN_CATALOG_CHANGED,
+  "im://plugin_capability_request": EVENT_CODE_PLUGIN_CAPABILITY_REQUEST,
 };
 
 export const WEB_EVENT_CHANNELS = Object.freeze(Object.keys(WEB_EVENT_TYPE_BY_CHANNEL));
@@ -423,6 +426,17 @@ function pluginCatalogChangedEvent(payload: unknown): PluginCatalogChangedEvent 
   return { type: 'plugin', event: PluginEventName.CatalogChanged, version: requiredString(record.version, 'version') };
 }
 
+function pluginCapabilityRequestEvent(payload: unknown): PluginCapabilityRequestEvent & Record<string, unknown> {
+  const record = eventPayloadRecord(payload);
+  return {
+    type: 'plugin',
+    event: PluginEventName.CapabilityRequest,
+    requestId: requiredNumber(record.requestId, 'requestId'),
+    method: requiredString(record.method, 'method'),
+    request: eventPayloadRecord(record.request),
+  };
+}
+
 function conversationEvent(name: ConversationEventName, event: string, payload: unknown): ConversationEvent & Record<string, unknown> {
   const record = eventPayloadRecord(payload);
   const conversationId = optionalString(record.conversationId, 'conversationId');
@@ -551,6 +565,7 @@ export function nativeEventFromCode(eventType: number, payload: unknown): unknow
     case EVENT_CODE_VIEW_UPDATED: return viewUpdatedEvent(payload);
     case EVENT_CODE_PLUGIN_REALTIME: return pluginRealtimeEvent(payload);
     case EVENT_CODE_PLUGIN_CATALOG_CHANGED: return pluginCatalogChangedEvent(payload);
+    case EVENT_CODE_PLUGIN_CAPABILITY_REQUEST: return pluginCapabilityRequestEvent(payload);
     default: return {
       type: 'unknown',
       name: 'unknown',
@@ -797,6 +812,10 @@ export class DefaultEventsApi implements EventsApi {
     return this.registerWhere(listener, (event) => eventEventIs(event, 'plugin', PluginEventName.CatalogChanged));
   }
 
+  onPluginCapabilityRequest(listener: EventCallback<PluginCapabilityRequestEvent>): EventSubscription {
+    return this.registerWhere(listener, (event) => eventEventIs(event, 'plugin', PluginEventName.CapabilityRequest));
+  }
+
   private requestWithDefaultHandler(request: SubscribeEventsRequest): SubscribeEventsRequest {
     const record = request as Record<string, unknown>;
     if (record.handler !== undefined) {
@@ -962,6 +981,9 @@ export class DefaultEventsApi implements EventsApi {
           return;
         case PluginEventName.CatalogChanged:
           listener.onPluginCatalogChanged?.(event as PluginCatalogChangedEvent);
+          return;
+        case PluginEventName.CapabilityRequest:
+          listener.onPluginCapabilityRequest?.(event as PluginCapabilityRequestEvent);
           return;
         default:
           return;

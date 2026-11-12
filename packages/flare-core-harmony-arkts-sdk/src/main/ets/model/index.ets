@@ -179,6 +179,8 @@ export * from './event/progress/progress_event';
 export * from './event/sync/sync_event';
 export * from './event/plugin/plugin_realtime_event';
 export * from './event/plugin/plugin_catalog_changed_event';
+export * from './event/plugin/plugin_capability_request_event';
 export * from './command/plugin_ui_evaluation_request';
+export * from './entity/plugin_capability_completion';
 export * from './entity/plugin_host_profile';
 export * from './command/plugin_command_request';

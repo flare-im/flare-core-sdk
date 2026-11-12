@@ -32,6 +32,14 @@ abstract interface class CapabilitiesApi {
   Future<Map<String, Object?>> pluginPage(PluginUiEvaluationRequest request);
   /// pluginFileUpload maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_file_upload`. Operation: `capability.plugin_file_upload`.
   Future<Map<String, Object?>> pluginFileUpload(PluginUiEvaluationRequest request);
+  /// pluginCapabilityInvoke maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_invoke`. Operation: `capability.plugin_capability_invoke`.
+  Future<Map<String, Object?>> pluginCapabilityInvoke(PluginUiEvaluationRequest request);
+  /// pluginCapabilityConsents maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_consents`. Operation: `capability.plugin_capability_consents`.
+  Future<Map<String, Object?>> pluginCapabilityConsents(PluginUiEvaluationRequest request);
+  /// revokePluginCapabilityConsent maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_consent_revoke`. Operation: `capability.plugin_capability_consent_revoke`.
+  Future<Map<String, Object?>> revokePluginCapabilityConsent(PluginUiEvaluationRequest request);
+  /// completePluginCapabilityRequest maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `plugin.capability_complete`.
+  Future<void> completePluginCapabilityRequest(PluginCapabilityCompletion request);
   /// pluginAccountEntries maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`.
   Future<Map<String, Object?>> pluginAccountEntries(PluginUiEvaluationRequest request);
   /// invalidatePluginCatalog maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`.

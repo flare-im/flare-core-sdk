@@ -212,6 +212,15 @@ PluginUpgradeStatus pluginUpgradeStatusFromJson(Object? value) {
   );
 }
 
+Map<String, Object?> pluginCapabilityCompletionToMap(
+  PluginCapabilityCompletion request,
+) {
+  return {
+    'requestId': request.requestId,
+    if (request.result != null) 'result': request.result,
+  };
+}
+
 Map<String, Object?> updateGetResourcesRequestToMap(
   UpdateGetResourcesRequest request,
 ) {

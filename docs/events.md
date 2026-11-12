@@ -52,6 +52,7 @@ Method return values remain the primary success/failure contract for commands su
 | `onDownloadProgress` | `media` | `download_progress` | `ProgressEvent` | Media download progress changed. |
 | `onPluginRealtime` | `plugin` | `realtime` | `PluginRealtimeEvent` | A plugin delivered a realtime packet to this user's online connections (im.realtime.deliver): online only, at most once, never stored. Expired packets and payloads that are not JSON objects never arrive. Route by pluginId and packetType. |
 | `onPluginCatalogChanged` | `plugin` | `catalog_changed` | `PluginCatalogChangedEvent` | The tenant's plugin catalog changed (a plugin enabled, disabled or reconfigured). The SDK has already invalidated its plugin catalog; read plugin entries and configuration again. Arrives a random 0-3 s after the notice, with the notices of 3 s merged into one. |
+| `onPluginCapabilityRequest` | `plugin` | `capability_request` | `PluginCapabilityRequestEvent` | The engine asks the host to do its part of a plugin host capability (method consent, captureDocument, pickFile, confirmPayment or locateOnce). Show the kit's screen for it and answer with completePluginCapabilityRequest({requestId, result}); the engine waits up to 10 minutes. |
 
 ## Event Domains
 
@@ -65,7 +66,7 @@ Method return values remain the primary success/failure contract for commands su
 | `media` | `cache_changed`, `upload_progress`, `download_progress` |
 | `message` | `burn_scheduled`, `burned`, `hard_deleted`, `received`, `received_batch`, `send_ack`, `send_failed`, `recalled`, `typing`, `edited`, `reaction_changed`, `deleted`, `read_receipt`, `typing_aggregate`, `retention_scheduled`, `retention_expired`, `retention_purged`, `pinned`, `unpinned`, `marked`, `unmarked`, `presence_changed`, `custom`, `plugin_state_changed`, `read_summaries_changed` |
 | `notification` | `received`, `message_sound` |
-| `plugin` | `realtime`, `catalog_changed` |
+| `plugin` | `realtime`, `catalog_changed`, `capability_request` |
 | `presence` | `changed` |
 | `sync` | `started`, `finished`, `failed`, `progress`, `task_completed`, `state_changed`, `resync_needed`, `readiness` |
 | `update` | `state` |

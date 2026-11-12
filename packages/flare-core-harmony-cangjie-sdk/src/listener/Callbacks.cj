@@ -43,6 +43,10 @@ public interface MessageSendFailedEventCallback {
     func handle(event: MessageSendFailedEvent): Unit
 }
 
+public interface PluginCapabilityRequestEventCallback {
+    func handle(event: PluginCapabilityRequestEvent): Unit
+}
+
 public interface PluginCatalogChangedEventCallback {
     func handle(event: PluginCatalogChangedEvent): Unit
 }

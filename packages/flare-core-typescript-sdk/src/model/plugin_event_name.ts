@@ -3,4 +3,5 @@
 export enum PluginEventName {
   Realtime = "realtime",
   CatalogChanged = "catalog_changed",
+  CapabilityRequest = "capability_request",
 }

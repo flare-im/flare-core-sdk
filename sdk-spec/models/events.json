@@ -128,7 +128,8 @@
       "description": "Plugin event notification name.",
       "values": [
         "realtime",
-        "catalog_changed"
+        "catalog_changed",
+        "capability_request"
       ]
     }
   ],
@@ -776,6 +777,33 @@
           "type": "String",
           "required": true,
           "description": "Plugin authorization projection version Core announced."
+        }
+      ]
+    },
+    {
+      "name": "PluginCapabilityRequestEvent",
+      "description": "The engine asks the host to do its part of a plugin host capability; answer with completePluginCapabilityRequest.",
+      "fields": [
+        {
+          "name": "requestId",
+          "wireName": "requestId",
+          "type": "UInt64",
+          "required": true,
+          "description": "Pass it back with the result."
+        },
+        {
+          "name": "method",
+          "wireName": "method",
+          "type": "String",
+          "required": true,
+          "description": "consent, captureDocument, pickFile, confirmPayment or locateOnce."
+        },
+        {
+          "name": "request",
+          "wireName": "request",
+          "type": "JsonObject",
+          "required": true,
+          "description": "consent: {pluginId, pluginVersion, capability, params?}; captureDocument: {pluginId, side, accept, maxBytes}; pickFile: {pluginId, capability, accept, maxBytes}; confirmPayment: {pluginId, order: {orderId, amount, currency, payee, title, expiresAtMs, operation}}; locateOnce: {pluginId, precision}."
         }
       ]
     }

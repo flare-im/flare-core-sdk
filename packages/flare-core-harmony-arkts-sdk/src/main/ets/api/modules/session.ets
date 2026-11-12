@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { AccessChangedEvent, AccessSwitchedEvent, ClearPushTokenRequest, ConnectionStatus, ConversationEvent, HeartbeatEffectiveIntervalResponse, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, PushLifecycleStatus, PushTokenInput, ReactionChangedEvent, ReadReceiptEvent, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
+import { AccessChangedEvent, AccessSwitchedEvent, ClearPushTokenRequest, ConnectionStatus, ConversationEvent, HeartbeatEffectiveIntervalResponse, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, PushLifecycleStatus, PushTokenInput, ReactionChangedEvent, ReadReceiptEvent, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
 import { ConnectTokenRefresher } from '../../contract/BridgeContract';
 
 /** SDK lifecycle, authenticated session and process-level utilities. */

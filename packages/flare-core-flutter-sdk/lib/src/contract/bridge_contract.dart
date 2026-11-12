@@ -2373,6 +2373,61 @@ abstract final class NativeCallMap {
       dispatchOp: "plugin_file_upload",
       callback: "FlareResultCallback");
 
+  /// pluginCapabilityInvoke maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_invoke`. Operation: `capability.plugin_capability_invoke`.
+  static const capabilityPluginCapabilityInvoke = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginCapabilityInvoke",
+      operation: "capability.plugin_capability_invoke",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_capability_invoke",
+      callback: "FlareResultCallback");
+
+  /// pluginCapabilityConsents maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_consents`. Operation: `capability.plugin_capability_consents`.
+  static const capabilityPluginCapabilityConsents = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginCapabilityConsents",
+      operation: "capability.plugin_capability_consents",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_capability_consents",
+      callback: "FlareResultCallback");
+
+  /// revokePluginCapabilityConsent maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_consent_revoke`. Operation: `capability.plugin_capability_consent_revoke`.
+  static const capabilityPluginCapabilityConsentRevoke = NativeCallDescriptor(
+      module: "capabilities",
+      method: "revokePluginCapabilityConsent",
+      operation: "capability.plugin_capability_consent_revoke",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_capability_consent_revoke",
+      callback: "FlareResultCallback");
+
+  /// completePluginCapabilityRequest maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `plugin.capability_complete`.
+  static const pluginCapabilityComplete = NativeCallDescriptor(
+      module: "capabilities",
+      method: "completePluginCapabilityRequest",
+      operation: "plugin.capability_complete",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
   /// pluginAccountEntries maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`.
   static const capabilityPluginAccountEntries = NativeCallDescriptor(
       module: "capabilities",
