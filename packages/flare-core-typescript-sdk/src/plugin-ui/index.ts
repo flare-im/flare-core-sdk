@@ -86,6 +86,27 @@ export interface NativePluginBridge {
   capabilities: ReadonlyArray<"selectImage" | "selectFile" | "camera" | "microphone" | "clipboardWrite">;
   invoke(capability: string, payload: Record<string, unknown>): Promise<unknown>;
 }
+/** The longest text a `clipboardWrite` target copies, in UTF-8 bytes (the native hosts' bound). */
+export const PLUGIN_CLIPBOARD_MAX_BYTES = 4096;
+/**
+ * The `clipboardWrite` capability through the web clipboard (`navigator.clipboard.writeText`), for browser and webview
+ * hosts (Web, Tauri): copies the payload's `text`, a non-empty string of at most {@link PLUGIN_CLIPBOARD_MAX_BYTES}
+ * UTF-8 bytes, and refuses anything else. Hosts that offer it list `clipboardWrite` in their native allowlist.
+ */
+export function webClipboardBridge(write: (text: string) => Promise<void> = (text) => navigator.clipboard.writeText(text)): NativePluginBridge {
+  return {
+    capabilities: ["clipboardWrite"],
+    async invoke(capability, payload) {
+      const text = payload?.text;
+      if (capability !== "clipboardWrite" || typeof text !== "string" || !text
+          || new TextEncoder().encode(text).length > PLUGIN_CLIPBOARD_MAX_BYTES) {
+        throw new Error("Plugin target unavailable");
+      }
+      await write(text);
+      return { copied: true };
+    },
+  };
+}
 export class PluginUiSession {
   private generation = 0;
   private catalogInFlight: Promise<unknown> | null = null;

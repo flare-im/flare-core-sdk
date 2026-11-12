@@ -77,7 +77,7 @@ watch([() => props.port, () => props.viewerId], ([port]) => {
   session.value?.reset();
   session.value = port
     ? corePluginPageSession(port, props.platform, () => pluginManifestLocale(locale.value), () => top.value,
-      (entry) => { stack.value = [...stack.value, { ...entry, filters: {} }]; })
+      (entry) => { stack.value = [...stack.value, { ...entry, filters: {} }]; }, pluginHost().native)
     : null;
 }, { immediate: true });
 

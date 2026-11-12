@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PluginUiSession, pluginManifestLocale, type PluginUiPort } from "./index";
+import { PluginUiSession, pluginManifestLocale, webClipboardBridge, type PluginUiPort } from "./index";
 const message = { pluginId: "example.poll", contributionId: "example.poll.card", schemaVersion: 1, summary: "Poll", payload: { packetId: "one", injected: "unused" } };
 function port(): PluginUiPort { return { catalog: async () => ({}), resolveMessage: async () => ({ available: true, title: "Poll", fields: [], actions: [{ id: "vote", label: "Vote" }] }), action: async () => ({ target: { kind: "operation", operation: "example.poll.vote" }, payload: { packetId: "one" } }),
   presentMessage: async () => ({ available: true, title: "Poll", fields: [], actions: [], data: { packetId: "one", status: "completed" }, stateVersion: 3 }),
@@ -250,5 +250,21 @@ describe("plugin UI card protocol v2", () => {
     const unknownFloor = await host.page("acme.board", "acme.board.home");
     expect(unknownFloor.unavailableReason).toBe("upgrade_required");
     expect(unknownFloor.minBuild).toBeUndefined();
+  });
+  it("copies a clipboardWrite target's text through the web clipboard and refuses anything else", async () => {
+    const copied: string[] = [];
+    const bridge = webClipboardBridge(async (text) => { copied.push(text); });
+    expect(bridge.capabilities).toEqual(["clipboardWrite"]);
+    const api = port();
+    api.invokeAction = async () => ({ kind: "host", target: { kind: "native", capability: "clipboardWrite" }, payload: { text: "答案" } });
+    const host = new PluginUiSession(api, "web", () => "zh-CN", bridge);
+    const outcome = await host.invokeAction(message, "copy", { userGesture: true });
+    expect(outcome).toEqual({ kind: "host", result: { copied: true } });
+    expect(copied).toEqual(["答案"]);
+    for (const payload of [{}, { text: "" }, { text: 3 }, { text: "x".repeat(4097) }]) {
+      await expect(bridge.invoke("clipboardWrite", payload)).rejects.toThrow();
+    }
+    await expect(bridge.invoke("camera", { text: "x" })).rejects.toThrow();
+    expect(copied).toEqual(["答案"]);
   });
 });
