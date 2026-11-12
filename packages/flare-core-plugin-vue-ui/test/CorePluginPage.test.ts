@@ -499,4 +499,79 @@ describe("CorePluginPage", () => {
     await flushPromises();
     expect(host().props("resolveImage")).toBe(resolveImage);
   });
+  it("locates once through the engine into a location input and clears it again", async () => {
+    const port = pagePort(async () => page({ data: { _session: { tenantId: "t", userId: "u" } } }));
+    const asked: Record<string, unknown>[] = [];
+    const answer = deferred<unknown>();
+    (port as PluginUiPort).capabilityInvoke = vi.fn(async (request: Record<string, unknown>) => { asked.push(request); return answer.promise; });
+    const { host } = render(port, { root: { ...root, args: { planId: "p1" } } });
+    await flushPromises();
+    const input = { id: "area", kind: "location", label: "Area", precision: "coarse" };
+    host().vm.$emit("locationAction", { action: "locate", inputId: "area", input, formValues: { note: "hi" } });
+    await flushPromises();
+    expect(host().props("locationStates")).toEqual({ area: { locating: true, error: undefined } });
+    expect(asked[0]).toMatchObject({ pluginId: root.pluginId, capability: "locationOnce", params: { precision: "coarse" }, into: "area",
+      page: { pluginId: root.pluginId, page: root.page }, arguments: { planId: "p1" }, formValues: { note: "hi" },
+      data: { _session: { tenantId: "t", userId: "u" } }, userGesture: true });
+    const value = { latitude: 31.23, longitude: 121.47, accuracyM: 1000, precision: "coarse" };
+    answer.resolve({ kind: "input", input: "area", value });
+    await flushPromises();
+    expect(host().props("locationStates")).toEqual({ area: { value } });
+    host().vm.$emit("locationAction", { action: "clear", inputId: "area", input, formValues: {} });
+    await flushPromises();
+    expect(host().props("locationStates")).toEqual({});
+  });
+
+  it("keeps a location input as it was when the viewer refuses, and says so when the host cannot locate", async () => {
+    const port = pagePort(async () => page());
+    const invoke = vi.fn(async (): Promise<unknown> => ({ kind: "denied" }));
+    (port as PluginUiPort).capabilityInvoke = invoke;
+    const { host } = render(port);
+    await flushPromises();
+    const input = { id: "spot", kind: "location", label: "Spot", precision: "fine" };
+    host().vm.$emit("locationAction", { action: "locate", inputId: "spot", input, formValues: {} });
+    await flushPromises();
+    expect(host().props("locationStates")).toEqual({});
+    invoke.mockResolvedValueOnce({ kind: "unavailable" });
+    host().vm.$emit("locationAction", { action: "locate", inputId: "spot", input, formValues: {} });
+    await flushPromises();
+    expect((host().props("locationStates") as Record<string, { error?: string }>).spot.error).toBeTruthy();
+  });
+
+  it("captures a document through the engine into its input, never through the file picker", async () => {
+    const port = pagePort(async () => page());
+    const invoke = vi.fn(async (): Promise<unknown> => ({ kind: "input", input: "front", value: { fileId: "file:front-1" } }));
+    (port as PluginUiPort).capabilityInvoke = invoke;
+    const picker = vi.spyOn(HTMLInputElement.prototype, "click");
+    const { host } = render(port);
+    await flushPromises();
+    const input = { id: "front", kind: "document", label: "ID", side: "front", required: true,
+      file: { accept: ["image/jpeg"], maxBytes: 4194304 } };
+    host().vm.$emit("fileAction", { action: "choose", inputId: "front", input, scope: "s-1", generation: 1, formValues: {} });
+    await flushPromises();
+    expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ capability: "documentCapture", params: { side: "front" }, into: "front" }));
+    expect(port.uploadFile).not.toHaveBeenCalled();
+    expect(picker).not.toHaveBeenCalled();
+    expect(host().props("fileStates")).toEqual({ front: { scope: "s-1", generation: 1, phase: "uploaded", value: { fileId: "file:front-1" },
+      fileName: "document-front.jpg" } });
+    picker.mockRestore();
+  });
+
+  it("reads protected media one item at a time through its declared action and keeps the address in memory", async () => {
+    const port = pagePort(async () => page({ data: { application: { applicationId: "a-1" } } }),
+      async () => ({ kind: "operation", response: { success: true, data: { readUrl: "https://example.test/m/1?grant=g" } } }));
+    const { host } = render(port);
+    await flushPromises();
+    const item = { id: "m-1", label: "Front", input: { materialId: "m-1" } };
+    host().vm.$emit("protectedMediaRead", { action: { id: "viewDocument", label: "View" }, item, reason: "", urlPath: "/readUrl",
+      formValues: { materialId: "m-1" } });
+    await flushPromises();
+    expect(port.invokePageAction).toHaveBeenCalledWith(expect.objectContaining({ actionId: "viewDocument", formValues: { materialId: "m-1" },
+      data: { application: { applicationId: "a-1" } } }));
+    expect(host().props("protectedMedia")).toEqual({ "m-1": { url: "https://example.test/m/1?grant=g" } });
+    // The page read again from scratch forgets it.
+    host().vm.$emit("retry");
+    await flushPromises();
+    expect(host().props("protectedMedia")).toEqual({});
+  });
 });

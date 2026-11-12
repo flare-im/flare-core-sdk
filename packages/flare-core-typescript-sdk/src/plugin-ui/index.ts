@@ -31,6 +31,10 @@ export interface PluginUiPort {
   invokePageAction(request: PluginPageActionRequest): Promise<unknown>;
   /** Core validates the real page declaration and owns private prepare/PUT/complete. */
   uploadFile(request: PluginFileUploadRequest): Promise<UiFileReference>;
+  /** `capability.plugin_capability_invoke`: a host capability through the engine (manifest ∩ host profile ∩ consent,
+   * then the host's part through `plugin.capability_request`). Without it native targets other than the host's own
+   * bridge are unavailable and payment confirmations are refused. */
+  capabilityInvoke?(request: PluginCapabilityInvokeRequest): Promise<unknown>;
   dispatch(request: { capabilityId: string; payload: unknown; conversationId?: string; tenantId?: string; userId?: string }): Promise<unknown>;
 }
 /**
@@ -59,6 +63,61 @@ export interface PluginFileUploadRequest {
   contentType: string;
   bytes: readonly number[];
   commandId: string;
+}
+/**
+ * `capability.plugin_capability_invoke` payload. `into` names a page input the result is written to (a document's
+ * upload, a location fix); it then needs the page and its form context, as `uploadFile` does. `order` is the payment
+ * order an operation returned (`confirmation`), for `paymentConfirmation` only.
+ */
+export interface PluginCapabilityInvokeRequest {
+  pluginId: string;
+  capability: string;
+  params?: Record<string, unknown>;
+  into?: string;
+  order?: Record<string, unknown>;
+  platform: PluginPlatform;
+  locale?: string;
+  page?: { pluginId: string; page: string };
+  conversationId?: string;
+  arguments?: Record<string, unknown>;
+  data?: Record<string, unknown>;
+  formValues?: Record<string, unknown>;
+  commandId?: string;
+  userGesture: true;
+}
+/** What a capability request asks for besides its capability: the native target's `params` and `into`, or an order. */
+export interface PluginCapabilityCall {
+  capability: string;
+  params?: Record<string, unknown>;
+  into?: string;
+  order?: Record<string, unknown>;
+}
+/** The page a capability writes into, with the form it reads: the same context `uploadFile` takes. */
+export interface PluginCapabilityPageContext {
+  page: { pluginId: string; page: string };
+  arguments?: Record<string, unknown>;
+  data?: Record<string, unknown>;
+  formValues?: Record<string, unknown>;
+}
+/** The engine's answer to `capabilityInvoke` as an action outcome; `{kind: "host"}` carries the capability to run. */
+export function pluginCapabilityOutcome(value: unknown): PluginActionOutcome {
+  const result = value as { kind?: unknown; input?: unknown; value?: unknown; response?: unknown; capability?: unknown } | null;
+  switch (result?.kind) {
+    case "input":
+      if (typeof result.input === "string" && result.input) return { kind: "input", input: result.input, value: result.value };
+      break;
+    case "operation":
+      if (result.response && typeof result.response === "object")
+        return { kind: "operation", response: result.response as Extract<PluginActionOutcome, { kind: "operation" }>["response"] };
+      break;
+    case "host":
+      if (typeof result.capability === "string") return { kind: "host", result: { capability: result.capability } };
+      break;
+    case "denied":
+    case "cancelled":
+      return { kind: "declined", reason: result.kind === "denied" ? "denied" : "cancelled" };
+  }
+  return { kind: "declined", reason: "unavailable" };
 }
 export interface PluginMessageEnvelope {
   pluginId: string; contributionId: string; schemaVersion: number;
@@ -205,6 +264,27 @@ export class PluginUiSession {
     return this.actionOutcome(value, message.pluginId, conversationId);
   }
   /**
+   * A host capability through the engine (`capabilityInvoke`): a native target's capability with its `params` and
+   * `into`, or `paymentConfirmation` with the `order` an operation returned. With `context` (a page) the result may be
+   * written into one of its inputs (`{kind: "input"}`). A capability the engine leaves to the host (`clipboardWrite`)
+   * comes back as `{kind: "host", result: {capability}}`. Throws when the session changed meanwhile.
+   */
+  async invokeCapability(pluginId: string, call: PluginCapabilityCall,
+    options: { conversationId?: string; context?: PluginCapabilityPageContext; commandId?: string } = {}): Promise<PluginActionOutcome> {
+    if (!this.port.capabilityInvoke) return { kind: "declined", reason: "unavailable" };
+    const generation = this.generation;
+    const { conversationId, context, commandId } = options;
+    const value = await this.port.capabilityInvoke({ pluginId, capability: call.capability,
+      ...(call.params ? { params: call.params } : {}), ...(call.into ? { into: call.into } : {}),
+      ...(call.order ? { order: call.order } : {}), platform: this.platform, locale: this.locale(),
+      ...(conversationId ? { conversationId } : {}), ...(context ? { page: context.page } : {}),
+      ...(context?.arguments ? { arguments: context.arguments } : {}), ...(context?.data ? { data: context.data } : {}),
+      ...(context?.formValues ? { formValues: context.formValues } : {}), ...(commandId ? { commandId } : {}),
+      userGesture: true });
+    if (generation !== this.generation) throw new Error("Plugin session changed");
+    return pluginCapabilityOutcome(value);
+  }
+  /**
    * A plugin page (a `page` contribution, such as a wallet) through Core: its source query is called
    * with the input bound from `args` (the payload of the action that opened it, `{}` from an account
    * entry) plus validated `filters`, and the page document is resolved against the result. Paging and
@@ -238,20 +318,32 @@ export class PluginUiSession {
    * through `navigate` with the bound payload as the next page's arguments; native targets run here.
    */
   async invokePageAction(pluginId: string, page: string, actionId: string,
-    options: { data?: Record<string, unknown>; row?: { key: string; input: Record<string, unknown> }; conversationId?: string; userGesture: boolean; formValues?: Record<string, unknown>; selection?: number[] }): Promise<PluginActionOutcome> {
+    options: { data?: Record<string, unknown>; row?: { key: string; input: Record<string, unknown> }; conversationId?: string; userGesture: boolean; formValues?: Record<string, unknown>; selection?: number[];
+      /** The page's arguments: a native target writing into one of its inputs reads the page with them. */
+      arguments?: Record<string, unknown> }): Promise<PluginActionOutcome> {
     const generation = this.generation;
     const { data, row, conversationId, userGesture, formValues, selection } = options;
     const value = await this.port.invokePageAction({ pluginId, page, actionId, platform: this.platform, userGesture,
       ...(data ? { data } : {}), ...(row ? { row } : {}),
       ...(conversationId ? { conversationId } : {}), ...(formValues ? { formValues } : {}), ...(selection ? { selection } : {}) });
     if (generation !== this.generation) throw new Error("Plugin session changed");
-    return this.actionOutcome(value, pluginId, conversationId);
+    return this.actionOutcome(value, pluginId, conversationId,
+      { page: { pluginId, page }, ...(options.arguments ? { arguments: options.arguments } : {}), ...(data ? { data } : {}), ...(formValues ? { formValues } : {}) });
   }
   /** Core's answer to a card or page action: an operation's response, form problems, or a host target run here (a
-   * page target of the plugin that declared the action, unless it names another, or an allowed native capability). */
-  private async actionOutcome(value: unknown, pluginId: string, conversationId?: string): Promise<PluginActionOutcome> {
-    const result = value as { kind?: unknown; response?: unknown; errors?: unknown; conversationId?: unknown; target?: { kind: string; page?: string; pluginId?: string; capability?: string }; payload?: Record<string, unknown> } | null;
+   * page target of the plugin that declared the action, unless it names another, or a native capability). An
+   * operation that returned a payment order (`confirmation`) is confirmed through the engine (`paymentConfirmation`)
+   * and its transient operation's response is the outcome; a native target goes through the engine too
+   * (`invokeCapability`), and only what the engine leaves to the host runs on the host's bridge. */
+  private async actionOutcome(value: unknown, pluginId: string, conversationId?: string,
+    context?: PluginCapabilityPageContext): Promise<PluginActionOutcome> {
+    const result = value as { kind?: unknown; response?: unknown; errors?: unknown; conversationId?: unknown; confirmation?: unknown; target?: { kind: string; page?: string; pluginId?: string; capability?: string; params?: unknown; into?: unknown }; payload?: Record<string, unknown> } | null;
     if (result?.kind === "operation" && result.response && typeof result.response === "object") {
+      const order = result.confirmation;
+      if (order && typeof order === "object" && !Array.isArray(order)) {
+        return this.invokeCapability(pluginId, { capability: "paymentConfirmation", order: order as Record<string, unknown> },
+          { ...(conversationId ? { conversationId } : {}) });
+      }
       return { kind: "operation", response: result.response as Extract<PluginActionOutcome, { kind: "operation" }>["response"] };
     }
     if (result?.kind === "formErrors") return { kind: "formErrors", errors: pluginFormErrors(result.errors) };
@@ -261,8 +353,17 @@ export class PluginUiSession {
       if (conversationId && typeof result?.conversationId === "string" && conversationId !== result.conversationId) throw new Error("Plugin page conversation changed");
       return { kind: "host", result: this.navigate({ pluginId: typeof target.pluginId === "string" ? target.pluginId : pluginId, page: target.page, ...(context ? { conversationId: context } : {}) }, result?.payload ?? {}) };
     }
-    if (target?.kind === "native" && typeof target.capability === "string" && this.native?.capabilities.includes(target.capability as never)) {
-      return { kind: "host", result: await this.native.invoke(target.capability, result?.payload ?? {}) };
+    if (target?.kind === "native" && typeof target.capability === "string") {
+      const params = target.params && typeof target.params === "object" && !Array.isArray(target.params) ? target.params as Record<string, unknown> : undefined;
+      const into = typeof target.into === "string" && target.into ? target.into : undefined;
+      const outcome = this.port.capabilityInvoke
+        ? await this.invokeCapability(pluginId, { capability: target.capability, ...(params ? { params } : {}), ...(into ? { into } : {}) },
+          { ...(conversationId ? { conversationId } : {}), ...(into && context ? { context } : {}) })
+        : { kind: "host" as const, result: { capability: target.capability } };
+      if (outcome.kind !== "host") return outcome;
+      if (this.native?.capabilities.includes(target.capability as never)) {
+        return { kind: "host", result: await this.native.invoke(target.capability, result?.payload ?? {}) };
+      }
     }
     throw new Error("Plugin target unavailable");
   }

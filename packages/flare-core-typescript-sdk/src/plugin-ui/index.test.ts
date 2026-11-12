@@ -268,3 +268,55 @@ describe("plugin UI card protocol v2", () => {
     expect(copied).toEqual(["答案"]);
   });
 });
+describe("plugin host capabilities through the engine", () => {
+  const order = { orderId: "o-1", amount: "12.50", currency: "CNY", payee: "Alice", title: "Transfer", expiresAtMs: 9e12, operation: "flare.wallet.payments.confirm" };
+  it("confirms a payment order an operation returned and answers with the transient operation's response", async () => {
+    const api = port(); const asked: unknown[] = [];
+    api.invokePageAction = async () => ({ kind: "operation", response: { success: true, data: { confirmation: order } }, confirmation: order });
+    api.capabilityInvoke = async (request) => { asked.push(request); return { kind: "operation", response: { success: true, data: { paid: true } } }; };
+    const session = new PluginUiSession(api, "web", () => "zh-CN");
+    const outcome = await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { conversationId: "c-1", userGesture: true });
+    expect(outcome).toEqual({ kind: "operation", response: { success: true, data: { paid: true } } });
+    expect(asked).toEqual([{ pluginId: "flare.wallet", capability: "paymentConfirmation", order, platform: "web", locale: "zh-CN", conversationId: "c-1", userGesture: true }]);
+    // Without the engine route the order is never reported as paid.
+    delete api.capabilityInvoke;
+    expect(await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { userGesture: true }))
+      .toEqual({ kind: "declined", reason: "unavailable" });
+  });
+  it("sends a native target with its params and into, with the page context, and writes the result into the input", async () => {
+    const api = port(); const asked: Record<string, unknown>[] = [];
+    api.invokePageAction = async () => ({ kind: "host", target: { kind: "native", capability: "documentCapture", params: { side: "front" }, into: "front" }, payload: {} });
+    api.capabilityInvoke = async (request) => { asked.push({ ...request }); return { kind: "input", input: "front", value: { fileId: "file:f-1" } }; };
+    const session = new PluginUiSession(api, "web", () => "en-US");
+    const outcome = await session.invokePageAction("flare.realname", "flare.realname.page.documents", "captureFront",
+      { userGesture: true, data: { application: { applicationId: "a-1" } }, formValues: { back: null }, arguments: { applicationId: "a-1" } });
+    expect(outcome).toEqual({ kind: "input", input: "front", value: { fileId: "file:f-1" } });
+    expect(asked[0]).toEqual({ pluginId: "flare.realname", capability: "documentCapture", params: { side: "front" }, into: "front", platform: "web",
+      locale: "en-US", page: { pluginId: "flare.realname", page: "flare.realname.page.documents" }, arguments: { applicationId: "a-1" },
+      data: { application: { applicationId: "a-1" } }, formValues: { back: null }, userGesture: true });
+  });
+  it("reads a refusal, a cancel and anything unknown as declined", async () => {
+    const api = port();
+    const session = new PluginUiSession(api, "web");
+    for (const [answer, reason] of [[{ kind: "denied" }, "denied"], [{ kind: "cancelled" }, "cancelled"], [{ kind: "unavailable" }, "unavailable"],
+      [{ kind: "input" }, "unavailable"], [null, "unavailable"]] as const) {
+      api.capabilityInvoke = async () => answer;
+      expect(await session.invokeCapability("example.checkin", { capability: "locationOnce", params: { precision: "coarse" }, into: "area" }))
+        .toEqual({ kind: "declined", reason });
+    }
+  });
+  it("runs only what the engine leaves to the host on the host's bridge", async () => {
+    const copied: string[] = [];
+    const api = port(); const asked: unknown[] = [];
+    api.invokeAction = async () => ({ kind: "host", target: { kind: "native", capability: "clipboardWrite" }, payload: { text: "code" } });
+    api.capabilityInvoke = async (request) => { asked.push(request); return { kind: "host", capability: "clipboardWrite" }; };
+    const session = new PluginUiSession(api, "web", () => "zh-CN", webClipboardBridge(async (text) => { copied.push(text); }));
+    expect(await session.invokeAction(message, "copy", { userGesture: true })).toEqual({ kind: "host", result: { copied: true } });
+    expect(copied).toEqual(["code"]);
+    expect(asked).toHaveLength(1);
+    // A capability the viewer refused never reaches the bridge.
+    api.capabilityInvoke = async () => ({ kind: "denied" });
+    expect(await session.invokeAction(message, "copy", { userGesture: true })).toEqual({ kind: "declined", reason: "denied" });
+    expect(copied).toEqual(["code"]);
+  });
+});

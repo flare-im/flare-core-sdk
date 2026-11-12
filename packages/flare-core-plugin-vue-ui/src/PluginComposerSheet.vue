@@ -87,6 +87,8 @@ async function invoke(id: string, payload: FlarePluginActionPayload): Promise<vo
       ...(payload.formValues ? { formValues: payload.formValues } : {}), ...(payload.selection ? { selection: payload.selection } : {}) });
     if (mine !== generation) return;
     if (outcome.kind === "formErrors") { formErrors.value = outcome.errors; return; }
+    // A payment the viewer did not confirm keeps the sheet; one the host could not run says so.
+    if (outcome.kind === "declined") { if (outcome.reason === "unavailable") error.value = t("pluginRuntime.unavailable"); return; }
     if (outcome.kind === "operation") {
       if (outcome.response.success === false) { error.value = t("pluginRuntime.rejected"); return; }
       const posted = outcome.response.success === true ? pluginPagePostedCard(outcome.response.data, props.conversationId) : null;

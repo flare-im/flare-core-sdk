@@ -108,6 +108,8 @@ async function runAction(surface: ActionSurface, id: string, payload: FlarePlugi
     if (scope !== actionScope) return;
     if (outcome.kind === "formErrors") surface.formErrors = outcome.errors;
     else if (outcome.kind === "operation" && outcome.response.success === false) surface.error = t("pluginRuntime.rejected");
+    // A host capability that did not run (refused, backed out) changed nothing; one the host could not run says so.
+    else if (outcome.kind === "declined") { if (outcome.reason === "unavailable") surface.error = t("pluginRuntime.unavailable"); }
     // Core has stored the state the plugin returned on this message: show it without waiting for the event.
     else changed = true;
   } catch (failure) {

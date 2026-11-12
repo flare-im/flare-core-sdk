@@ -20,6 +20,16 @@ export { usePluginMemberSearch } from "./memberSearch";
 export { CORE_PLUGIN_STATE_CHANNEL, createCorePluginStateFeed, usePluginPostedCards, type CorePluginStateHub } from "./hostFeeds";
 export type { CorePluginDirectory, CorePluginErrorText, CorePluginHost, CorePluginStateChange, CorePluginStateFeed } from "./context";
 export { corePluginUpgradeKey, useCorePluginUpgrade, type CorePluginUpgradeSubject } from "./upgrade";
+/** The host's part of plugin capabilities (consent, document capture, file pick, payment confirmation, one location
+ * fix) for browser and webview hosts: mount once while signed in, fed from `im://plugin_capability_request`. */
+export { default as CorePluginCapabilityHost } from "./CorePluginCapabilityHost.vue";
+/** The capabilities the viewer allowed "always", as settings rows that take one back. */
+export { default as CorePluginConsentList } from "./CorePluginConsentList.vue";
+export {
+  CORE_PLUGIN_CAPABILITY_REQUEST_CHANNEL, browserLocateOnce, browserPickFile, corePluginCapabilityFile, corePluginCapabilityRequest,
+  createCorePluginCapabilityRequestFeed, type CorePluginCapabilityMethod, type CorePluginCapabilityRequest,
+  type CorePluginCapabilityRequestFeed, type CorePluginCapabilityRequestHub, type CorePluginCapabilityResult,
+} from "./capabilityRequests";
 
 export interface CorePluginUiOptions extends CorePluginDirectory {
   /** The conversation the timeline shows; card actions are dispatched bound to it. */

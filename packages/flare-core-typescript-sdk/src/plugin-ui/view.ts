@@ -210,7 +210,11 @@ export interface PluginCardPresentation extends PluginPresentation {
 export type PluginActionOutcome =
   | { kind: "operation"; response: { success?: boolean; data?: unknown; error?: unknown } & Record<string, unknown> }
   | { kind: "host"; result: unknown }
-  | { kind: "formErrors"; errors: PluginFormError[] };
+  | { kind: "formErrors"; errors: PluginFormError[] }
+  /** A host capability wrote into a page input (`into`): an uploaded document's `{fileId}`, a location fix. */
+  | { kind: "input"; input: string; value: unknown }
+  /** A host capability did not run: the viewer refused consent, backed out, or the host could not. */
+  | { kind: "declined"; reason: "denied" | "cancelled" | "unavailable" };
 
 const FORM_ISSUES: ReadonlySet<string> = new Set<PluginFormIssue>([
   "required", "unknown", "invalidType", "tooLong", "outOfRange", "notAChoice", "tooFewItems", "tooManyItems", "invalidItem", "duplicateItem",
