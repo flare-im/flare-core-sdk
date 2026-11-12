@@ -1,9 +1,9 @@
 // GENERATED. Do not edit by hand.
 import { NativeBridge, NativeCallMap } from '../../contract/BridgeContract';
 import type { CapabilitiesApi } from '../../api/modules/capabilities';
-import type { PluginCommandRequest, PluginUiEvaluationRequest } from '../../model';
+import type { PluginCommandRequest, PluginHostProfile, PluginUiEvaluationRequest } from '../../model';
 import { invokeMap, invokeVoid } from '../codec/NativeInvoke';
-import { pluginCommandRequestToMap, pluginUiEvaluationRequestToMap } from '../codec/WireCodec';
+import { pluginCommandRequestToMap, pluginHostProfileToMap, pluginUiEvaluationRequestToMap } from '../codec/WireCodec';
 
 export class DefaultCapabilitiesApi implements CapabilitiesApi {
   constructor(private readonly bridge: NativeBridge) {}
@@ -70,6 +70,10 @@ export class DefaultCapabilitiesApi implements CapabilitiesApi {
 
   async invalidatePluginCatalog(request: Record<string, Object>): Promise<void> {
     await invokeVoid(this.bridge, NativeCallMap.capabilityPluginCatalogInvalidate, request);
+  }
+
+  async setPluginHostProfile(request: PluginHostProfile): Promise<void> {
+    await invokeVoid(this.bridge, NativeCallMap.pluginSetHostProfile, pluginHostProfileToMap(request));
   }
 
   async listCapabilities(request: Record<string, Object>): Promise<Record<string, Object>> {

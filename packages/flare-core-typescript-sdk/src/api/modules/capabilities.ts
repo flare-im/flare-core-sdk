@@ -3,7 +3,7 @@
  *
  * Module API: `capabilities` — Capability discovery and optional plugin dispatch through capability dispatch ops.
  */
-import type { PluginCommandRequest, PluginUiEvaluationRequest } from '../../model';
+import type { PluginCommandRequest, PluginHostProfile, PluginUiEvaluationRequest } from '../../model';
 import type { DispatchCapabilityRequest, DispatchCapabilityResponse, JsonObject, ListCapabilitiesRequest, ListCapabilitiesResponse } from '../types';
 
 /** Capability discovery and optional plugin dispatch through capability dispatch ops. */
@@ -40,6 +40,8 @@ export interface CapabilitiesApi {
   pluginAccountEntries(request: PluginUiEvaluationRequest): Promise<JsonObject>;
   /** invalidatePluginCatalog maps to `flare_capability_dispatch_json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`. */
   invalidatePluginCatalog(request: ListCapabilitiesRequest): Promise<void>;
+  /** setPluginHostProfile maps to `flare_sdk_invoke_json`. Operation: `plugin.set_host_profile`. */
+  setPluginHostProfile(request: PluginHostProfile): Promise<void>;
   /** listCapabilities maps to `flare_capability_dispatch_json`, dispatch op `capability_list`. Operation: `capability.list`. */
   listCapabilities(request: ListCapabilitiesRequest): Promise<ListCapabilitiesResponse>;
   /** dispatchCapability maps to `flare_capability_dispatch_json`, dispatch op `capability_dispatch`. Operation: `capability.dispatch`. */

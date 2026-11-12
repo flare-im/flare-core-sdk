@@ -97,6 +97,10 @@ class DefaultCapabilitiesApi(
         invokeUnit(bridge, NativeCallMap.CAPABILITY_PLUGIN_CATALOG_INVALIDATE, request)
     }
 
+    override suspend fun setPluginHostProfile(request: PluginHostProfile): Unit {
+        invokeUnit(bridge, NativeCallMap.PLUGIN_SET_HOST_PROFILE, pluginHostProfileToMap(request))
+    }
+
     override suspend fun listCapabilities(request: Map<String, Any?>): Map<String, Any?> {
         return invokeMap(bridge, NativeCallMap.CAPABILITY_LIST, request)
     }

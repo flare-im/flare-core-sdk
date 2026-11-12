@@ -61,4 +61,14 @@ public class DefaultUpdateApi <: UpdateApi {
         let raw = bridge.invoke(descriptor: NativeCallMap.updateGetResources, requestJson: wireEncodeRequest(updateGetResourcesRequestToJson(request)))
         return updateResourcesFromJson(raw)
     }
+
+    public func pluginUpgradeStatus(request: UpdatePluginUpgradeStatusRequest): PluginUpgradeStatus {
+        let raw = bridge.invoke(descriptor: NativeCallMap.updatePluginUpgradeStatus, requestJson: wireEncodeRequest(updatePluginUpgradeStatusRequestToJson(request)))
+        return pluginUpgradeStatusFromJson(raw)
+    }
+
+    public func openFlow(request: UpdateOpenFlowRequest): UpdateStatus {
+        let raw = bridge.invoke(descriptor: NativeCallMap.updateOpenFlow, requestJson: wireEncodeRequest(updateOpenFlowRequestToJson(request)))
+        return updateStatusFromJson(raw)
+    }
 }

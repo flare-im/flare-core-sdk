@@ -83,6 +83,8 @@ Update center: release evaluation, download and the install plan. Works before s
 | `markPrompted` | `UpdateMarkPromptedRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `setLocale` | `UpdateSetLocaleRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `getResources` | `UpdateGetResourcesRequest` | `UpdateResources` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `pluginUpgradeStatus` | `UpdatePluginUpgradeStatusRequest` | `PluginUpgradeStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `openFlow` | `UpdateOpenFlowRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 
 ## client.conversations
 
@@ -267,6 +269,7 @@ Capability discovery and optional plugin dispatch through capability dispatch op
 | `pluginFileUpload` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `pluginAccountEntries` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `invalidatePluginCatalog` | `ListCapabilitiesRequest` | `Unit` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `setPluginHostProfile` | `PluginHostProfile` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `listCapabilities` | `ListCapabilitiesRequest` | `ListCapabilitiesResponse` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `dispatchCapability` | `DispatchCapabilityRequest` | `DispatchCapabilityResponse` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 

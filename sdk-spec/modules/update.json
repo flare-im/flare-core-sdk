@@ -102,6 +102,26 @@
       "response": "UpdateResources",
       "stability": "stable",
       "description": "The verified resource packs of this run, sorted by id. Read once at process start and fixed until the process ends: packs downloaded or withdrawn meanwhile take effect on the next start. Works before sign-in and waits for the startup read."
+    },
+    {
+      "name": "pluginUpgradeStatus",
+      "operation": "update.plugin_upgrade_status",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "UpdatePluginUpgradeStatusRequest",
+      "response": "PluginUpgradeStatus",
+      "stability": "experimental",
+      "description": "Whether this device is offered a release at or above a plugin's minimum build (an upgrade placeholder's minBuild; absent means any build newer than this one). The update center's own answer: the platform's published releases and this distribution, never a guess."
+    },
+    {
+      "name": "openFlow",
+      "operation": "update.open_flow",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "UpdateOpenFlowRequest",
+      "response": "UpdateStatus",
+      "stability": "experimental",
+      "description": "Opens the update prompt now because the user asked (a plugin's Update key), outside the prompt frequency rules; the flow then runs as from the prompt. prompt is none when there is nothing to update to."
     }
   ]
 }

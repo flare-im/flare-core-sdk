@@ -1,9 +1,9 @@
 // GENERATED. Do not edit by hand.
 import { NativeBridge, NativeCallMap } from '../../contract/bridge_contract';
 import type { CapabilitiesApi } from '../../api/modules/capabilities';
-import { PluginCommandRequest, PluginUiEvaluationRequest } from '../../model';
+import { PluginCommandRequest, PluginHostProfile, PluginUiEvaluationRequest } from '../../model';
 import { invokeBool, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeList, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError, withoutNullFields } from '../codec/nativeInvoke';
-import { conversationFromJson, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, pluginCommandRequestToMap, pluginUiEvaluationRequestToMap, sendAckFromJson, sendMessageRequestToMap } from '../codec/wireCodec';
+import { conversationFromJson, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, pluginCommandRequestToMap, pluginHostProfileToMap, pluginUiEvaluationRequestToMap, sendAckFromJson, sendMessageRequestToMap } from '../codec/wireCodec';
 
 export class DefaultCapabilitiesApi implements CapabilitiesApi {
   constructor(private readonly bridge: NativeBridge) {}
@@ -70,6 +70,10 @@ export class DefaultCapabilitiesApi implements CapabilitiesApi {
 
   async invalidatePluginCatalog(request: Record<string, unknown>): Promise<void> {
     await invokeVoid(this.bridge, NativeCallMap.capabilityPluginCatalogInvalidate, request);
+  }
+
+  async setPluginHostProfile(request: PluginHostProfile): Promise<void> {
+    await invokeVoid(this.bridge, NativeCallMap.pluginSetHostProfile, pluginHostProfileToMap(request));
   }
 
   async listCapabilities(request: Record<string, unknown>): Promise<Record<string, unknown>> {

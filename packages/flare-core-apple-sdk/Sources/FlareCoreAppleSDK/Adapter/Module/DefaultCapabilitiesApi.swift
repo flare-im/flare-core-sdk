@@ -72,6 +72,10 @@ public final class DefaultCapabilitiesApi: CapabilitiesApiProtocol {
         try await invokeVoid(bridge, descriptor: NativeCallMap.capabilityPluginCatalogInvalidate, request: AnySendable(request))
     }
 
+    public func setPluginHostProfile(_ request: PluginHostProfile) async throws -> Void {
+        try await invokeVoid(bridge, descriptor: NativeCallMap.pluginSetHostProfile, request: AnySendable(pluginHostProfileToMap(request)))
+    }
+
     public func listCapabilities(_ request: [String: AnySendable]) async throws -> [String: AnySendable] {
         return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityList, request: unwrapRequest(AnySendable(request)))
     }

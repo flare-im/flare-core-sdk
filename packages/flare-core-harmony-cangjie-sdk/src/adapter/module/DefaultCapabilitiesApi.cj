@@ -76,6 +76,10 @@ public class DefaultCapabilitiesApi <: CapabilitiesApi {
         let _ignored = bridge.invoke(descriptor: NativeCallMap.capabilityPluginCatalogInvalidate, requestJson: wireEncodeRequest(requestJson))
     }
 
+    public func setPluginHostProfile(request: PluginHostProfile): Unit {
+        let _ignored = bridge.invoke(descriptor: NativeCallMap.pluginSetHostProfile, requestJson: wireEncodeRequest(pluginHostProfileToJson(request)))
+    }
+
     public func listCapabilities(requestJson: String): String {
         return bridge.invoke(descriptor: NativeCallMap.capabilityList, requestJson: wireEncodeRequest(requestJson))
     }

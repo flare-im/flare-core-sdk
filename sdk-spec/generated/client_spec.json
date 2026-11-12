@@ -3659,6 +3659,44 @@
             }
           ],
           "name": "UpdateInstallPlan"
+        },
+        {
+          "description": "A plugin's minimum build to reach.",
+          "fields": [
+            {
+              "description": "The placeholder's minBuild; absent asks for any build newer than this one.",
+              "name": "minBuild",
+              "required": false,
+              "type": "UInt64",
+              "wireName": "minBuild"
+            }
+          ],
+          "name": "UpdatePluginUpgradeStatusRequest"
+        },
+        {
+          "description": "Whether an update reaching a plugin's minimum build is offered to this device.",
+          "fields": [
+            {
+              "description": "A release at or above the floor is offered.",
+              "name": "available",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "available"
+            },
+            {
+              "description": "That release's build, when available.",
+              "name": "build",
+              "required": false,
+              "type": "UInt64",
+              "wireName": "build"
+            }
+          ],
+          "name": "PluginUpgradeStatus"
+        },
+        {
+          "description": "Opens the update prompt at the user's request.",
+          "fields": [],
+          "name": "UpdateOpenFlowRequest"
         }
       ]
     },
@@ -6974,6 +7012,40 @@
             }
           ],
           "name": "PluginUiEvaluationRequest"
+        },
+        {
+          "description": "The plugin UI a host can draw.",
+          "fields": [
+            {
+              "description": "web, tauri, android, ios, flutter or harmonyos.",
+              "name": "platform",
+              "required": true,
+              "type": "String",
+              "wireName": "platform"
+            },
+            {
+              "description": "The kit's PLUGIN_UI_VOCABULARY.",
+              "name": "kitVocabulary",
+              "required": true,
+              "type": "JsonObject",
+              "wireName": "kitVocabulary"
+            },
+            {
+              "description": "Native capabilities this host grants plugin actions.",
+              "name": "nativeAllowlist",
+              "required": false,
+              "type": "StringList",
+              "wireName": "nativeAllowlist"
+            },
+            {
+              "description": "{bridge, engine, engineMajor} when the host can open web bundles.",
+              "name": "bundleRuntime",
+              "required": false,
+              "type": "JsonObject",
+              "wireName": "bundleRuntime"
+            }
+          ],
+          "name": "PluginHostProfile"
         }
       ]
     },
@@ -7819,6 +7891,42 @@
           "request": "UpdateGetResourcesRequest",
           "response": "UpdateResources",
           "stability": "stable",
+          "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Whether this device is offered a release at or above a plugin's minimum build (an upgrade placeholder's minBuild; absent means any build newer than this one). The update center's own answer: the platform's published releases and this distribution, never a guess.",
+          "name": "pluginUpgradeStatus",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "update.plugin_upgrade_status",
+          "request": "UpdatePluginUpgradeStatusRequest",
+          "response": "PluginUpgradeStatus",
+          "stability": "experimental",
+          "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Opens the update prompt now because the user asked (a plugin's Update key), outside the prompt frequency rules; the flow then runs as from the prompt. prompt is none when there is nothing to update to.",
+          "name": "openFlow",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "update.open_flow",
+          "request": "UpdateOpenFlowRequest",
+          "response": "UpdateStatus",
+          "stability": "experimental",
           "transport": "contract-invoke-json"
         }
       ]
@@ -10242,6 +10350,24 @@
           "response": "Unit",
           "stability": "experimental",
           "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "What this host draws: platform (the kit that renders), kitVocabulary (the kit's PLUGIN_UI_VOCABULARY, passed as it is), nativeAllowlist (native capabilities the host grants) and bundleRuntime when it hosts web bundles. Set once at startup, before the first catalog read; a change drops the cached catalog. Without it the catalog is asked for vocabulary 1.",
+          "name": "setPluginHostProfile",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "unit",
+            "returnMode": "callback"
+          },
+          "operation": "plugin.set_host_profile",
+          "request": "PluginHostProfile",
+          "response": "Unit",
+          "stability": "experimental",
+          "transport": "contract-invoke-json"
         },
         {
           "cApi": "flare_capability_dispatch_json",

@@ -59,6 +59,8 @@ interface CapabilitiesApi {
     suspend fun pluginAccountEntries(request: PluginUiEvaluationRequest): Map<String, Any?>
     /** invalidatePluginCatalog maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`. */
     suspend fun invalidatePluginCatalog(request: Map<String, Any?>): Unit
+    /** setPluginHostProfile maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `plugin.set_host_profile`. */
+    suspend fun setPluginHostProfile(request: PluginHostProfile): Unit
     /** listCapabilities maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_list`. Operation: `capability.list`. */
     suspend fun listCapabilities(request: Map<String, Any?>): Map<String, Any?>
     /** dispatchCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_dispatch`. Operation: `capability.dispatch`. */

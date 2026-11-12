@@ -21,6 +21,7 @@ public interface CapabilitiesApi {
     func pluginFileUpload(request: PluginUiEvaluationRequest): String
     func pluginAccountEntries(request: PluginUiEvaluationRequest): String
     func invalidatePluginCatalog(requestJson: String): Unit
+    func setPluginHostProfile(request: PluginHostProfile): Unit
     func listCapabilities(requestJson: String): String
     func dispatchCapability(requestJson: String): String
 }

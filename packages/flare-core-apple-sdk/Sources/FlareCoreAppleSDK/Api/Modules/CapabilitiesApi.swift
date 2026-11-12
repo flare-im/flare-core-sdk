@@ -19,6 +19,7 @@ public protocol CapabilitiesApiProtocol: AnyObject {
     func pluginFileUpload(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable]
     func pluginAccountEntries(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable]
     func invalidatePluginCatalog(_ request: [String: AnySendable]) async throws -> Void
+    func setPluginHostProfile(_ request: PluginHostProfile) async throws -> Void
     func listCapabilities(_ request: [String: AnySendable]) async throws -> [String: AnySendable]
     func dispatchCapability(_ request: [String: AnySendable]) async throws -> [String: AnySendable]
 }

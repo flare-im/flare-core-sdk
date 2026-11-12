@@ -24,4 +24,8 @@ abstract interface class UpdateApi {
   Future<UpdateStatus> setLocale(UpdateSetLocaleRequest request);
   /// getResources maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.get_resources`.
   Future<UpdateResources> getResources(UpdateGetResourcesRequest request);
+  /// pluginUpgradeStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.plugin_upgrade_status`.
+  Future<PluginUpgradeStatus> pluginUpgradeStatus(UpdatePluginUpgradeStatusRequest request);
+  /// openFlow maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.open_flow`.
+  Future<UpdateStatus> openFlow(UpdateOpenFlowRequest request);
 }

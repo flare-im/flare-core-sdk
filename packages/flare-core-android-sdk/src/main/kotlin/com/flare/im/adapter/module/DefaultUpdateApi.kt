@@ -72,4 +72,12 @@ class DefaultUpdateApi(
     override suspend fun getResources(request: UpdateGetResourcesRequest): UpdateResources {
         return updateResourcesFromJson(invokeMap(bridge, NativeCallMap.UPDATE_GET_RESOURCES, updateGetResourcesRequestToMap(request)))
     }
+
+    override suspend fun pluginUpgradeStatus(request: UpdatePluginUpgradeStatusRequest): PluginUpgradeStatus {
+        return pluginUpgradeStatusFromJson(invokeMap(bridge, NativeCallMap.UPDATE_PLUGIN_UPGRADE_STATUS, updatePluginUpgradeStatusRequestToMap(request)))
+    }
+
+    override suspend fun openFlow(request: UpdateOpenFlowRequest): UpdateStatus {
+        return updateStatusFromJson(invokeMap(bridge, NativeCallMap.UPDATE_OPEN_FLOW, updateOpenFlowRequestToMap(request)))
+    }
 }

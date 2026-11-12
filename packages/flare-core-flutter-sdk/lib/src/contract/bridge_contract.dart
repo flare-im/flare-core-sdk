@@ -630,6 +630,32 @@ abstract final class NativeCallMap {
       handlePolicy: "client-handle",
       callback: "FlareResultCallback");
 
+  /// pluginUpgradeStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.plugin_upgrade_status`.
+  static const updatePluginUpgradeStatus = NativeCallDescriptor(
+      module: "update",
+      method: "pluginUpgradeStatus",
+      operation: "update.plugin_upgrade_status",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// openFlow maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.open_flow`.
+  static const updateOpenFlow = NativeCallDescriptor(
+      module: "update",
+      method: "openFlow",
+      operation: "update.open_flow",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
   /// listConversations maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.list`.
   static const conversationList = NativeCallDescriptor(
       module: "conversations",
@@ -2373,6 +2399,19 @@ abstract final class NativeCallMap {
       returnMode: "callback-unit",
       handlePolicy: "client-handle",
       dispatchOp: "plugin_catalog_invalidate",
+      callback: "FlareResultCallback");
+
+  /// setPluginHostProfile maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `plugin.set_host_profile`.
+  static const pluginSetHostProfile = NativeCallDescriptor(
+      module: "capabilities",
+      method: "setPluginHostProfile",
+      operation: "plugin.set_host_profile",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
       callback: "FlareResultCallback");
 
   /// listCapabilities maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_list`. Operation: `capability.list`.

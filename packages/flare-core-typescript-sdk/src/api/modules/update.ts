@@ -3,7 +3,7 @@
  *
  * Module API: `update` — Update center: release evaluation, download and the install plan. Works before sign-in and with every IM node down; the release manifest comes from the access mirrors.
  */
-import type { UpdateCheckRequest, UpdateDownloadRequest, UpdateGetResourcesRequest, UpdateGetStateRequest, UpdateInstallPlan, UpdateMarkPromptedRequest, UpdateReportInstallRequest, UpdateResources, UpdateSetLocaleRequest, UpdateSkipRequest, UpdateStatus } from '../../model';
+import type { PluginUpgradeStatus, UpdateCheckRequest, UpdateDownloadRequest, UpdateGetResourcesRequest, UpdateGetStateRequest, UpdateInstallPlan, UpdateMarkPromptedRequest, UpdateOpenFlowRequest, UpdatePluginUpgradeStatusRequest, UpdateReportInstallRequest, UpdateResources, UpdateSetLocaleRequest, UpdateSkipRequest, UpdateStatus } from '../../model';
 
 /** Update center: release evaluation, download and the install plan. Works before sign-in and with every IM node down; the release manifest comes from the access mirrors. */
 export interface UpdateApi {
@@ -27,4 +27,8 @@ export interface UpdateApi {
   setLocale(request: UpdateSetLocaleRequest): Promise<UpdateStatus>;
   /** getResources maps to `flare_sdk_invoke_json`. Operation: `update.get_resources`. */
   getResources(request: UpdateGetResourcesRequest): Promise<UpdateResources>;
+  /** pluginUpgradeStatus maps to `flare_sdk_invoke_json`. Operation: `update.plugin_upgrade_status`. */
+  pluginUpgradeStatus(request: UpdatePluginUpgradeStatusRequest): Promise<PluginUpgradeStatus>;
+  /** openFlow maps to `flare_sdk_invoke_json`. Operation: `update.open_flow`. */
+  openFlow(request: UpdateOpenFlowRequest): Promise<UpdateStatus>;
 }

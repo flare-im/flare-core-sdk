@@ -510,6 +510,44 @@
           "description": "desktopUpdater: desktop target."
         }
       ]
+    },
+    {
+      "name": "UpdatePluginUpgradeStatusRequest",
+      "description": "A plugin's minimum build to reach.",
+      "fields": [
+        {
+          "name": "minBuild",
+          "wireName": "minBuild",
+          "type": "UInt64",
+          "required": false,
+          "description": "The placeholder's minBuild; absent asks for any build newer than this one."
+        }
+      ]
+    },
+    {
+      "name": "PluginUpgradeStatus",
+      "description": "Whether an update reaching a plugin's minimum build is offered to this device.",
+      "fields": [
+        {
+          "name": "available",
+          "wireName": "available",
+          "type": "Boolean",
+          "required": true,
+          "description": "A release at or above the floor is offered."
+        },
+        {
+          "name": "build",
+          "wireName": "build",
+          "type": "UInt64",
+          "required": false,
+          "description": "That release's build, when available."
+        }
+      ]
+    },
+    {
+      "name": "UpdateOpenFlowRequest",
+      "description": "Opens the update prompt at the user's request.",
+      "fields": []
     }
   ]
 }

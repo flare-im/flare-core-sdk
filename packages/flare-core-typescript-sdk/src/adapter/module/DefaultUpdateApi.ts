@@ -1,9 +1,9 @@
 // GENERATED. Do not edit by hand.
 import { NativeBridge, NativeCallMap } from '../../contract/bridge_contract';
 import type { UpdateApi } from '../../api/modules/update';
-import { UpdateCheckRequest, UpdateDownloadRequest, UpdateGetResourcesRequest, UpdateGetStateRequest, UpdateInstallPlan, UpdateMarkPromptedRequest, UpdateReportInstallRequest, UpdateResources, UpdateSetLocaleRequest, UpdateSkipRequest, UpdateStatus } from '../../model';
+import { PluginUpgradeStatus, UpdateCheckRequest, UpdateDownloadRequest, UpdateGetResourcesRequest, UpdateGetStateRequest, UpdateInstallPlan, UpdateMarkPromptedRequest, UpdateOpenFlowRequest, UpdatePluginUpgradeStatusRequest, UpdateReportInstallRequest, UpdateResources, UpdateSetLocaleRequest, UpdateSkipRequest, UpdateStatus } from '../../model';
 import { invokeBool, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeList, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError, withoutNullFields } from '../codec/nativeInvoke';
-import { conversationFromJson, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, sendAckFromJson, sendMessageRequestToMap, updateCheckRequestToMap, updateDownloadRequestToMap, updateGetResourcesRequestToMap, updateGetStateRequestToMap, updateMarkPromptedRequestToMap, updateReportInstallRequestToMap, updateSetLocaleRequestToMap, updateSkipRequestToMap } from '../codec/wireCodec';
+import { conversationFromJson, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, sendAckFromJson, sendMessageRequestToMap, updateCheckRequestToMap, updateDownloadRequestToMap, updateGetResourcesRequestToMap, updateGetStateRequestToMap, updateMarkPromptedRequestToMap, updateOpenFlowRequestToMap, updatePluginUpgradeStatusRequestToMap, updateReportInstallRequestToMap, updateSetLocaleRequestToMap, updateSkipRequestToMap } from '../codec/wireCodec';
 
 export class DefaultUpdateApi implements UpdateApi {
   constructor(private readonly bridge: NativeBridge) {}
@@ -46,5 +46,13 @@ export class DefaultUpdateApi implements UpdateApi {
 
   async getResources(request: UpdateGetResourcesRequest): Promise<UpdateResources> {
     return await invokeMap(this.bridge, NativeCallMap.updateGetResources, updateGetResourcesRequestToMap(request)) as unknown as UpdateResources;
+  }
+
+  async pluginUpgradeStatus(request: UpdatePluginUpgradeStatusRequest): Promise<PluginUpgradeStatus> {
+    return await invokeMap(this.bridge, NativeCallMap.updatePluginUpgradeStatus, updatePluginUpgradeStatusRequestToMap(request)) as unknown as PluginUpgradeStatus;
+  }
+
+  async openFlow(request: UpdateOpenFlowRequest): Promise<UpdateStatus> {
+    return withoutNullFields(await invokeMap(this.bridge, NativeCallMap.updateOpenFlow, updateOpenFlowRequestToMap(request))) as unknown as UpdateStatus;
   }
 }

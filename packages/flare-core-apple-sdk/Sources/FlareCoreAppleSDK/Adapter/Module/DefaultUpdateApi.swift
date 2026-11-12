@@ -57,4 +57,14 @@ public final class DefaultUpdateApi: UpdateApiProtocol {
         let raw = try await invokeMap(bridge, descriptor: NativeCallMap.updateGetResources, request: updateGetResourcesRequestToMap(request))
         return try updateResourcesFromJson(raw)
     }
+
+    public func pluginUpgradeStatus(_ request: UpdatePluginUpgradeStatusRequest) async throws -> PluginUpgradeStatus {
+        let raw = try await invokeMap(bridge, descriptor: NativeCallMap.updatePluginUpgradeStatus, request: updatePluginUpgradeStatusRequestToMap(request))
+        return try pluginUpgradeStatusFromJson(raw)
+    }
+
+    public func openFlow(_ request: UpdateOpenFlowRequest) async throws -> UpdateStatus {
+        let raw = try await invokeMap(bridge, descriptor: NativeCallMap.updateOpenFlow, request: updateOpenFlowRequestToMap(request))
+        return try updateStatusFromJson(raw)
+    }
 }

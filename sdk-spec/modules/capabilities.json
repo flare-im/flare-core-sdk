@@ -173,6 +173,16 @@
       "stability": "experimental"
     },
     {
+      "name": "setPluginHostProfile",
+      "operation": "plugin.set_host_profile",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "PluginHostProfile",
+      "response": "Unit",
+      "stability": "experimental",
+      "description": "What this host draws: platform (the kit that renders), kitVocabulary (the kit's PLUGIN_UI_VOCABULARY, passed as it is), nativeAllowlist (native capabilities the host grants) and bundleRuntime when it hosts web bundles. Set once at startup, before the first catalog read; a change drops the cached catalog. Without it the catalog is asked for vocabulary 1."
+    },
+    {
       "name": "listCapabilities",
       "operation": "capability.list",
       "transport": "capability-dispatch-json",
