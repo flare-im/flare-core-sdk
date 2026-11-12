@@ -83,19 +83,35 @@ export interface PluginPageTarget { pluginId: string; page: string; /** Host rou
 export function validPluginMessageId(id: string): boolean {
   return id.length > 0 && new TextEncoder().encode(id).length <= 256 && !/[\s\p{Cc}]/u.test(id);
 }
+/** Host-owned action lease, constructed only after Core validates the real source ref.
+ * Never derive these fields from a plugin's business payload. */
+export interface PluginNativeContext {
+  readonly pluginId: string;
+  readonly page?: string;
+  readonly contributionId?: string;
+  readonly conversationId?: string;
+  readonly actionId: string;
+  readonly generation: number;
+  readonly signal: AbortSignal;
+  /** One-use local form input, never a public native payload or serializable state. */
+  readonly takeTransientInputs: () => Record<string, unknown>;
+  readonly isCurrent: () => boolean;
+}
 export interface NativePluginBridge {
-  capabilities: ReadonlyArray<"selectImage" | "selectFile" | "camera" | "microphone" | "clipboardWrite">;
-  invoke(capability: string, payload: Record<string, unknown>): Promise<unknown>;
+  capabilities: ReadonlyArray<"selectImage" | "selectFile" | "camera" | "microphone" | "clipboardWrite" | "reauthenticate">;
+  invoke(capability: string, payload: Record<string, unknown>, context: PluginNativeContext): Promise<unknown>;
 }
 export class PluginUiSession {
   private generation = 0;
+  private nativeAbort = new AbortController();
+  private nativeTransientCleanup = new WeakMap<PluginNativeContext, () => void>();
   private catalogInFlight: Promise<unknown> | null = null;
   constructor(private readonly port: PluginUiPort, readonly platform: PluginPlatform,
     private readonly locale: () => string = () => "en-US", private readonly native?: NativePluginBridge,
     /** Opens a plugin page (of the plugin whose card or page ran the action) with its arguments (the payload the
      * opening action bound). */
     private readonly navigate?: (target: PluginPageTarget, args?: Record<string, unknown>) => void) {}
-  reset(): void { this.generation++; this.catalogInFlight = null; }
+  reset(): void { this.nativeAbort.abort(); this.nativeAbort = new AbortController(); this.generation++; this.catalogInFlight = null; }
   async uploadFile(request: Omit<PluginFileUploadRequest, "platform" | "locale">): Promise<UiFileReference> {
     const generation = this.generation;
     const value = await this.port.uploadFile({ ...request, platform: this.platform, locale: this.locale() });
@@ -178,11 +194,12 @@ export class PluginUiSession {
     options: { messageId?: string; conversationId?: string; userGesture: boolean; formValues?: Record<string, unknown>; selection?: number[] }): Promise<PluginActionOutcome> {
     const generation = this.generation;
     const { messageId, conversationId, userGesture, formValues, selection } = options;
+    const transientInputs = formValues ? JSON.parse(JSON.stringify(formValues)) as Record<string, unknown> : undefined;
     const value = await this.port.invokeAction({ message, ...(messageId && validPluginMessageId(messageId) ? { messageId } : {}),
       ...(conversationId ? { conversationId } : {}), platform: this.platform, actionId, userGesture, nativeAllowlist: this.native?.capabilities ?? [],
-      ...(formValues ? { formValues } : {}), ...(selection ? { selection } : {}) });
+      ...(transientInputs ? { formValues: transientInputs } : {}), ...(selection ? { selection } : {}) });
     if (generation !== this.generation) throw new Error("Plugin session changed");
-    return this.actionOutcome(value, message.pluginId, conversationId);
+    return this.actionOutcome(value, this.nativeContext(message.pluginId, actionId, generation, { contributionId: message.contributionId, conversationId }, transientInputs));
   }
   /**
    * A plugin page (a `page` contribution, such as a wallet) through Core: its source query is called
@@ -208,8 +225,9 @@ export class PluginUiSession {
     }
     const nextCursor = typeof view.nextCursor === "string" && view.nextCursor ? view.nextCursor : undefined;
     const data = view.available && view.data && typeof view.data === "object" && !Array.isArray(view.data) ? view.data : undefined;
+    const refreshMs = view.available && Number.isInteger(view.refreshMs) && view.refreshMs! >= 3000 && view.refreshMs! <= 60000 ? view.refreshMs : undefined;
     return { available: view.available, title: view.title, fields: view.fields, actions: view.actions,
-      ...pluginViewExtras(view as unknown as Record<string, unknown>), ...(nextCursor ? { nextCursor } : {}), ...(typeof view.conversationId === "string" ? { conversationId: view.conversationId } : conversationId ? { conversationId } : {}), ...(data ? { data } : {}) };
+      ...pluginViewExtras(view as unknown as Record<string, unknown>), ...(refreshMs !== undefined ? { refreshMs } : {}), ...(nextCursor ? { nextCursor } : {}), ...(typeof view.conversationId === "string" ? { conversationId: view.conversationId } : conversationId ? { conversationId } : {}), ...(data ? { data } : {}) };
   }
   /**
    * Run a page action through Core: a document action binds over the page's `data`, a row action
@@ -221,15 +239,40 @@ export class PluginUiSession {
     options: { data?: Record<string, unknown>; row?: { key: string; input: Record<string, unknown> }; conversationId?: string; userGesture: boolean; formValues?: Record<string, unknown>; selection?: number[] }): Promise<PluginActionOutcome> {
     const generation = this.generation;
     const { data, row, conversationId, userGesture, formValues, selection } = options;
+    const transientInputs = formValues ? JSON.parse(JSON.stringify(formValues)) as Record<string, unknown> : undefined;
     const value = await this.port.invokePageAction({ pluginId, page, actionId, platform: this.platform, userGesture,
       nativeAllowlist: this.native?.capabilities ?? [], ...(data ? { data } : {}), ...(row ? { row } : {}),
-      ...(conversationId ? { conversationId } : {}), ...(formValues ? { formValues } : {}), ...(selection ? { selection } : {}) });
+      ...(conversationId ? { conversationId } : {}), ...(transientInputs ? { formValues: transientInputs } : {}), ...(selection ? { selection } : {}) });
     if (generation !== this.generation) throw new Error("Plugin session changed");
-    return this.actionOutcome(value, pluginId, conversationId);
+    return this.actionOutcome(value, this.nativeContext(pluginId, actionId, generation, { page, conversationId }, transientInputs));
   }
   /** Core's answer to a card or page action: an operation's response, form problems, or a host target run here (a
    * page target of the plugin that declared the action, unless it names another, or an allowed native capability). */
-  private async actionOutcome(value: unknown, pluginId: string, conversationId?: string): Promise<PluginActionOutcome> {
+  private nativeContext(pluginId: string, actionId: string, generation: number,
+    source: { page?: string; contributionId?: string; conversationId?: string }, inputs?: Record<string, unknown>): PluginNativeContext {
+    let transient = inputs ? { ...inputs } : {};
+    const signal = this.nativeAbort.signal;
+    const clear = () => { transient = {}; };
+    signal.addEventListener("abort", clear, { once: true });
+    const context = Object.freeze({ pluginId, actionId, generation, ...source, signal,
+      isCurrent: () => generation === this.generation,
+      takeTransientInputs: () => { const value = generation === this.generation ? transient : {}; clear(); return value; } });
+    this.nativeTransientCleanup.set(context, () => { clear(); signal.removeEventListener("abort", clear); });
+    return context;
+  }
+  private async invokeNative(capability: string, payload: Record<string, unknown>, context: PluginNativeContext): Promise<unknown> {
+    if (!context.isCurrent() || !this.native) throw new Error("Plugin session changed");
+    try {
+      const result = await this.native.invoke(capability, payload, context);
+      if (!context.isCurrent()) throw new Error("Plugin session changed");
+      return result;
+    } finally {
+      this.nativeTransientCleanup.get(context)?.(); this.nativeTransientCleanup.delete(context);
+    }
+  }
+  private async actionOutcome(value: unknown, context: PluginNativeContext): Promise<PluginActionOutcome> {
+    const { pluginId, conversationId } = context;
+    try {
     const result = value as { kind?: unknown; response?: unknown; errors?: unknown; conversationId?: unknown; target?: { kind: string; page?: string; pluginId?: string; capability?: string }; payload?: Record<string, unknown> } | null;
     if (result?.kind === "operation" && result.response && typeof result.response === "object") {
       return { kind: "operation", response: result.response as Extract<PluginActionOutcome, { kind: "operation" }>["response"] };
@@ -242,9 +285,10 @@ export class PluginUiSession {
       return { kind: "host", result: this.navigate({ pluginId: typeof target.pluginId === "string" ? target.pluginId : pluginId, page: target.page, ...(context ? { conversationId: context } : {}) }, result?.payload ?? {}) };
     }
     if (target?.kind === "native" && typeof target.capability === "string" && this.native?.capabilities.includes(target.capability as never)) {
-      return { kind: "host", result: await this.native.invoke(target.capability, result?.payload ?? {}) };
+      return { kind: "host", result: await this.invokeNative(target.capability, result?.payload ?? {}, context) };
     }
     throw new Error("Plugin target unavailable");
+    } finally { this.nativeTransientCleanup.get(context)?.(); this.nativeTransientCleanup.delete(context); }
   }
   /**
    * The card's "view all" sheet: Core runs the contribution's detail operation with the input bound
@@ -293,7 +337,7 @@ export class PluginUiSession {
         return this.navigate({ pluginId: typeof target.pluginId === "string" ? target.pluginId : message.pluginId, page: target.page });
       case "native":
         if (typeof target.capability !== "string" || !this.native || !this.native.capabilities.includes(target.capability as never)) break;
-        return this.native.invoke(target.capability, prepared.payload);
+        return this.invokeNative(target.capability, prepared.payload, this.nativeContext(message.pluginId, actionId, generation, { contributionId: message.contributionId }));
     }
     throw new Error("Plugin target unavailable");
   }

@@ -72,6 +72,10 @@ public class DefaultCapabilitiesApi <: CapabilitiesApi {
         return bridge.invoke(descriptor: NativeCallMap.capabilityPluginAccountEntries, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
     }
 
+    public func pluginScanHandlers(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginScanHandlers, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
+    }
+
     public func invalidatePluginCatalog(requestJson: String): Unit {
         let _ignored = bridge.invoke(descriptor: NativeCallMap.capabilityPluginCatalogInvalidate, requestJson: wireEncodeRequest(requestJson))
     }
@@ -82,5 +86,9 @@ public class DefaultCapabilitiesApi <: CapabilitiesApi {
 
     public func dispatchCapability(requestJson: String): String {
         return bridge.invoke(descriptor: NativeCallMap.capabilityDispatch, requestJson: wireEncodeRequest(requestJson))
+    }
+
+    public func pluginNativeInvoke(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginNativeInvoke, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
     }
 }

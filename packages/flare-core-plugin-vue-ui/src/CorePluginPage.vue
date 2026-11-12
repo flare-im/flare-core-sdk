@@ -9,7 +9,7 @@
  * new values), a page action (`invokePageAction` with the view's `data` and the row's `row`, no message). A page target
  * an action opens is pushed with its own plugin; back pops it, and on the root page emits `back`.
  */
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
+import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import {
   FlarePluginPage,
   FlareImagePreview,
@@ -30,7 +30,7 @@ import {
   type PluginUiPort,
   type PluginUiSession,
 } from "@flare-im/sdk/plugin-ui";
-import type { CorePluginErrorText } from "./context";
+import { pluginUiDirectoryKey, pluginUiNativeKey, type CorePluginErrorText } from "./context";
 import { corePluginPageSession, pluginPagePostedCard, type CorePluginPageEntry } from "./pluginPage";
 import type { PluginPostedCard } from "./composerMenu";
 import { PluginFileUploads, choosePluginFile, pluginFileSessionData } from "./pluginFileUploads";
@@ -38,6 +38,8 @@ import { PluginFileUploads, choosePluginFile, pluginFileSessionData } from "./pl
 const props = defineProps<{
   /** The page the stack starts from. */
   root: CorePluginPageEntry;
+  visible?: boolean;
+  encodePluginCode?: (pluginId: string, token: string) => Promise<string>;
   pageAppearance?: (page: FlarePluginPageRef) => FlarePluginPageAppearance;
   /** The core SDK's plugin port (the social SDK's `plugins`); nothing loads while it is null. */
   port: PluginUiPort | null;
@@ -58,8 +60,10 @@ const props = defineProps<{
   /** The host's line for a page that failed to load for any other reason. */
   loadFailedText: string;
 }>();
-const emit = defineEmits<{ back: []; posted: [card: PluginPostedCard, owner: CorePluginPageEntry] }>();
+const emit = defineEmits<{ surfaceHints: [hints: { secure: boolean; maxBrightness: boolean }]; back: []; posted: [card: PluginPostedCard, owner: CorePluginPageEntry] }>();
 
+const directory = inject(pluginUiDirectoryKey, {});
+const native = inject(pluginUiNativeKey, undefined);
 const { t, locale } = useFlareI18n();
 /** The pages opened from the root, the root first. Each keeps its own filters. */
 const stack = ref<Array<CorePluginPageEntry & { filters: Record<string, unknown> }>>([{ ...props.root, filters: {} }]);
@@ -71,9 +75,10 @@ watch([() => props.port, () => props.viewerId], ([port]) => {
   session.value?.reset();
   session.value = port
     ? corePluginPageSession(port, props.platform, () => pluginManifestLocale(locale.value), () => top.value,
-      (entry) => { stack.value = [...stack.value, { ...entry, filters: {} }]; })
+      (entry) => { stack.value = [...stack.value, { ...entry, filters: {} }]; }, native)
     : null;
 }, { immediate: true });
+watch(() => props.visible, visible => { if (visible === false) { actionTicket++; session.value?.reset(); busyActionId.value = undefined; } });
 
 const view = shallowRef<PluginPagePresentation>();
 const loading = ref(false);
@@ -257,6 +262,11 @@ async function action(actionId: string, payload: FlarePluginPageActionPayload): 
       else if (outcome.response.success === true && entry.conversationId === owner.conversationId) {
         posted = pluginPagePostedCard(outcome.response.data, owner.conversationId);
       }
+    } else if (outcome.kind === "host") {
+      changed = true;
+      const result = outcome.result as { success?: unknown; status?: unknown } | null;
+      if (result?.success === false) actionError.value = t("pluginRuntime.rejected");
+      else if (result?.status === "unknown") actionError.value = t("pluginRuntime.unavailable");
     }
   } catch (cause) {
     if (current()) actionError.value = props.errorText?.(cause) ?? t("pluginRuntime.unavailable");
@@ -283,6 +293,10 @@ function back(): void {
     class="core-plugin-page"
     :page="{ pluginId: top.pluginId, page: top.page }"
     :title="top.title"
+    :provider-name="props.root.providerName"
+    :visible="visible"
+    :encode-plugin-code="encodePluginCode ?? directory.encodePluginCode"
+    @surface-hints="hints => emit('surfaceHints', hints)"
     :appearance="pageAppearance?.({ pluginId: top.pluginId, page: top.page })"
     :view="view"
     :filters="top.filters"

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PluginUiSession, pluginManifestLocale, type PluginUiPort } from "./index";
+import { PluginUiSession, pluginManifestLocale, type PluginUiPort, type PluginNativeContext } from "./index";
 const message = { pluginId: "example.poll", contributionId: "example.poll.card", schemaVersion: 1, summary: "Poll", payload: { packetId: "one", injected: "unused" } };
 function port(): PluginUiPort { return { catalog: async () => ({}), resolveMessage: async () => ({ available: true, title: "Poll", fields: [], actions: [{ id: "vote", label: "Vote" }] }), action: async () => ({ target: { kind: "operation", operation: "example.poll.vote" }, payload: { packetId: "one" } }),
   presentMessage: async () => ({ available: true, title: "Poll", fields: [], actions: [], data: { packetId: "one", status: "completed" }, stateVersion: 3 }),
@@ -8,6 +8,18 @@ function port(): PluginUiPort { return { catalog: async () => ({}), resolveMessa
   uploadFile: async () => ({ fileId: "file-1" }),
   dispatch: async () => ({ success: true }) }; }
 describe("plugin UI runtime adapter", () => {
+  it("preserves only approved page refresh intervals and drops them on inert pages", async () => {
+    const api = port();
+    const host = new PluginUiSession(api, "web", () => "en");
+    for (const interval of [3000, 5000, 60000, 0, 2999, 60001, 3000.5, "5000", undefined]) {
+      api.pluginPage = async () => ({ available: true, title: "Live", fields: [], actions: [], refreshMs: interval });
+      const page = await host.page("example.demo", "example.demo.collect");
+      const expected = typeof interval === "number" && Number.isInteger(interval) && interval >= 3000 && interval <= 60000 ? interval : undefined;
+      expect(page.refreshMs).toBe(expected);
+    }
+    api.pluginPage = async () => ({ available: false, title: "", fields: [], actions: [], refreshMs: 5000 });
+    expect((await host.page("example.demo", "example.demo.collect")).refreshMs).toBeUndefined();
+  });
   it("frames private uploads and rejects a completion from a reset session", async () => {
     const api = port(); let release!: (value: { fileId: string }) => void; let seen: unknown;
     api.uploadFile = async (request) => { seen = request; return await new Promise((resolve) => { release = resolve; }); };
@@ -235,5 +247,47 @@ describe("plugin UI card protocol v2", () => {
   it("maps the host's UI language onto the manifest locales", () => {
     for (const tag of ["en", "en-US", "en-GB", " EN-au "]) expect(pluginManifestLocale(tag)).toBe("en-US");
     for (const tag of ["zh-CN", "zh-Hant-TW", "ja-JP", "", undefined, null]) expect(pluginManifestLocale(tag)).toBe("zh-CN");
+  });
+});
+
+describe("trusted native plugin context", () => {
+  it("uses the validated source ref and never a provider named in payload", async () => {
+    const api=port();const seen:PluginNativeContext[]=[];
+    const target={kind:"host",target:{kind:"native",capability:"reauthenticate"},payload:{pluginId:"injected.other",page:"other",actionId:"other"}};
+    api.invokePageAction=async()=>target;
+    api.invokeAction=async()=>target;
+    api.action=async()=>({target:target.target,payload:target.payload});
+    const host=new PluginUiSession(api,"web",undefined,{capabilities:["reauthenticate"],invoke:async(_,__,context)=>{seen.push(context);return {success:true};}});
+    await host.invokePageAction("example.provider","example.provider.page.security","setup",{userGesture:true,conversationId:"conv-1"});
+    await host.invokeAction(message,"verify",{userGesture:true});
+    await host.invoke(message,"legacy",true);
+    expect(seen[0]).toMatchObject({pluginId:"example.provider",page:"example.provider.page.security",actionId:"setup",conversationId:"conv-1",generation:0});
+    expect(seen[0].contributionId).toBeUndefined();
+    expect(seen[1]).toMatchObject({pluginId:message.pluginId,contributionId:message.contributionId,actionId:"verify"});
+    expect(seen[2]).toMatchObject({pluginId:message.pluginId,contributionId:message.contributionId,actionId:"legacy"});
+    expect(seen.every(context=>Object.isFrozen(context)&&context.isCurrent())).toBe(true);
+    host.reset();expect(seen.every(context=>!context.isCurrent()&&context.signal.aborted)).toBe(true);
+  });
+  it("rejects a native completion after its trusted lease was cancelled", async () => {
+    const api=port();let release!:(value:unknown)=>void;let lease:PluginNativeContext|undefined;
+    api.invokePageAction=async()=>({kind:"host",target:{kind:"native",capability:"reauthenticate"},payload:{}});
+    const host=new PluginUiSession(api,"web",undefined,{capabilities:["reauthenticate"],invoke:async(_,__,context)=>{lease=context;return await new Promise(resolve=>{release=resolve;});}});
+    const pending=host.invokePageAction("example.provider","example.provider.page.security","setup",{userGesture:true});
+    await Promise.resolve();expect(lease?.isCurrent()).toBe(true);
+    host.reset();expect(lease?.isCurrent()).toBe(false);release({success:true});
+    await expect(pending).rejects.toThrow("Plugin session changed");
+  });
+});
+
+describe("native transient form closure",()=>{
+  it("hands validated local form inputs out once without serializing them on context",async()=>{
+    const api=port();api.invokePageAction=async()=>({kind:"host",target:{kind:"native",capability:"reauthenticate"},payload:{purpose:"generic"}});
+    let captured:PluginNativeContext|undefined;
+    const session=new PluginUiSession(api,"web",undefined,{capabilities:["reauthenticate"],invoke:async(_,payload,context)=>{
+      captured=context;expect(payload).toEqual({purpose:"generic"});expect(JSON.stringify(context)).not.toContain("secret-input");
+      expect(context.takeTransientInputs()).toEqual({arbitraryField:"secret-input"});expect(context.takeTransientInputs()).toEqual({});return {success:true};
+    }});
+    await session.invokePageAction("example.provider","example.provider.page","verify",{userGesture:true,formValues:{arbitraryField:"secret-input"}});
+    expect(captured?.takeTransientInputs()).toEqual({});
   });
 });

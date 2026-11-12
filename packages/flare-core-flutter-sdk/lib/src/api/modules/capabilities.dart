@@ -34,10 +34,14 @@ abstract interface class CapabilitiesApi {
   Future<Map<String, Object?>> pluginFileUpload(PluginUiEvaluationRequest request);
   /// pluginAccountEntries maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`.
   Future<Map<String, Object?>> pluginAccountEntries(PluginUiEvaluationRequest request);
+  /// pluginScanHandlers maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_scan_handlers`. Operation: `capability.plugin_scan_handlers`.
+  Future<Map<String, Object?>> pluginScanHandlers(PluginUiEvaluationRequest request);
   /// invalidatePluginCatalog maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`.
   Future<void> invalidatePluginCatalog(Map<String, Object?> request);
   /// listCapabilities maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_list`. Operation: `capability.list`.
   Future<Map<String, Object?>> listCapabilities(Map<String, Object?> request);
   /// dispatchCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_dispatch`. Operation: `capability.dispatch`.
   Future<Map<String, Object?>> dispatchCapability(Map<String, Object?> request);
+  /// pluginNativeInvoke maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_native_invoke`. Operation: `capability.plugin_native_invoke`.
+  Future<Map<String, Object?>> pluginNativeInvoke(PluginUiEvaluationRequest request);
 }

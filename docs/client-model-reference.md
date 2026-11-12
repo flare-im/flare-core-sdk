@@ -1890,3 +1890,20 @@ Durable idempotent plugin intent; Rust PluginCommand and strict request parsers 
 | Field | Wire name | Type | Required | Description |
 |-------|-----------|------|----------|-------------|
 | `payload` | `payload` | `JsonObject` | yes | prepare: slot + command; pending: slot; submit/acknowledge: slot + commandId. Scope is inferred from the active SDK session. |
+
+## Media
+
+Typed optional publication intent for existing media upload request options; mirrored from Engine UploadOptions/UploadPurpose. Request envelopes remain compatible JSON objects.
+
+### Enums
+
+- `MediaUploadPurpose`: general remains private; avatar explicitly publishes a validated image under the dedicated anonymous-read prefix. Values: `general`, `avatar`
+
+### MediaUploadOptions
+
+Optional upload options. Omitted chunkSize defaults to 256 KiB; omitted purpose defaults to general. options may contain purpose alone. No arbitrary Public access flag exists.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `chunkSize` | `chunkSize` | `UInt32` | no | Optional positive part size, in bytes; absent preserves the existing default. |
+| `purpose` | `purpose` | `MediaUploadPurpose` | no | Explicit avatar publication intent. General uploads stay private. Avatar returns stable unsigned url/cdnUrl after real image validation. |

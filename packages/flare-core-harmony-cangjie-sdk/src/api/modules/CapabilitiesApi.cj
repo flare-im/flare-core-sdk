@@ -20,7 +20,9 @@ public interface CapabilitiesApi {
     func pluginPage(request: PluginUiEvaluationRequest): String
     func pluginFileUpload(request: PluginUiEvaluationRequest): String
     func pluginAccountEntries(request: PluginUiEvaluationRequest): String
+    func pluginScanHandlers(request: PluginUiEvaluationRequest): String
     func invalidatePluginCatalog(requestJson: String): Unit
     func listCapabilities(requestJson: String): String
     func dispatchCapability(requestJson: String): String
+    func pluginNativeInvoke(request: PluginUiEvaluationRequest): String
 }

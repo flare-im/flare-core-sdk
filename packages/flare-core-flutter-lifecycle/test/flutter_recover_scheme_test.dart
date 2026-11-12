@@ -54,6 +54,145 @@ void main() {
     });
   });
 
+  group('declared custom schemes', () {
+    const schemes = FlutterLinkSchemes(additionalSchemes: ['flaresocial']);
+    test('the default remains Core Recovery only', () {
+      expect(flutterLaunchLink(['flaresocial://open?u=opaque']), isNull);
+      expect(flutterLaunchLink(['flare-recover://opaque']),
+          'flare-recover://opaque');
+    });
+    test(
+        'additional schemes preserve raw input and normalize declarations only',
+        () {
+      const configured = FlutterLinkSchemes(
+          additionalSchemes: ['FLARESOCIAL', 'flaresocial', 'flare-recover']);
+      const raw =
+          'FLARESOCIAL://open?u=https%3A%2F%2Fexample.test%2Fu%2Fa%252Fb';
+      expect(configured.values, ['flare-recover', 'flaresocial']);
+      expect(flutterLaunchLink(['--flag', raw], schemes: configured), raw);
+      expect(
+          flutterLaunchLink(['--link=$raw', 'unknown://opaque'],
+              schemes: configured),
+          isNull);
+    });
+    test('the complete declaration is validated before any registration effect',
+        () async {
+      final home =
+          await Directory.systemTemp.createTemp('flare_link_validation');
+      try {
+        for (final invalid in ['http', 'HTTPS', 'bad://scheme', '', ' app']) {
+          final configured =
+              FlutterLinkSchemes(additionalSchemes: ['valid-custom', invalid]);
+          expect(
+              () => flutterLaunchLink(['valid-custom://opaque'],
+                  schemes: configured),
+              throwsArgumentError);
+          for (final target in [TargetPlatform.windows, TargetPlatform.linux]) {
+            final commands = _FakeCommands((_) => '');
+            await expectLater(
+                registerFlutterRecoverScheme(
+                    desktopId: 'test.links',
+                    appName: 'Test',
+                    platform: target,
+                    release: true,
+                    environment: {'HOME': home.path},
+                    executable: '/test/app',
+                    run: commands.call,
+                    schemes: configured),
+                throwsArgumentError);
+            expect(commands.calls, isEmpty);
+            expect(await home.list().isEmpty, isTrue);
+          }
+        }
+      } finally {
+        await home.delete(recursive: true);
+      }
+    });
+    test('Windows registers and reads back each declared scheme once',
+        () async {
+      final written = <String, String>{};
+      final commands = _FakeCommands((call) {
+        final key = call[2];
+        if (call[1] == 'query') return written[key] ?? '';
+        if (key.endsWith(r'\shell\open\command')) {
+          written[key.replaceFirst(r'\shell\open\command', '')] =
+              'URL Protocol\n${call[call.indexOf('/d') + 1]}';
+        }
+        return '';
+      });
+      await registerFlutterRecoverScheme(
+          desktopId: 'test.links',
+          appName: 'Test',
+          platform: TargetPlatform.windows,
+          release: true,
+          executable: r'C:\Program Files\Test\test.exe',
+          environment: const {},
+          run: commands.call,
+          schemes: schemes);
+      expect(written.keys.toList(), [
+        r'HKCU\Software\Classes\flare-recover',
+        r'HKCU\Software\Classes\flaresocial'
+      ]);
+      for (final key in written.keys) {
+        expect(
+            commands.calls
+                .where((call) => call[1] == 'query' && call[2] == key),
+            hasLength(2));
+        expect(
+            written[key], contains(r'"C:\Program Files\Test\test.exe" "%1"'));
+      }
+      final before = commands.calls.length;
+      await registerFlutterRecoverScheme(
+          desktopId: 'test.links',
+          appName: 'Test',
+          platform: TargetPlatform.windows,
+          release: true,
+          executable: r'C:\Program Files\Test\test.exe',
+          environment: const {},
+          run: commands.call,
+          schemes: schemes);
+      expect(commands.calls.skip(before).every((call) => call[1] == 'query'),
+          isTrue);
+    });
+    test('Linux shares one entry but independently verifies each MIME handler',
+        () async {
+      final home = await Directory.systemTemp.createTemp('flare_link_schemes');
+      final defaults = <String, String>{};
+      final commands = _FakeCommands((call) {
+        if (call[1] == 'default') defaults[call[3]] = call[2];
+        return call[1] == 'query' ? defaults[call[3]] ?? '' : '';
+      });
+      try {
+        await registerFlutterRecoverScheme(
+            desktopId: 'test.links',
+            appName: 'Test',
+            platform: TargetPlatform.linux,
+            release: true,
+            executable: '/test/app',
+            environment: {'HOME': home.path},
+            run: commands.call,
+            schemes: schemes);
+        final file =
+            File('${home.path}/.local/share/applications/test.links.desktop');
+        expect(
+            await file.readAsString(),
+            contains(
+                'MimeType=x-scheme-handler/flare-recover;x-scheme-handler/flaresocial;\n'));
+        expect(defaults, {
+          'x-scheme-handler/flare-recover': 'test.links.desktop',
+          'x-scheme-handler/flaresocial': 'test.links.desktop'
+        });
+        for (final mime in defaults.keys)
+          expect(
+              commands.calls
+                  .where((call) => call[1] == 'query' && call[3] == mime),
+              hasLength(2));
+      } finally {
+        await home.delete(recursive: true);
+      }
+    });
+  });
+
   group('Windows', () {
     const executable = r'C:\Program Files\Flare\flare.exe';
     const reg = r'D:\Win\System32\reg.exe';

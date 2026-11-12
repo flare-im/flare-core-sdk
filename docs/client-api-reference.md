@@ -266,6 +266,7 @@ Capability discovery and optional plugin dispatch through capability dispatch op
 | `pluginPage` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `pluginFileUpload` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `pluginAccountEntries` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginScanHandlers` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `invalidatePluginCatalog` | `ListCapabilitiesRequest` | `Unit` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `listCapabilities` | `ListCapabilitiesRequest` | `ListCapabilitiesResponse` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `dispatchCapability` | `DispatchCapabilityRequest` | `DispatchCapabilityResponse` | `capability-dispatch-json` | `flare_capability_dispatch_json` |

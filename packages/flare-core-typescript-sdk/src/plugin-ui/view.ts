@@ -179,6 +179,8 @@ export interface PluginDetailPage {
  * `{available: false, title: "", unavailableReason}`; the host keeps its own page title.
  */
 export interface PluginPagePresentation extends PluginDetailPresentation {
+  /** Approved cadence of a visible, idle page; absent on unavailable views. */
+  refreshMs?: number;
   /** Host conversation context returned separately from plugin source data. */
   conversationId?: string;
   data?: Record<string, unknown>;

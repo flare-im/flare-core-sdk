@@ -68,6 +68,10 @@ export class DefaultCapabilitiesApi implements CapabilitiesApi {
     return await invokeMap(this.bridge, NativeCallMap.capabilityPluginAccountEntries, pluginUiEvaluationRequestToMap(request));
   }
 
+  async pluginScanHandlers(request: PluginUiEvaluationRequest): Promise<Record<string, Object>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginScanHandlers, pluginUiEvaluationRequestToMap(request));
+  }
+
   async invalidatePluginCatalog(request: Record<string, Object>): Promise<void> {
     await invokeVoid(this.bridge, NativeCallMap.capabilityPluginCatalogInvalidate, request);
   }
@@ -78,5 +82,9 @@ export class DefaultCapabilitiesApi implements CapabilitiesApi {
 
   async dispatchCapability(request: Record<string, Object>): Promise<Record<string, Object>> {
     return await invokeMap(this.bridge, NativeCallMap.capabilityDispatch, request);
+  }
+
+  async pluginNativeInvoke(request: PluginUiEvaluationRequest): Promise<Record<string, Object>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginNativeInvoke, pluginUiEvaluationRequestToMap(request));
   }
 }

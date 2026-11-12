@@ -93,6 +93,30 @@ void main() {
       expect(opened, ['flare-recover://v1?p=a', 'flare-recover://v1?p=b']);
     });
 
+    test('one declaration selects raw cold and native custom-scheme inputs',
+        () async {
+      const schemes = FlutterLinkSchemes(additionalSchemes: ['flaresocial']);
+      messenger.setMockStreamHandler(links,
+          MockStreamHandler.inline(onListen: (_, events) {
+        events
+          ..success('flaresocial://open?u=raw%252F')
+          ..success('unknown://opaque')
+          ..success('https://example.test/opaque')
+          ..success('flare-recover://native')
+          ..endOfStream();
+      }));
+      final opened = await flutterOpenedLinks(launchArguments: const [
+        '--flag',
+        'FLARESOCIAL://open?u=cold%252F'
+      ], schemes: schemes, events: links, nativeLinks: true)
+          .toList();
+      expect(opened, [
+        'FLARESOCIAL://open?u=cold%252F',
+        'flaresocial://open?u=raw%252F',
+        'flare-recover://native'
+      ]);
+    });
+
     test('a launch link needs no native channel', () async {
       final opened = await flutterOpenedLinks(
         launchArguments: const ['--flag', 'flare-recover://v1?p=a'],

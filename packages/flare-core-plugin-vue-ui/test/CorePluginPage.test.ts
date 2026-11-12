@@ -9,8 +9,8 @@ import { defineComponent, h, nextTick, shallowRef, type Component } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { FlarePluginPage } from "@flare-im/vue-ui";
 import { useFlareI18nProvider } from "@flare-im/vue-ui/i18n";
-import type { PluginUiPort } from "@flare-im/sdk/plugin-ui";
-import { CorePluginPage, corePluginPageEntry, type CorePluginPageEntry } from "../src/index";
+import type { NativePluginBridge, PluginNativeContext, PluginUiPort } from "@flare-im/sdk/plugin-ui";
+import { CorePluginPage, corePluginPageEntry, provideCorePluginNativeBridge, type CorePluginPageEntry } from "../src/index";
 import { fakePort } from "./support";
 
 const root: CorePluginPageEntry = { pluginId: "flare.redpacket", page: "flare.redpacket.wallet", title: "Wallet" };
@@ -29,19 +29,22 @@ type PagePort = ReturnType<typeof pagePort>;
 const mounted: Array<{ unmount(): void }> = [];
 afterEach(() => { mounted.splice(0).forEach((wrapper) => wrapper.unmount()); });
 
-function render(port: PluginUiPort | null, props: Record<string, unknown> = {}) {
+function render(port: PluginUiPort | null, props: Record<string, unknown> = {}, native?: NativePluginBridge) {
   const onBack = vi.fn();
   const portRef = shallowRef(port);
   const rootRef = shallowRef((props.root as CorePluginPageEntry | undefined) ?? root);
+  const visibleRef = shallowRef(props.visible !== false);
   const forwardedProps = { ...props };
   delete forwardedProps.root;
+  delete forwardedProps.visible;
   const wrapper = mount(defineComponent({ setup() {
     useFlareI18nProvider("en-US");
-    return () => h(CorePluginPage as Component, { root: rootRef.value, port: portRef.value, platform: "web", loadFailedText: "The page didn't load", onBack, ...forwardedProps });
+    if (native) provideCorePluginNativeBridge(native);
+    return () => h(CorePluginPage as Component, { root: rootRef.value, visible: visibleRef.value, port: portRef.value, platform: "web", loadFailedText: "The page didn't load", onBack, ...forwardedProps });
   } }));
   mounted.push(wrapper);
   const host = () => wrapper.getComponent(FlarePluginPage);
-  return { wrapper, host, onBack, portRef, rootRef };
+  return { wrapper, host, onBack, portRef, rootRef, visibleRef };
 }
 const calls = (port: PagePort) => port.pluginPage.mock.calls.map(([request]) => request);
 function deferred<T>() {
@@ -52,6 +55,26 @@ function deferred<T>() {
 }
 
 describe("CorePluginPage", () => {
+  it("inherits an approved host bridge and invalidates its context when hidden", async () => {
+    const pending = deferred<unknown>();
+    let context: PluginNativeContext | undefined;
+    const native: NativePluginBridge = { capabilities: ["reauthenticate"], invoke: vi.fn(async (_capability, _payload, current) => { context = current; return pending.promise; }) };
+    const invoke = vi.fn(async () => ({ kind: "host", target: { kind: "native", capability: "reauthenticate" }, payload: { intentId: "opaque-intent" } }));
+    const port = pagePort(async () => page(), invoke);
+    const { host, visibleRef } = render(port, {}, native); await flushPromises();
+    host().vm.$emit("action", "reauth", { page: host().props("page"), data: {} }); await flushPromises();
+    expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ nativeAllowlist: ["reauthenticate"], pluginId: root.pluginId, page: root.page }));
+    expect(context).toMatchObject({ pluginId: root.pluginId, page: root.page, actionId: "reauth" }); expect(context?.isCurrent()).toBe(true);
+    visibleRef.value = false; await nextTick(); expect(context?.isCurrent()).toBe(false);
+    pending.resolve({ status: "cancelled" }); await flushPromises(); expect(calls(port)).toHaveLength(1);
+  });
+  it("refreshes the same page after a completed native capability without storing its result", async () => {
+    const native: NativePluginBridge = { capabilities: ["reauthenticate"], invoke: vi.fn(async () => ({ status: "complete" })) };
+    const port = pagePort(async () => page(), async () => ({ kind: "host", target: { kind: "native", capability: "reauthenticate" }, payload: {} }));
+    const { host } = render(port, {}, native); await flushPromises();
+    host().vm.$emit("action", "reauth", { page: host().props("page"), data: {} }); await flushPromises();
+    expect(calls(port)).toHaveLength(2); expect(host().props("view")?.data ?? {}).not.toHaveProperty("status");
+  });
   it("forwards host-authorized member search and its revision without changing the page owner", async () => {
     const members = [{ userId: "admin", name: "Admin" }];
     const search = vi.fn(); const retry = vi.fn();

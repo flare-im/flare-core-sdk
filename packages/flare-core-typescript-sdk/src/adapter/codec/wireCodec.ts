@@ -87,6 +87,8 @@ import {
   LoadNewerTimelineViewRequest,
   LoadOlderTimelineViewRequest,
   MediaSourceInfo,
+  MediaUploadOptions,
+  MediaUploadPurpose,
   Message,
   MessageBuildCatalogEntry,
   MessageBuildOp,
@@ -1583,6 +1585,13 @@ export function pluginUiEvaluationRequestToMap(request: PluginUiEvaluationReques
 export function pluginCommandRequestToMap(request: PluginCommandRequest): Record<string, unknown> {
   return {
   payload: request.payload,
+  };
+}
+
+export function mediaUploadOptionsToMap(request: MediaUploadOptions): Record<string, unknown> {
+  return {
+  ...(request.chunkSize !== undefined ? { chunkSize: request.chunkSize } : {}),
+  ...(request.purpose !== undefined ? { purpose: request.purpose } : {}),
   };
 }
 

@@ -1,8 +1,8 @@
 import { inject, onBeforeUnmount, provide, type Ref } from "vue";
 import { provideFlareMessageRenderers, useFlareMessageRenderers } from "@flare-im/vue-ui";
-import type { PluginUiSession } from "@flare-im/sdk/plugin-ui";
+import type { NativePluginBridge, PluginUiSession } from "@flare-im/sdk/plugin-ui";
 import {
-  pluginUiConversationKey, pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiSessionKey, pluginUiStateFeedKey,
+  pluginUiConversationKey, pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiSessionKey, pluginUiStateFeedKey, pluginUiNativeKey,
   type CorePluginDirectory, type CorePluginErrorText, type CorePluginStateFeed,
 } from "./context";
 import PluginMessage from "./PluginMessage.vue";
@@ -19,6 +19,8 @@ export { CORE_PLUGIN_STATE_CHANNEL, createCorePluginStateFeed, usePluginPostedCa
 export type { CorePluginDirectory, CorePluginErrorText, CorePluginStateChange, CorePluginStateFeed } from "./context";
 
 export interface CorePluginUiOptions extends CorePluginDirectory {
+  /** Trusted host capabilities, shared by page stacks and card/composer sessions. */
+  native?: NativePluginBridge;
   /** The conversation the timeline shows; card actions are dispatched bound to it. */
   conversationId?: () => string | undefined;
   /** Card state changes (the SDK's `onMessagePluginStateChanged`): a card presents again when its message is named. */
@@ -31,12 +33,16 @@ export interface CorePluginUiOptions extends CorePluginDirectory {
  * directory cards and the "+" entry use (see `provideCorePluginDirectory`). */
 export function provideCorePluginUi(session: Ref<PluginUiSession | null>, options: CorePluginUiOptions = {}): void {
   provide(pluginUiSessionKey, session);
+  if (options.native) provideCorePluginNativeBridge(options.native);
   if (options.conversationId) provide(pluginUiConversationKey, options.conversationId);
-  if (options.resolveUser || options.members) provideCorePluginDirectory({ resolveUser: options.resolveUser, members: options.members });
+  if (options.resolveUser || options.members || options.encodePluginCode) provideCorePluginDirectory({ resolveUser: options.resolveUser, members: options.members, encodePluginCode: options.encodePluginCode });
   if (options.stateChanges) provide(pluginUiStateFeedKey, options.stateChanges);
   if (options.errorText) provide(pluginUiErrorTextKey, options.errorText);
   provideFlareMessageRenderers({ ...useFlareMessageRenderers(), "custom:flare.plugin.message.v1": PluginMessage });
 }
+/** Install once above page/card owners; implementations belong to the SDK host. */
+export function provideCorePluginNativeBridge(bridge: NativePluginBridge): void { provide(pluginUiNativeKey, bridge); }
+export function useCorePluginNativeBridge(): NativePluginBridge | undefined { return inject(pluginUiNativeKey, undefined); }
 /**
  * Who the people in plugin cards are: names and avatars for user ids (people, entries) and the open
  * conversation's members (members inputs of card forms and the "+" entry). Call in the chat owner,

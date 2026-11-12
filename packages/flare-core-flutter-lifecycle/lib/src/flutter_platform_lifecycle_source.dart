@@ -30,15 +30,18 @@ Stream<String> flutterOpenedLinks({
   List<String> launchArguments = const [],
   EventChannel events = const EventChannel(kFlareLifecycleLinksChannel),
   bool? nativeLinks,
+  FlutterLinkSchemes schemes = const FlutterLinkSchemes(),
 }) async* {
-  final launchLink = flutterLaunchLink(launchArguments);
+  final launchLink = flutterLaunchLink(launchArguments, schemes: schemes);
   if (launchLink != null) yield launchLink;
   final native =
       nativeLinks ?? (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS);
   if (!native) return;
   yield* events
       .receiveBroadcastStream()
-      .where((event) => event is String)
+      .where((event) =>
+          event is String &&
+          flutterLaunchLink([event], schemes: schemes) != null)
       .cast<String>();
 }
 

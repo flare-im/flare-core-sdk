@@ -333,7 +333,8 @@
       "models/message_builder.json",
       "models/events.json",
       "models/plugin_ui.json",
-      "models/plugin_command.json"
+      "models/plugin_command.json",
+      "models/media.json"
     ],
     "modules": [
       "modules/session.json",
@@ -6995,6 +6996,42 @@
           "name": "PluginCommandRequest"
         }
       ]
+    },
+    {
+      "description": "Typed optional publication intent for existing media upload request options; mirrored from Engine UploadOptions/UploadPurpose. Request envelopes remain compatible JSON objects.",
+      "enums": [
+        {
+          "description": "general remains private; avatar explicitly publishes a validated image under the dedicated anonymous-read prefix.",
+          "name": "MediaUploadPurpose",
+          "values": [
+            "general",
+            "avatar"
+          ]
+        }
+      ],
+      "group": "media",
+      "models": [
+        {
+          "description": "Optional upload options. Omitted chunkSize defaults to 256 KiB; omitted purpose defaults to general. options may contain purpose alone. No arbitrary Public access flag exists.",
+          "fields": [
+            {
+              "description": "Optional positive part size, in bytes; absent preserves the existing default.",
+              "name": "chunkSize",
+              "required": false,
+              "type": "UInt32",
+              "wireName": "chunkSize"
+            },
+            {
+              "description": "Explicit avatar publication intent. General uploads stay private. Avatar returns stable unsigned url/cdnUrl after real image validation.",
+              "name": "purpose",
+              "required": false,
+              "type": "MediaUploadPurpose",
+              "wireName": "purpose"
+            }
+          ],
+          "name": "MediaUploadOptions"
+        }
+      ]
     }
   ],
   "modules": [
@@ -9550,6 +9587,7 @@
       "methods": [
         {
           "cApi": "flare_media_upload_file",
+          "description": "Existing request shape remains unchanged. Optional options follows MediaUploadOptions: purpose general (default/private) or avatar (validated public image with stable unsigned url/cdnUrl), and optional positive chunkSize. Avatar purpose is supported only for image inputs. options:{purpose:\"avatar\"} is valid without chunkSize. Persist the returned stable avatar URL, never a temporary getMediaUrl URL.",
           "name": "uploadFile",
           "nativeBinding": {
             "asyncReturn": "i32 immediate_submit_code",
@@ -9567,6 +9605,7 @@
         },
         {
           "cApi": "flare_media_upload_image",
+          "description": "Existing request shape remains unchanged. Optional options follows MediaUploadOptions: purpose general (default/private) or avatar (validated public image with stable unsigned url/cdnUrl), and optional positive chunkSize. Avatar purpose is supported only for image inputs. options:{purpose:\"avatar\"} is valid without chunkSize. Persist the returned stable avatar URL, never a temporary getMediaUrl URL.",
           "name": "uploadImage",
           "nativeBinding": {
             "asyncReturn": "i32 immediate_submit_code",
@@ -9584,6 +9623,7 @@
         },
         {
           "cApi": "flare_media_upload_video",
+          "description": "Existing request shape remains unchanged. Optional options follows MediaUploadOptions: purpose general (default/private) or avatar (validated public image with stable unsigned url/cdnUrl), and optional positive chunkSize. Avatar purpose is supported only for image inputs. options:{purpose:\"avatar\"} is valid without chunkSize. Persist the returned stable avatar URL, never a temporary getMediaUrl URL.",
           "name": "uploadVideo",
           "nativeBinding": {
             "asyncReturn": "i32 immediate_submit_code",
@@ -9601,6 +9641,7 @@
         },
         {
           "cApi": "flare_media_upload_bytes",
+          "description": "Existing request shape remains unchanged. Optional options follows MediaUploadOptions: purpose general (default/private) or avatar (validated public image with stable unsigned url/cdnUrl), and optional positive chunkSize. Avatar purpose is supported only for image inputs. options:{purpose:\"avatar\"} is valid without chunkSize. Persist the returned stable avatar URL, never a temporary getMediaUrl URL.",
           "name": "uploadBytes",
           "nativeBinding": {
             "asyncReturn": "i32 immediate_submit_code",
@@ -10226,6 +10267,25 @@
         },
         {
           "cApi": "flare_capability_dispatch_json",
+          "description": "payload {platform, locale}. Returns {handlers: [{pluginId, providerName, routeKey, resolve, pages, sources}]} from the fresh authorized catalog. Only declared query operations and page contributions of the same plugin are offered. Sources narrow presentation only; empty means all. No scan token or business rule is handled by Core.",
+          "dispatchOp": "plugin_scan_handlers",
+          "name": "pluginScanHandlers",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_scan_handlers",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
           "description": "The plugin catalog may have changed: a catalog read in flight is no longer shared, and the cards presented in the last minutes (inert ones included) are announced through onMessagePluginStateChanged, so present them again against a fresh catalog. Call it when the app returns to the foreground; the SDK does the same for a plugin's cards by itself when a call to it answers disabled (the plugin or one of its features), not installed, no permission or unsupported platform.",
           "dispatchOp": "plugin_catalog_invalidate",
           "name": "invalidatePluginCatalog",
@@ -10277,6 +10337,25 @@
           "request": "DispatchCapabilityRequest",
           "response": "DispatchCapabilityResponse",
           "stability": "stable",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
+          "description": "Value payload: {pluginId,page?|contributionId?,actionId,platform,expectedUserId,_session:{tenantId,userId},operation,payload,conversationId?}. Rechecks the current User session and fresh approved catalog, declared reauthenticate native action, platform and same-provider explicit transientOperations authority. Refuses commandId anywhere in the payload. Dispatches once without page command journal, automatic network retry or secret persistence; only the trusted host coordinator consumes the result.",
+          "dispatchOp": "plugin_native_invoke",
+          "name": "pluginNativeInvoke",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_native_invoke",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
           "transport": "capability-dispatch-json"
         }
       ]

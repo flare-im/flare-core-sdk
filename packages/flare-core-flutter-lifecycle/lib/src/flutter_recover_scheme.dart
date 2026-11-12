@@ -3,8 +3,31 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 const String _scheme = 'flare-recover';
-const String _linuxMimeType = 'x-scheme-handler/$_scheme';
-const String _windowsKey = 'HKCU\\Software\\Classes\\$_scheme';
+
+/// Custom URL schemes this host declares. Core Recovery is always included.
+///
+/// Share one configuration between registration and opened-link delivery. This
+/// only selects OS input; the receiving SDK validates the unchanged raw URL.
+final class FlutterLinkSchemes {
+  const FlutterLinkSchemes({this.additionalSchemes = const []});
+
+  final List<String> additionalSchemes;
+
+  List<String> get values {
+    final result = <String>[_scheme];
+    for (final raw in additionalSchemes) {
+      final scheme = raw.toLowerCase();
+      if (!RegExp(r'^[a-z][a-z0-9+.-]*$').hasMatch(scheme) ||
+          scheme == 'http' ||
+          scheme == 'https') {
+        throw ArgumentError.value(
+            raw, 'additionalSchemes', 'custom scheme required');
+      }
+      if (!result.contains(scheme)) result.add(scheme);
+    }
+    return List.unmodifiable(result);
+  }
+}
 
 /// Runs a command and gives what it printed; throws when it cannot start.
 ///
@@ -19,14 +42,20 @@ typedef RecoverSchemeCommand = Future<String> Function(
 /// Windows and Linux start the app with the link as an argument. The rest of
 /// the arguments are not read, so what a crafted link adds to the command line
 /// goes nowhere. The core verifies the link.
-String? flutterLaunchLink(List<String> arguments) {
+String? flutterLaunchLink(
+  List<String> arguments, {
+  FlutterLinkSchemes schemes = const FlutterLinkSchemes(),
+}) {
+  final configured = schemes.values;
   for (final argument in arguments) {
-    if (argument.toLowerCase().startsWith('$_scheme://')) return argument;
+    if (configured
+        .any((scheme) => argument.toLowerCase().startsWith('$scheme://')))
+      return argument;
   }
   return null;
 }
 
-/// Makes this executable the current user's handler of `flare-recover://` on
+/// Makes this executable the current user's handler of [schemes] on
 /// Windows and Linux. Release builds only: a debug build would take the scheme
 /// away from the installed app. Other platforms declare it in the app bundle.
 ///
@@ -46,7 +75,10 @@ Future<void> registerFlutterRecoverScheme({
   String? executable,
   Map<String, String>? environment,
   RecoverSchemeCommand run = _runCommand,
+  FlutterLinkSchemes schemes = const FlutterLinkSchemes(),
 }) async {
+  // Validate the entire declaration before any registry, file or command effect.
+  final configured = schemes.values;
   if (kIsWeb || !release) return;
   final target = platform ?? defaultTargetPlatform;
   if (target != TargetPlatform.windows && target != TargetPlatform.linux) {
@@ -56,9 +88,12 @@ Future<void> registerFlutterRecoverScheme({
     final path = executable ?? Platform.resolvedExecutable;
     final variables = environment ?? Platform.environment;
     if (target == TargetPlatform.windows) {
-      await _registerWindows(appName, path, variables, run);
+      for (final scheme in configured) {
+        await _registerWindows(scheme, appName, path, variables, run);
+      }
     } else {
-      await _registerLinux(desktopId, appName, path, variables, run);
+      await _registerLinux(
+          configured, desktopId, appName, path, variables, run);
     }
   } catch (error) {
     _log('$error');
@@ -68,6 +103,7 @@ Future<void> registerFlutterRecoverScheme({
 /// The open command goes in last, and the read covers the whole key: a
 /// registration cut short reads as out of date and is written again.
 Future<void> _registerWindows(
+  String scheme,
   String appName,
   String executable,
   Map<String, String> environment,
@@ -77,19 +113,20 @@ Future<void> _registerWindows(
   // a link can start the app in any folder, Downloads for one.
   final reg = '${environment['SystemRoot'] ?? r'C:\Windows'}'
       r'\System32\reg.exe';
+  final windowsKey = 'HKCU\\Software\\Classes\\$scheme';
   final open = '"$executable" "%1"';
 
   Future<bool> registered() async {
-    final declared = await run(reg, ['query', _windowsKey, '/s']);
+    final declared = await run(reg, ['query', windowsKey, '/s']);
     return declared.contains('URL Protocol') && declared.contains(open);
   }
 
   if (await registered()) return;
-  await run(reg, ['add', _windowsKey, '/ve', '/d', 'URL:$appName', '/f']);
-  await run(reg, ['add', _windowsKey, '/v', 'URL Protocol', '/d', '', '/f']);
+  await run(reg, ['add', windowsKey, '/ve', '/d', 'URL:$appName', '/f']);
+  await run(reg, ['add', windowsKey, '/v', 'URL Protocol', '/d', '', '/f']);
   await run(reg, [
     'add',
-    '$_windowsKey\\shell\\open\\command',
+    '$windowsKey\\shell\\open\\command',
     '/ve',
     '/d',
     open,
@@ -99,6 +136,7 @@ Future<void> _registerWindows(
 }
 
 Future<void> _registerLinux(
+  List<String> schemes,
   String desktopId,
   String appName,
   String executable,
@@ -107,20 +145,23 @@ Future<void> _registerLinux(
 ) async {
   final desktopFile = '$desktopId.desktop';
   final file = File('${_linuxDataHome(environment)}/applications/$desktopFile');
-  final entry = _linuxDesktopEntry(appName, executable);
+  final entry = _linuxDesktopEntry(schemes, appName, executable);
   if (!await file.exists() || await file.readAsString() != entry) {
     await file.create(recursive: true);
     await file.writeAsString(entry, flush: true);
   }
 
-  Future<bool> isDefault() async {
-    final current = await run('xdg-mime', ['query', 'default', _linuxMimeType]);
-    return current.trim() == desktopFile;
-  }
+  for (final scheme in schemes) {
+    final mimeType = 'x-scheme-handler/$scheme';
+    Future<bool> isDefault() async {
+      final current = await run('xdg-mime', ['query', 'default', mimeType]);
+      return current.trim() == desktopFile;
+    }
 
-  if (await isDefault()) return;
-  await run('xdg-mime', ['default', desktopFile, _linuxMimeType]);
-  if (!await isDefault()) _log('xdg-mime did not take it');
+    if (await isDefault()) continue;
+    await run('xdg-mime', ['default', desktopFile, mimeType]);
+    if (!await isDefault()) _log('xdg-mime did not take it');
+  }
 }
 
 /// Where the desktop looks for a user's entries; a relative `XDG_DATA_HOME` is
@@ -133,14 +174,16 @@ String _linuxDataHome(Map<String, String> environment) {
   return '$home/.local/share';
 }
 
-String _linuxDesktopEntry(String appName, String executable) => '''
+String _linuxDesktopEntry(
+        List<String> schemes, String appName, String executable) =>
+    '''
 [Desktop Entry]
 Type=Application
 Name=$appName
 Exec=${_linuxExecWord(executable)} %u
 Terminal=false
 NoDisplay=true
-MimeType=$_linuxMimeType;
+MimeType=${schemes.map((scheme) => 'x-scheme-handler/$scheme;').join()}
 ''';
 
 /// [path] as a word of `Exec`: quoted, then escaped again for being a string

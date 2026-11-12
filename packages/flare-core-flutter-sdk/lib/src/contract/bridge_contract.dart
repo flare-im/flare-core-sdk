@@ -2361,6 +2361,20 @@ abstract final class NativeCallMap {
       dispatchOp: "plugin_account_entries",
       callback: "FlareResultCallback");
 
+  /// pluginScanHandlers maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_scan_handlers`. Operation: `capability.plugin_scan_handlers`.
+  static const capabilityPluginScanHandlers = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginScanHandlers",
+      operation: "capability.plugin_scan_handlers",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_scan_handlers",
+      callback: "FlareResultCallback");
+
   /// invalidatePluginCatalog maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`.
   static const capabilityPluginCatalogInvalidate = NativeCallDescriptor(
       module: "capabilities",
@@ -2401,6 +2415,20 @@ abstract final class NativeCallMap {
       returnMode: "callback",
       handlePolicy: "client-handle",
       dispatchOp: "capability_dispatch",
+      callback: "FlareResultCallback");
+
+  /// pluginNativeInvoke maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_native_invoke`. Operation: `capability.plugin_native_invoke`.
+  static const capabilityPluginNativeInvoke = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginNativeInvoke",
+      operation: "capability.plugin_native_invoke",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_native_invoke",
       callback: "FlareResultCallback");
 
   /// openTimeline maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `view.timeline.open`.

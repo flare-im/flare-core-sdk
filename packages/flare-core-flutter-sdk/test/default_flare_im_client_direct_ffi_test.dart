@@ -85,6 +85,22 @@ void main() {
       expect(result, {'fileId': 'file:fixture'});
     });
 
+    test('native plugin invocation delegates the trusted typed envelope', () async {
+      final bridge = _RecordingBridge();
+      final client = FlareCoreSdk.createClientWithBridge(bridge);
+      const request = PluginUiEvaluationRequest(payload: {
+        'pluginId': 'example.plugin', 'page': 'security', 'actionId': 'verify',
+        'operation': 'example.plugin.challenge', 'platform': 'flutter',
+        'expectedUserId': 'person', '_session': {'tenantId': 'tenant', 'userId': 'person'},
+        'payload': {'action': 'setup'},
+      });
+      expect(await client.capabilities.pluginNativeInvoke(request), {'success': true, 'data': <String,Object?>{}});
+      expect(bridge.lastOperation, 'capability.plugin_native_invoke');
+      expect(bridge.lastTransport, 'capability-dispatch-json');
+      expect(bridge.lastCApi, 'flare_capability_dispatch_json');
+      expect(bridge.lastRequest, {'payload': request.payload});
+    });
+
     test('createTextMessage uses platform camelCase fields', () async {
       final bridge = _RecordingBridge();
       final client = FlareCoreSdk.createClientWithBridge(bridge);
@@ -1203,6 +1219,8 @@ final class _RecordingBridge implements NativeBridge {
     switch (descriptor.operation) {
       case 'capability.plugin_ui_catalog':
         return {'items': <Object>[]} as T;
+      case 'capability.plugin_native_invoke':
+        return {'success': true, 'data': <String,Object?>{}} as T;
       case 'capability.plugin_file_upload':
         return {'fileId': 'file:fixture'} as T;
       case 'capability.plugin_ui_action':

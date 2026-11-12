@@ -178,5 +178,7 @@ export 'event/plugin/plugin_realtime_event.dart';
 export 'event/plugin/plugin_catalog_changed_event.dart';
 export 'command/plugin_ui_evaluation_request.dart';
 export 'command/plugin_command_request.dart';
+export 'entity/media_upload_purpose.dart';
+export 'entity/media_upload_options.dart';
 export 'catalog/message_build_catalog.dart';
 export 'event/event_code.dart';

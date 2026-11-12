@@ -10,7 +10,8 @@
       "cApi": "flare_media_upload_file",
       "request": "UploadFileRequest",
       "response": "MediaUploadResponse",
-      "stability": "stable"
+      "stability": "stable",
+      "description": "Existing request shape remains unchanged. Optional options follows MediaUploadOptions: purpose general (default/private) or avatar (validated public image with stable unsigned url/cdnUrl), and optional positive chunkSize. Avatar purpose is supported only for image inputs. options:{purpose:\"avatar\"} is valid without chunkSize. Persist the returned stable avatar URL, never a temporary getMediaUrl URL."
     },
     {
       "name": "uploadImage",
@@ -19,7 +20,8 @@
       "cApi": "flare_media_upload_image",
       "request": "UploadFileRequest",
       "response": "MediaUploadResponse",
-      "stability": "stable"
+      "stability": "stable",
+      "description": "Existing request shape remains unchanged. Optional options follows MediaUploadOptions: purpose general (default/private) or avatar (validated public image with stable unsigned url/cdnUrl), and optional positive chunkSize. Avatar purpose is supported only for image inputs. options:{purpose:\"avatar\"} is valid without chunkSize. Persist the returned stable avatar URL, never a temporary getMediaUrl URL."
     },
     {
       "name": "uploadVideo",
@@ -28,7 +30,8 @@
       "cApi": "flare_media_upload_video",
       "request": "UploadFileRequest",
       "response": "MediaUploadResponse",
-      "stability": "stable"
+      "stability": "stable",
+      "description": "Existing request shape remains unchanged. Optional options follows MediaUploadOptions: purpose general (default/private) or avatar (validated public image with stable unsigned url/cdnUrl), and optional positive chunkSize. Avatar purpose is supported only for image inputs. options:{purpose:\"avatar\"} is valid without chunkSize. Persist the returned stable avatar URL, never a temporary getMediaUrl URL."
     },
     {
       "name": "uploadBytes",
@@ -37,7 +40,8 @@
       "cApi": "flare_media_upload_bytes",
       "request": "UploadBytesRequest",
       "response": "MediaUploadResponse",
-      "stability": "stable"
+      "stability": "stable",
+      "description": "Existing request shape remains unchanged. Optional options follows MediaUploadOptions: purpose general (default/private) or avatar (validated public image with stable unsigned url/cdnUrl), and optional positive chunkSize. Avatar purpose is supported only for image inputs. options:{purpose:\"avatar\"} is valid without chunkSize. Persist the returned stable avatar URL, never a temporary getMediaUrl URL."
     },
     {
       "name": "deleteFile",

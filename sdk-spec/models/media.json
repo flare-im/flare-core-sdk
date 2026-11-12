@@ -1,0 +1,36 @@
+{
+  "group": "media",
+  "description": "Typed optional publication intent for existing media upload request options; mirrored from Engine UploadOptions/UploadPurpose. Request envelopes remain compatible JSON objects.",
+  "enums": [
+    {
+      "name": "MediaUploadPurpose",
+      "description": "general remains private; avatar explicitly publishes a validated image under the dedicated anonymous-read prefix.",
+      "values": [
+        "general",
+        "avatar"
+      ]
+    }
+  ],
+  "models": [
+    {
+      "name": "MediaUploadOptions",
+      "description": "Optional upload options. Omitted chunkSize defaults to 256 KiB; omitted purpose defaults to general. options may contain purpose alone. No arbitrary Public access flag exists.",
+      "fields": [
+        {
+          "name": "chunkSize",
+          "wireName": "chunkSize",
+          "type": "UInt32",
+          "required": false,
+          "description": "Optional positive part size, in bytes; absent preserves the existing default."
+        },
+        {
+          "name": "purpose",
+          "wireName": "purpose",
+          "type": "MediaUploadPurpose",
+          "required": false,
+          "description": "Explicit avatar publication intent. General uploads stay private. Avatar returns stable unsigned url/cdnUrl after real image validation."
+        }
+      ]
+    }
+  ]
+}

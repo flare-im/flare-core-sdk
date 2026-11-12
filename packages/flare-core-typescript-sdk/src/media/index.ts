@@ -4,7 +4,8 @@ import type { MediaUploadResponse } from "../api/types";
 import type { Message } from "../model";
 import { WebMediaApi } from "../adapters/web/media/WebMediaApi";
 
-export type MediaUploadOptions = Record<string, unknown> | null;
+import type { MediaUploadOptions } from "../model/media_upload_options";
+export type { MediaUploadOptions } from "../model/media_upload_options";
 
 export interface MediaUploadFileLike {
   readonly name?: string;
@@ -20,7 +21,7 @@ export type MediaUploadInput =
       kind: string;
       fileName?: string;
       mimeType?: string;
-      options?: MediaUploadOptions;
+      options?: MediaUploadOptions | null;
     }
   | {
       source: "path";
@@ -28,7 +29,7 @@ export type MediaUploadInput =
       kind: string;
       fileName?: string;
       mimeType?: string;
-      options?: MediaUploadOptions;
+      options?: MediaUploadOptions | null;
     }
   | {
       source: "bytes";
@@ -36,7 +37,7 @@ export type MediaUploadInput =
       kind: string;
       fileName: string;
       mimeType: string;
-      options?: MediaUploadOptions;
+      options?: MediaUploadOptions | null;
     };
 
 export type MediaUploadApi = Pick<MediaApi, "uploadBytes" | "uploadFile">;

@@ -93,6 +93,10 @@ class DefaultCapabilitiesApi(
         return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_ACCOUNT_ENTRIES, pluginUiEvaluationRequestToMap(request))
     }
 
+    override suspend fun pluginScanHandlers(request: PluginUiEvaluationRequest): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_SCAN_HANDLERS, pluginUiEvaluationRequestToMap(request))
+    }
+
     override suspend fun invalidatePluginCatalog(request: Map<String, Any?>): Unit {
         invokeUnit(bridge, NativeCallMap.CAPABILITY_PLUGIN_CATALOG_INVALIDATE, request)
     }
@@ -103,5 +107,9 @@ class DefaultCapabilitiesApi(
 
     override suspend fun dispatchCapability(request: Map<String, Any?>): Map<String, Any?> {
         return invokeMap(bridge, NativeCallMap.CAPABILITY_DISPATCH, request)
+    }
+
+    override suspend fun pluginNativeInvoke(request: PluginUiEvaluationRequest): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_NATIVE_INVOKE, pluginUiEvaluationRequestToMap(request))
     }
 }

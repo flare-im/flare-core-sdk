@@ -57,10 +57,14 @@ interface CapabilitiesApi {
     suspend fun pluginFileUpload(request: PluginUiEvaluationRequest): Map<String, Any?>
     /** pluginAccountEntries maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`. */
     suspend fun pluginAccountEntries(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** pluginScanHandlers maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_scan_handlers`. Operation: `capability.plugin_scan_handlers`. */
+    suspend fun pluginScanHandlers(request: PluginUiEvaluationRequest): Map<String, Any?>
     /** invalidatePluginCatalog maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`. */
     suspend fun invalidatePluginCatalog(request: Map<String, Any?>): Unit
     /** listCapabilities maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_list`. Operation: `capability.list`. */
     suspend fun listCapabilities(request: Map<String, Any?>): Map<String, Any?>
     /** dispatchCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_dispatch`. Operation: `capability.dispatch`. */
     suspend fun dispatchCapability(request: Map<String, Any?>): Map<String, Any?>
+    /** pluginNativeInvoke maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_native_invoke`. Operation: `capability.plugin_native_invoke`. */
+    suspend fun pluginNativeInvoke(request: PluginUiEvaluationRequest): Map<String, Any?>
 }

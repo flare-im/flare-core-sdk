@@ -178,3 +178,5 @@ export * from './event/plugin/plugin_realtime_event';
 export * from './event/plugin/plugin_catalog_changed_event';
 export * from './command/plugin_ui_evaluation_request';
 export * from './command/plugin_command_request';
+export * from './entity/media_upload_purpose';
+export * from './entity/media_upload_options';

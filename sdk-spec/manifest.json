@@ -32,7 +32,8 @@
       "models/message_builder.json",
       "models/events.json",
       "models/plugin_ui.json",
-      "models/plugin_command.json"
+      "models/plugin_command.json",
+      "models/media.json"
     ],
     "modules": [
       "modules/session.json",

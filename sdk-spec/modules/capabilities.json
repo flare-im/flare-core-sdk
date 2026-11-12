@@ -162,6 +162,17 @@
       "stability": "experimental"
     },
     {
+      "name": "pluginScanHandlers",
+      "description": "payload {platform, locale}. Returns {handlers: [{pluginId, providerName, routeKey, resolve, pages, sources}]} from the fresh authorized catalog. Only declared query operations and page contributions of the same plugin are offered. Sources narrow presentation only; empty means all. No scan token or business rule is handled by Core.",
+      "operation": "capability.plugin_scan_handlers",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_scan_handlers",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
       "name": "invalidatePluginCatalog",
       "description": "The plugin catalog may have changed: a catalog read in flight is no longer shared, and the cards presented in the last minutes (inert ones included) are announced through onMessagePluginStateChanged, so present them again against a fresh catalog. Call it when the app returns to the foreground; the SDK does the same for a plugin's cards by itself when a call to it answers disabled (the plugin or one of its features), not installed, no permission or unsupported platform.",
       "operation": "capability.plugin_catalog_invalidate",
@@ -191,6 +202,17 @@
       "request": "DispatchCapabilityRequest",
       "response": "DispatchCapabilityResponse",
       "stability": "stable"
+    },
+    {
+      "name": "pluginNativeInvoke",
+      "description": "Value payload: {pluginId,page?|contributionId?,actionId,platform,expectedUserId,_session:{tenantId,userId},operation,payload,conversationId?}. Rechecks the current User session and fresh approved catalog, declared reauthenticate native action, platform and same-provider explicit transientOperations authority. Refuses commandId anywhere in the payload. Dispatches once without page command journal, automatic network retry or secret persistence; only the trusted host coordinator consumes the result.",
+      "operation": "capability.plugin_native_invoke",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_native_invoke",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
     }
   ]
 }

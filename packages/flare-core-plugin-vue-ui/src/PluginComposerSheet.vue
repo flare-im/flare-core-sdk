@@ -89,9 +89,10 @@ async function invoke(id: string, payload: FlarePluginActionPayload): Promise<vo
     if (outcome.kind === "formErrors") { formErrors.value = outcome.errors; return; }
     if (outcome.kind === "operation") {
       if (outcome.response.success === false) { error.value = t("pluginRuntime.rejected"); return; }
-      const posted = outcome.response.success === true ? pluginPagePostedCard(outcome.response.data, props.conversationId) : null;
-      if (!posted) return;
-      emit("posted", posted);
+      if (outcome.response.success !== true) return;
+      const posted = pluginPagePostedCard(outcome.response.data, props.conversationId);
+      if (!posted && outcome.response.data && typeof outcome.response.data === "object" && Object.prototype.hasOwnProperty.call(outcome.response.data, "posted")) return;
+      if (posted) emit("posted", posted);
     }
     done = mine === generation;
   } catch (failure) {

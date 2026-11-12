@@ -38,10 +38,14 @@ export interface CapabilitiesApi {
   pluginFileUpload(request: PluginUiEvaluationRequest): Promise<JsonObject>;
   /** pluginAccountEntries maps to `flare_capability_dispatch_json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`. */
   pluginAccountEntries(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** pluginScanHandlers maps to `flare_capability_dispatch_json`, dispatch op `plugin_scan_handlers`. Operation: `capability.plugin_scan_handlers`. */
+  pluginScanHandlers(request: PluginUiEvaluationRequest): Promise<JsonObject>;
   /** invalidatePluginCatalog maps to `flare_capability_dispatch_json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`. */
   invalidatePluginCatalog(request: ListCapabilitiesRequest): Promise<void>;
   /** listCapabilities maps to `flare_capability_dispatch_json`, dispatch op `capability_list`. Operation: `capability.list`. */
   listCapabilities(request: ListCapabilitiesRequest): Promise<ListCapabilitiesResponse>;
   /** dispatchCapability maps to `flare_capability_dispatch_json`, dispatch op `capability_dispatch`. Operation: `capability.dispatch`. */
   dispatchCapability(request: DispatchCapabilityRequest): Promise<DispatchCapabilityResponse>;
+  /** pluginNativeInvoke maps to `flare_capability_dispatch_json`, dispatch op `plugin_native_invoke`. Operation: `capability.plugin_native_invoke`. */
+  pluginNativeInvoke(request: PluginUiEvaluationRequest): Promise<JsonObject>;
 }

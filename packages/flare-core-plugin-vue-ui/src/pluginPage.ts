@@ -1,4 +1,4 @@
-import { PluginUiSession, type PluginPageTarget, type PluginPlatform, type PluginUiPort } from "@flare-im/sdk/plugin-ui";
+import { PluginUiSession, type NativePluginBridge, type PluginPageTarget, type PluginPlatform, type PluginUiPort } from "@flare-im/sdk/plugin-ui";
 import { pluginPostedCard, type PluginPostedCard } from "./composerMenu";
 
 /** A terminal posted result may close only the flow owned by this trusted conversation. */
@@ -15,6 +15,7 @@ export interface CorePluginPageEntry {
   page: string;
   /** The host's title while the page has none of its own (the title of the 我 entry that opened it). */
   title: string;
+  providerName?: string;
   args?: Record<string, unknown>;
   conversationId?: string;
 }
@@ -32,8 +33,8 @@ export function corePluginPageEntry(target: PluginPageTarget, args?: Record<stri
  * action bound as its arguments; the top page's title stands in until the new page has its own.
  */
 export function corePluginPageSession(port: PluginUiPort, platform: PluginPlatform, locale: () => string,
-  top: () => CorePluginPageEntry | undefined, push: (entry: CorePluginPageEntry) => void): PluginUiSession {
-  return new PluginUiSession(port, platform, locale, undefined, (target, args) => {
+  top: () => CorePluginPageEntry | undefined, push: (entry: CorePluginPageEntry) => void, native?: NativePluginBridge): PluginUiSession {
+  return new PluginUiSession(port, platform, locale, native, (target, args) => {
     push(corePluginPageEntry(target, args, top()?.title ?? ""));
   });
 }

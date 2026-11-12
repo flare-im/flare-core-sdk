@@ -33,6 +33,12 @@ function render(port = fakePort(), props: Record<string, unknown> = {}, director
 }
 
 describe("PluginComposerSheet", () => {
+  it("closes a definitely successful non-card action without manufacturing a posted event", async () => {
+    const port = fakePort({ presentMessage: vi.fn(async () => formView()), invokeAction: vi.fn(async () => ({ kind: "operation", response: { success: true, data: { ok: true } } })) });
+    const { wrapper, onPosted, close } = render(port); await flushPromises();
+    wrapper.getComponent(FlarePluginForm).vm.$emit("submit", { title: "Ship it" }); await flushPromises();
+    expect(onPosted).not.toHaveBeenCalled(); expect(close).toHaveBeenCalledOnce(); expect(port.dispatch).not.toHaveBeenCalled();
+  });
   it.each([
     { success: false, posted },
     { success: undefined, posted },
