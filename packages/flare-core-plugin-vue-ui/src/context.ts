@@ -69,7 +69,8 @@ export interface CorePluginBundleHost {
   theme: () => { mode: "light" | "dark"; tokens?: Record<string, string> };
   /**
    * The frame's file base of an opened page. Web: the unpacked copy on the sandbox domain (`opened.root`, the default).
-   * Tauri: registers the cache files with the app's `flare-plugin` protocol and answers `flare-plugin://{key}/`.
+   * Tauri: registers the cache files with the app's `flare-plugin` protocol and answers `flare-plugin://{key}/{sha256}/`
+   * (one registration per bundle version).
    */
   files?: (opened: PluginBundleOpened) => string | Promise<string>;
   /** The page closed: a host that registered files drops them. */
