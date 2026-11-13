@@ -18,7 +18,12 @@ export { default as CorePluginPage } from "./CorePluginPage.vue";
 export { corePluginPageEntry, corePluginPageSession, type CorePluginPageEntry } from "./pluginPage";
 export { usePluginMemberSearch } from "./memberSearch";
 export { CORE_PLUGIN_STATE_CHANNEL, createCorePluginStateFeed, usePluginPostedCards, type CorePluginStateHub } from "./hostFeeds";
-export type { CorePluginDirectory, CorePluginErrorText, CorePluginHost, CorePluginStateChange, CorePluginStateFeed } from "./context";
+export type { CorePluginBundleHost, CorePluginDirectory, CorePluginErrorText, CorePluginHost, CorePluginStateChange, CorePluginStateFeed } from "./context";
+/** A contribution's web bundle variant (a page, a card's detail, a "+" form) in the kit's bundle host, with its fallback. */
+export { default as CorePluginBundle } from "./CorePluginBundle.vue";
+export { CORE_PLUGIN_BUNDLE_MAX_FAILURES, corePluginBundleFailed, corePluginBundleGaveUp, corePluginBundleResultData, resetCorePluginBundleFailures } from "./pluginBundle";
+/** The engine's bundle events channel and the hub the host routes them into. */
+export { PLUGIN_BUNDLE_EVENT_CHANNEL, createPluginBundleEventHub, browserBundleRuntime, type PluginBundleEventHub } from "@flare-im/sdk/plugin-ui";
 export { corePluginUpgradeKey, useCorePluginUpgrade, type CorePluginUpgradeSubject } from "./upgrade";
 /** The host's part of plugin capabilities (consent, document capture, file pick, payment confirmation, one location
  * fix) for browser and webview hosts: mount once while signed in, fed from `im://plugin_capability_request`. */

@@ -11,7 +11,9 @@ import {
   type FlarePluginMember, type FlarePluginResolveUser, type FlarePluginViewModel,
 } from "@flare-im/vue-ui";
 import type { PluginMessageEnvelope } from "@flare-im/sdk/plugin-ui";
-import { pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiSessionKey } from "./context";
+import { pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiHostKey, pluginUiSessionKey } from "./context";
+import CorePluginBundle from "./CorePluginBundle.vue";
+import { corePluginBundleResultData } from "./pluginBundle";
 import { type ComposerPluginItem, type PluginPostedCard } from "./composerMenu";
 import { pluginPagePostedCard } from "./pluginPage";
 
@@ -23,6 +25,8 @@ const props = defineProps<{
   members?: FlarePluginMember[];
   /** Overrides the provided directory's resolver. */
   resolveUser?: FlarePluginResolveUser;
+  /** The conversation's type for a web bundle form's hello (`single`, `group`, ...). */
+  conversationType?: string;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -35,6 +39,24 @@ const session = inject(pluginUiSessionKey, ref(null));
 const directory = inject(pluginUiDirectoryKey, {});
 const errorText = inject(pluginUiErrorTextKey, () => undefined);
 const members = computed(() => props.members ?? directory.members?.() ?? []);
+const pluginHost = inject(pluginUiHostKey, {});
+/**
+ * A "+" form whose bundle variant Core selected (design 8.9) runs in the kit's bundle host when the host provides
+ * bundles: the bundle closes with `ui.close({operationResult})` and the card Core posted is located as for the
+ * declarative form. The items the bundle could not show draw the contribution's document instead.
+ */
+const declarative = ref<ReadonlySet<string>>(new Set());
+const itemKey = (item: ComposerPluginItem) => `${item.pluginId}\u0000${item.contributionId}`;
+const bundleShown = computed(() => Boolean(pluginHost.bundles && props.item && !declarative.value.has(itemKey(props.item))));
+const bundleTitle = ref("");
+function bundleFallback(): void {
+  if (props.item) declarative.value = new Set([...declarative.value, itemKey(props.item)]);
+}
+function bundleClosed(result: unknown): void {
+  const posted = result === undefined ? null : pluginPagePostedCard(corePluginBundleResultData(result), props.conversationId);
+  if (posted) emit("posted", posted);
+  emit("close");
+}
 const resolver = computed(() => props.resolveUser ?? directory.resolveUser);
 const view = shallowRef<FlarePluginViewModel>({ available: false, title: "", fields: [], actions: [] });
 const busyActionId = ref<string>();
@@ -72,7 +94,8 @@ async function load(): Promise<void> {
   const mine = ++generation, host = session.value, item = props.item;
   busyActionId.value = undefined; error.value = ""; formErrors.value = []; confirming.value = null;
   view.value = { available: false, title: item?.label ?? "", fields: [], actions: [] };
-  if (!host || !item) return;
+  bundleTitle.value = "";
+  if (!host || !item || bundleShown.value) return;
   const result = await host.present(message(item), undefined, "composer-action");
   if (mine === generation) view.value = result;
 }
@@ -126,12 +149,24 @@ function close(): void {
   if (!busyActionId.value) emit("close");
 }
 
-watch(() => [props.item, props.conversationId, session.value], () => { void load(); }, { immediate: true });
+watch(() => [props.item, props.conversationId, session.value, bundleShown.value], () => { void load(); }, { immediate: true });
 </script>
 
 <template>
-  <FlareBottomSheet :open="Boolean(item)" :title="view.title || item?.label || ''" :dismissible="!busyActionId" @close="close">
-    <template v-if="formAction">
+  <FlareBottomSheet :open="Boolean(item)" :title="(bundleShown ? bundleTitle : view.title) || item?.label || ''" :dismissible="!busyActionId" @close="close">
+    <CorePluginBundle
+      v-if="bundleShown && item && pluginHost.bundles"
+      :host="pluginHost.bundles"
+      :plugin-id="item.pluginId"
+      :contribution-id="item.contributionId"
+      presentation="composerForm"
+      :args="{ conversationId }"
+      :conversation="{ id: conversationId, type: conversationType ?? '' }"
+      @title="(value) => { bundleTitle = value; }"
+      @close="bundleClosed"
+      @fallback="bundleFallback"
+    />
+    <template v-else-if="formAction">
       <FlarePluginView v-if="preface" :view="preface" embedded inset="sheetTop" :resolve-user="resolver" />
       <FlarePluginForm
         :inputs="formInputs"

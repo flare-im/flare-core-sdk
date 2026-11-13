@@ -1,5 +1,6 @@
 import { pluginFormErrors, pluginViewExtras, type PluginActionOutcome, type PluginCardPresentation, type PluginDetailPage, type PluginDetailPresentation, type PluginPagePage, type PluginPagePresentation, type PluginPresentation, type UiFileReference } from "./view";
 export * from "./view";
+export * from "./bundle";
 /** Runtime adaptation only. Rust owns schema evaluation, lease/permission
  * checks, action declaration and history fallback on every platform. */
 export interface PluginUiPort {

@@ -2,7 +2,7 @@ import type { InjectionKey, Ref } from "vue";
 import type {
   FlarePluginImageSource, FlarePluginMember, FlarePluginResolveUser, FlarePluginUpgradeStatus,
 } from "@flare-im/vue-ui";
-import type { NativePluginBridge, PluginUiSession } from "@flare-im/sdk/plugin-ui";
+import type { NativePluginBridge, PluginBundleEventHub, PluginBundleOpened, PluginBundlePort, PluginUiSession } from "@flare-im/sdk/plugin-ui";
 export const pluginUiSessionKey: InjectionKey<Ref<PluginUiSession | null>> = Symbol("core-plugin-ui-session");
 /** The conversation the timeline shows; card actions are dispatched bound to it. */
 export const pluginUiConversationKey: InjectionKey<() => string | undefined> = Symbol("core-plugin-ui-conversation");
@@ -52,5 +52,31 @@ export interface CorePluginHost {
   resolveImage?: (source: FlarePluginImageSource) => string | undefined | Promise<string | undefined>;
   /** The native capabilities page actions may run here (those of the host's native allowlist, e.g. `webClipboardBridge`). */
   native?: NativePluginBridge;
+  /**
+   * Plugin web bundles (L3): pages, card details and "+" forms whose bundle variant Core selected open in the kit's
+   * FlarePluginBundleHost; without it (or when the engine offers no bundle) the declarative variant draws.
+   */
+  bundles?: CorePluginBundleHost;
+}
+
+/** What a browser or webview host provides for plugin web bundles. */
+export interface CorePluginBundleHost {
+  /** The engine's bundle routes (the social SDK's `plugins` facade). */
+  port: PluginBundlePort;
+  /** The engine's bundle events (`im://plugin_bundle_event`), routed into it by the host. */
+  events: PluginBundleEventHub;
+  /** The app's theme for the bundle's hello and `theme.changed`. */
+  theme: () => { mode: "light" | "dark"; tokens?: Record<string, string> };
+  /**
+   * The frame's file base of an opened page. Web: the unpacked copy on the sandbox domain (`opened.root`, the default).
+   * Tauri: registers the cache files with the app's `flare-plugin` protocol and answers `flare-plugin://{key}/`.
+   */
+  files?: (opened: PluginBundleOpened) => string | Promise<string>;
+  /** The page closed: a host that registered files drops them. */
+  released?: (opened: PluginBundleOpened) => void;
+  /** Web: the app's https origin, for the bundle policy's `frame-ancestors`. */
+  hostOrigin?: () => string | undefined;
+  /** Opens a confirmed https link (Tauri: the system browser); a new browsing context by default. */
+  openExternal?: (url: string) => void | Promise<void>;
 }
 export const pluginUiHostKey: InjectionKey<CorePluginHost> = Symbol("core-plugin-ui-host");

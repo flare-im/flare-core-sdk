@@ -17,6 +17,8 @@ export interface CorePluginPageEntry {
   title: string;
   args?: Record<string, unknown>;
   conversationId?: string;
+  /** A route inside the page's web bundle (a bundle's `ui.navigate` with `bundleRoute`). */
+  route?: string;
 }
 
 /**

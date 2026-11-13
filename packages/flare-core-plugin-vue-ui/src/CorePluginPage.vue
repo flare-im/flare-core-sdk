@@ -47,6 +47,7 @@ import {
 import { pluginUiHostKey, type CorePluginErrorText, type CorePluginHost } from "./context";
 import { useCorePluginUpgrade } from "./upgrade";
 import { corePluginPageSession, pluginPagePostedCard, type CorePluginPageEntry } from "./pluginPage";
+import CorePluginBundle from "./CorePluginBundle.vue";
 import type { PluginPostedCard } from "./composerMenu";
 import { PluginFileUploads, choosePluginFile, pluginFileSessionData } from "./pluginFileUploads";
 
@@ -95,6 +96,27 @@ watch([() => props.port, () => props.viewerId], ([port]) => {
 }, { immediate: true });
 
 const view = shallowRef<PluginPagePresentation>();
+/**
+ * A page whose bundle variant Core selected opens in the kit's bundle host when the host provides bundles; the entries
+ * the bundle could not show (no bundle offered, closed by the bridge, failing) draw the declarative page instead.
+ */
+const bundles = computed(() => pluginHost().bundles);
+const entryKey = (entry: CorePluginPageEntry) => `${entry.pluginId}\u0000${entry.page}\u0000${entry.route ?? ""}`;
+const declarative = ref<ReadonlySet<string>>(new Set());
+const bundleShown = computed(() => Boolean(bundles.value) && !declarative.value.has(entryKey(top.value)));
+function bundleFallback(): void {
+  declarative.value = new Set([...declarative.value, entryKey(top.value)]);
+}
+/** A bundle's `ui.navigate`: a declarative page of its plugin, or another route of the same bundle. */
+function bundleNavigate(target: { page?: string; arguments?: Record<string, unknown>; bundleRoute?: string }): void {
+  const entry = top.value;
+  if (target.page) {
+    stack.value = [...stack.value, { pluginId: entry.pluginId, page: target.page, title: entry.title, filters: {},
+      ...(entry.conversationId ? { conversationId: entry.conversationId } : {}), ...(target.arguments ? { args: target.arguments } : {}) }];
+  } else if (target.bundleRoute) {
+    stack.value = [...stack.value, { ...entry, route: target.bundleRoute, filters: {}, ...(target.arguments ? { args: target.arguments } : {}) }];
+  }
+}
 // A page this build cannot draw (D-18): the whole-page notice asks whether the build it needs is offered here.
 const upgrade = useCorePluginUpgrade(() => view.value, pluginHost);
 const loading = ref(false);
@@ -296,7 +318,7 @@ async function load(mode: "open" | "filter" | "refresh" = "open", requestedFilte
   }
 }
 // Getters only: the stack array among the sources would make the watcher fire on every stack write (a filter, say).
-watch([() => props.root, () => session.value, () => top.value.pluginId, () => top.value.page, () => top.value.conversationId, () => JSON.stringify(top.value.args), () => stack.value.length], () => {
+watch([() => props.root, () => session.value, () => top.value.pluginId, () => top.value.page, () => top.value.conversationId, () => JSON.stringify(top.value.args), () => stack.value.length, () => bundleShown.value], () => {
   // Invalidate both old UI settlement and the session's automatic page navigation. The SDK command journal lives
   // in the port; resetting this presentation session does not cancel, repeat or acknowledge a financial command.
   actionTicket++;
@@ -304,6 +326,14 @@ watch([() => props.root, () => session.value, () => top.value.pluginId, () => to
   busyActionId.value = undefined;
   actionError.value = "";
   formErrors.value = [];
+  // The bundle host loads its own page; the declarative page is read only when it draws.
+  if (bundleShown.value) {
+    generation++;
+    view.value = undefined;
+    loading.value = false;
+    refreshing.value = false;
+    return;
+  }
   void load();
 }, { immediate: true });
 
@@ -410,7 +440,25 @@ function back(): void {
 </script>
 
 <template>
+  <CorePluginBundle
+    v-if="bundleShown && bundles"
+    class="core-plugin-page"
+    :host="bundles"
+    :plugin-id="top.pluginId"
+    :contribution-id="top.page"
+    presentation="page"
+    :route="top.route"
+    :args="top.args"
+    :conversation="top.conversationId ? { id: top.conversationId, type: '' } : undefined"
+    :title="top.title"
+    back
+    @back="back"
+    @close="back"
+    @navigate="bundleNavigate"
+    @fallback="bundleFallback"
+  />
   <FlarePluginPage
+    v-else
     class="core-plugin-page"
     :page="{ pluginId: top.pluginId, page: top.page }"
     :title="top.title"
