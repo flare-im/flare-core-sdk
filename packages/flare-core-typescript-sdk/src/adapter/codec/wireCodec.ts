@@ -116,6 +116,7 @@ import {
   OpenConversationListViewRequest,
   OpenConversationTimelineRequest,
   OpenTimelineViewRequest,
+  PluginBundleEvent,
   PluginCapabilityCompletion,
   PluginCapabilityRequestEvent,
   PluginCatalogChangedEvent,
@@ -1600,6 +1601,14 @@ export function pluginCapabilityRequestEventToMap(request: PluginCapabilityReque
   requestId: request.requestId,
   method: request.method,
   request: request.request,
+  };
+}
+
+export function pluginBundleEventToMap(request: PluginBundleEvent): Record<string, unknown> {
+  return {
+  sessionId: request.sessionId,
+  ...(request.envelope !== undefined ? { envelope: request.envelope } : {}),
+  ...(request.close !== undefined ? { close: request.close } : {}),
   };
 }
 

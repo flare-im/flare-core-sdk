@@ -1680,7 +1680,7 @@ Typed SDK event and notification models for cross-platform subscriptions.
 
 - `ProgressEventName`: Progress notification name. Values: `sync_progress`, `upload_progress`, `download_progress`
 
-- `PluginEventName`: Plugin event notification name. Values: `realtime`, `catalog_changed`, `capability_request`
+- `PluginEventName`: Plugin event notification name. Values: `realtime`, `catalog_changed`, `capability_request`, `bundle_event`
 
 ### SdkErrorPayload
 
@@ -1900,6 +1900,16 @@ The engine asks the host to do its part of a plugin host capability; answer with
 | `requestId` | `requestId` | `UInt64` | yes | Pass it back with the result. |
 | `method` | `method` | `String` | yes | consent, captureDocument, pickFile, confirmPayment or locateOnce. |
 | `request` | `request` | `JsonObject` | yes | consent: {pluginId, pluginVersion, capability, params?}; captureDocument: {pluginId, side, accept, maxBytes}; pickFile: {pluginId, capability, accept, maxBytes}; confirmPayment: {pluginId, order: {orderId, amount, currency, payee, title, expiresAtMs, operation}}; locateOnce: {pluginId, precision}. |
+
+### PluginBundleEvent
+
+Something for an open web bundle page.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `sessionId` | `sessionId` | `String` | yes | The page's session (pluginBundleOpen). |
+| `envelope` | `envelope` | `String` | no | A bridge event to post to the page as it is: catalog.changed, entity.state, lifecycle.revoked. |
+| `close` | `close` | `String` | no | Close the page: withdrawn, suspended, disabled, replaced, evicted or signedOut. |
 
 ## PluginUi
 

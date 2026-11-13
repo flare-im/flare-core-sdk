@@ -22,6 +22,12 @@ public interface CapabilitiesApi {
     func pluginCapabilityInvoke(request: PluginUiEvaluationRequest): String
     func pluginCapabilityConsents(request: PluginUiEvaluationRequest): String
     func revokePluginCapabilityConsent(request: PluginUiEvaluationRequest): String
+    func pluginBundleOpen(request: PluginUiEvaluationRequest): String
+    func pluginBundleBridge(request: PluginUiEvaluationRequest): String
+    func pluginBundleHostResult(request: PluginUiEvaluationRequest): String
+    func pluginBundleHostEvent(request: PluginUiEvaluationRequest): String
+    func pluginBundleClose(request: PluginUiEvaluationRequest): String
+    func pluginBundlePrefetch(request: PluginUiEvaluationRequest): String
     func completePluginCapabilityRequest(request: PluginCapabilityCompletion): Unit
     func pluginAccountEntries(request: PluginUiEvaluationRequest): String
     func invalidatePluginCatalog(requestJson: String): Unit

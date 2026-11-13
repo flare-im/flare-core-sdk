@@ -4,7 +4,7 @@
  * Module API: `events` — Typed SDK event stream.
  */
 import type { EventCallback, EventSubscription, FlareImEventListener } from '../../listener';
-import type { AccessChangedEvent, AccessSwitchedEvent, ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
+import type { AccessChangedEvent, AccessSwitchedEvent, ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
 import type { SubscribeEventsRequest, Subscription, UnsubscribeRequest } from '../types';
 
 /** Typed SDK event stream. */
@@ -101,4 +101,6 @@ export interface EventsApi {
   onPluginCatalogChanged(listener: EventCallback<PluginCatalogChangedEvent>): EventSubscription;
   /** The engine asks the host to do its part of a plugin host capability (method consent, captureDocument, pickFile, confirmPayment or locateOnce). Show the kit's screen for it and answer with completePluginCapabilityRequest({requestId, result}); the engine waits up to 10 minutes. */
   onPluginCapabilityRequest(listener: EventCallback<PluginCapabilityRequestEvent>): EventSubscription;
+  /** Something for an open web bundle page: post envelope (a bridge event) to the page as it is; close the page when close is set (withdrawn, suspended, disabled, replaced, evicted or signedOut). */
+  onPluginBundleEvent(listener: EventCallback<PluginBundleEvent>): EventSubscription;
 }

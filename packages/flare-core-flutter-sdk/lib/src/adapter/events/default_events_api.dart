@@ -245,6 +245,13 @@ final class DefaultEventsApi implements EventsApi {
           method: _requiredEventString(eventPayload['method'], 'method'),
           request: _requiredEventObject(eventPayload['request'], 'request'),
         ));
+      case EventCode.pluginBundleEvent:
+        _emit(PluginBundleEvent(
+          sessionId:
+              _requiredEventString(eventPayload['sessionId'], 'sessionId'),
+          envelope: _optionalEventString(eventPayload['envelope'], 'envelope'),
+          close: _optionalEventString(eventPayload['close'], 'close'),
+        ));
       case EventCode.viewUpdated:
         _emit(viewUpdateFromJson(eventPayload));
       default:
@@ -470,6 +477,11 @@ final class DefaultEventsApi implements EventsApi {
     EventCallback<PluginCapabilityRequestEvent> listener,
   ) =>
       _addTyped(listener);
+  @override
+  EventSubscription onPluginBundleEvent(
+    EventCallback<PluginBundleEvent> listener,
+  ) =>
+      _addTyped(listener);
 
   EventSubscription _addTyped<T>(EventCallback<T> callback) {
     return _addWhere(callback, (_) => true);
@@ -593,6 +605,8 @@ final class _ListenerHandler {
         listener.onPluginCatalogChanged(event);
       case PluginCapabilityRequestEvent():
         listener.onPluginCapabilityRequest(event);
+      case PluginBundleEvent():
+        listener.onPluginBundleEvent(event);
     }
   }
 

@@ -270,6 +270,12 @@ Capability discovery and optional plugin dispatch through capability dispatch op
 | `pluginCapabilityInvoke` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `pluginCapabilityConsents` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `revokePluginCapabilityConsent` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundleOpen` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundleBridge` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundleHostResult` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundleHostEvent` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundleClose` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundlePrefetch` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `completePluginCapabilityRequest` | `PluginCapabilityCompletion` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `pluginAccountEntries` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `invalidatePluginCatalog` | `ListCapabilitiesRequest` | `Unit` | `capability-dispatch-json` | `flare_capability_dispatch_json` |

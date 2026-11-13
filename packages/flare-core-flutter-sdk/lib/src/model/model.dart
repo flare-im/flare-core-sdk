@@ -180,6 +180,7 @@ export 'event/sync/sync_event.dart';
 export 'event/plugin/plugin_realtime_event.dart';
 export 'event/plugin/plugin_catalog_changed_event.dart';
 export 'event/plugin/plugin_capability_request_event.dart';
+export 'event/plugin/plugin_bundle_event.dart';
 export 'command/plugin_ui_evaluation_request.dart';
 export 'entity/plugin_capability_completion.dart';
 export 'entity/plugin_host_profile.dart';

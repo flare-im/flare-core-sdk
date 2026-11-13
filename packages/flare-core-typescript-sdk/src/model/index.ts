@@ -180,6 +180,7 @@ export * from './sync_event';
 export * from './plugin_realtime_event';
 export * from './plugin_catalog_changed_event';
 export * from './plugin_capability_request_event';
+export * from './plugin_bundle_event';
 export * from './plugin_ui_evaluation_request';
 export * from './plugin_capability_completion';
 export * from './plugin_host_profile';

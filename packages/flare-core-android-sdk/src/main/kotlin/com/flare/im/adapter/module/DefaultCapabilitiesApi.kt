@@ -101,6 +101,30 @@ class DefaultCapabilitiesApi(
         return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_CAPABILITY_CONSENT_REVOKE, pluginUiEvaluationRequestToMap(request))
     }
 
+    override suspend fun pluginBundleOpen(request: PluginUiEvaluationRequest): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_BUNDLE_OPEN, pluginUiEvaluationRequestToMap(request))
+    }
+
+    override suspend fun pluginBundleBridge(request: PluginUiEvaluationRequest): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_BUNDLE_BRIDGE, pluginUiEvaluationRequestToMap(request))
+    }
+
+    override suspend fun pluginBundleHostResult(request: PluginUiEvaluationRequest): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_BUNDLE_HOST_RESULT, pluginUiEvaluationRequestToMap(request))
+    }
+
+    override suspend fun pluginBundleHostEvent(request: PluginUiEvaluationRequest): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_BUNDLE_HOST_EVENT, pluginUiEvaluationRequestToMap(request))
+    }
+
+    override suspend fun pluginBundleClose(request: PluginUiEvaluationRequest): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_BUNDLE_CLOSE, pluginUiEvaluationRequestToMap(request))
+    }
+
+    override suspend fun pluginBundlePrefetch(request: PluginUiEvaluationRequest): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CAPABILITY_PLUGIN_BUNDLE_PREFETCH, pluginUiEvaluationRequestToMap(request))
+    }
+
     override suspend fun completePluginCapabilityRequest(request: PluginCapabilityCompletion): Unit {
         invokeUnit(bridge, NativeCallMap.PLUGIN_CAPABILITY_COMPLETE, pluginCapabilityCompletionToMap(request))
     }

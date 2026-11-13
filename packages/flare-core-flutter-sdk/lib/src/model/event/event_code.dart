@@ -48,4 +48,5 @@ final class EventCode {
   static const int pluginRealtime = 7001;
   static const int pluginCatalogChanged = 7002;
   static const int pluginCapabilityRequest = 7003;
+  static const int pluginBundleEvent = 7004;
 }

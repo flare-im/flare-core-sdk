@@ -49,4 +49,5 @@ object EventCode {
     const val PLUGIN_REALTIME: Int = 7001
     const val PLUGIN_CATALOG_CHANGED: Int = 7002
     const val PLUGIN_CAPABILITY_REQUEST: Int = 7003
+    const val PLUGIN_BUNDLE_EVENT: Int = 7004
 }

@@ -276,7 +276,8 @@
       "names": [
         "realtime",
         "catalog_changed",
-        "capability_request"
+        "capability_request",
+        "bundle_event"
       ],
       "type": "plugin"
     },
@@ -637,6 +638,13 @@
       "kind": "plugin",
       "name": "onPluginCapabilityRequest",
       "payload": "PluginCapabilityRequestEvent"
+    },
+    {
+      "description": "Something for an open web bundle page: post envelope (a bridge event) to the page as it is; close the page when close is set (withdrawn, suspended, disabled, replaced, evicted or signedOut).",
+      "eventName": "bundle_event",
+      "kind": "plugin",
+      "name": "onPluginBundleEvent",
+      "payload": "PluginBundleEvent"
     }
   ],
   "messageBuildCatalog": {
@@ -6351,7 +6359,8 @@
           "values": [
             "realtime",
             "catalog_changed",
-            "capability_request"
+            "capability_request",
+            "bundle_event"
           ]
         }
       ],
@@ -7029,6 +7038,33 @@
             }
           ],
           "name": "PluginCapabilityRequestEvent"
+        },
+        {
+          "description": "Something for an open web bundle page.",
+          "fields": [
+            {
+              "description": "The page's session (pluginBundleOpen).",
+              "name": "sessionId",
+              "required": true,
+              "type": "String",
+              "wireName": "sessionId"
+            },
+            {
+              "description": "A bridge event to post to the page as it is: catalog.changed, entity.state, lifecycle.revoked.",
+              "name": "envelope",
+              "required": false,
+              "type": "String",
+              "wireName": "envelope"
+            },
+            {
+              "description": "Close the page: withdrawn, suspended, disabled, replaced, evicted or signedOut.",
+              "name": "close",
+              "required": false,
+              "type": "String",
+              "wireName": "close"
+            }
+          ],
+          "name": "PluginBundleEvent"
         }
       ]
     },
@@ -10421,6 +10457,120 @@
             "returnMode": "callback"
           },
           "operation": "capability.plugin_capability_consent_revoke",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
+          "description": "Open a web bundle page (L3) a catalog contribution selects: {pluginId, contributionId, route?, arguments?, presentation? (page | detail | composerForm), conversation?: {id, type}, locale, theme: {mode, tokens}, hostOrigin?}. The engine fetches the bundle from the catalog's mirrors, checks its size and SHA-256 before unpacking it into its cache (native) or reads bundle.json from the sandbox copy (Web), and answers {sessionId, origin, root, entry, csp, files?, hello}: root is the cache directory (native) or the sandbox base address (Web); files lists the only paths an interceptor may serve, with their content types; csp is the policy every file is served with; hello is the host.hello result. Errors sdk.plugin_bundle.unsupported (no bundle runtime in the host profile, or an older bridge), not_offered, unavailable, rejected.",
+          "dispatchOp": "plugin_bundle_open",
+          "name": "pluginBundleOpen",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_bundle_open",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
+          "description": "Hand one message a bundle posted to the engine: {sessionId, envelope (the JSON text as posted), userGesture? (the host's own record of a recent touch)}. The engine checks it (envelope, bridge version, handshake, method and parameters, bridge permission, operation, rate) and answers {envelope} to post back as is, or {host: {id, method, params}} for the host to draw (ui.navigate, ui.close, ui.setTitle, ui.toast, ui.confirm, ui.resize, ui.openExternal, clipboard.write) and answer with pluginBundleHostResult.",
+          "dispatchOp": "plugin_bundle_bridge",
+          "name": "pluginBundleBridge",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_bundle_bridge",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
+          "description": "Answer a request the engine handed to the host: {sessionId, id, result? | error? (cancelled, unavailable, gesture_required, timeout, not_found)}. ui.confirm takes {confirmed}. Answers {envelope} to post back.",
+          "dispatchOp": "plugin_bundle_host_result",
+          "name": "pluginBundleHostResult",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_bundle_host_result",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
+          "description": "Report theme.changed ({mode, tokens}), locale.changed ({locale}) or visibility.changed ({visible}): {event, payload, sessionId?}. Answers {deliveries: [{sessionId, envelope}]} for the pages that subscribed; post each envelope to its page.",
+          "dispatchOp": "plugin_bundle_host_event",
+          "name": "pluginBundleHostEvent",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_bundle_host_event",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
+          "description": "End a bundle page's session when the host closes or destroys it: {sessionId}. Answers {closed}.",
+          "dispatchOp": "plugin_bundle_close",
+          "name": "pluginBundleClose",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_bundle_close",
+          "request": "PluginUiEvaluationRequest",
+          "response": "JsonObject",
+          "stability": "experimental",
+          "transport": "capability-dispatch-json"
+        },
+        {
+          "cApi": "flare_capability_dispatch_json",
+          "description": "Let the engine fetch the entry bundles (a Me entry's or a + action's page) ahead: {wifi, idle}; only on Wi-Fi when idle. Answers {fetched}.",
+          "dispatchOp": "plugin_bundle_prefetch",
+          "name": "pluginBundlePrefetch",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "capability.plugin_bundle_prefetch",
           "request": "PluginUiEvaluationRequest",
           "response": "JsonObject",
           "stability": "experimental",

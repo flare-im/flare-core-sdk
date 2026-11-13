@@ -61,6 +61,18 @@ interface CapabilitiesApi {
     suspend fun pluginCapabilityConsents(request: PluginUiEvaluationRequest): Map<String, Any?>
     /** revokePluginCapabilityConsent maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_consent_revoke`. Operation: `capability.plugin_capability_consent_revoke`. */
     suspend fun revokePluginCapabilityConsent(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** pluginBundleOpen maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_open`. Operation: `capability.plugin_bundle_open`. */
+    suspend fun pluginBundleOpen(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** pluginBundleBridge maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_bridge`. Operation: `capability.plugin_bundle_bridge`. */
+    suspend fun pluginBundleBridge(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** pluginBundleHostResult maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_host_result`. Operation: `capability.plugin_bundle_host_result`. */
+    suspend fun pluginBundleHostResult(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** pluginBundleHostEvent maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_host_event`. Operation: `capability.plugin_bundle_host_event`. */
+    suspend fun pluginBundleHostEvent(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** pluginBundleClose maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_close`. Operation: `capability.plugin_bundle_close`. */
+    suspend fun pluginBundleClose(request: PluginUiEvaluationRequest): Map<String, Any?>
+    /** pluginBundlePrefetch maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_prefetch`. Operation: `capability.plugin_bundle_prefetch`. */
+    suspend fun pluginBundlePrefetch(request: PluginUiEvaluationRequest): Map<String, Any?>
     /** completePluginCapabilityRequest maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `plugin.capability_complete`. */
     suspend fun completePluginCapabilityRequest(request: PluginCapabilityCompletion): Unit
     /** pluginAccountEntries maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`. */

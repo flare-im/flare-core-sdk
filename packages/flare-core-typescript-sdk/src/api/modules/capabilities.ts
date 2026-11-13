@@ -42,6 +42,18 @@ export interface CapabilitiesApi {
   pluginCapabilityConsents(request: PluginUiEvaluationRequest): Promise<JsonObject>;
   /** revokePluginCapabilityConsent maps to `flare_capability_dispatch_json`, dispatch op `plugin_capability_consent_revoke`. Operation: `capability.plugin_capability_consent_revoke`. */
   revokePluginCapabilityConsent(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** pluginBundleOpen maps to `flare_capability_dispatch_json`, dispatch op `plugin_bundle_open`. Operation: `capability.plugin_bundle_open`. */
+  pluginBundleOpen(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** pluginBundleBridge maps to `flare_capability_dispatch_json`, dispatch op `plugin_bundle_bridge`. Operation: `capability.plugin_bundle_bridge`. */
+  pluginBundleBridge(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** pluginBundleHostResult maps to `flare_capability_dispatch_json`, dispatch op `plugin_bundle_host_result`. Operation: `capability.plugin_bundle_host_result`. */
+  pluginBundleHostResult(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** pluginBundleHostEvent maps to `flare_capability_dispatch_json`, dispatch op `plugin_bundle_host_event`. Operation: `capability.plugin_bundle_host_event`. */
+  pluginBundleHostEvent(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** pluginBundleClose maps to `flare_capability_dispatch_json`, dispatch op `plugin_bundle_close`. Operation: `capability.plugin_bundle_close`. */
+  pluginBundleClose(request: PluginUiEvaluationRequest): Promise<JsonObject>;
+  /** pluginBundlePrefetch maps to `flare_capability_dispatch_json`, dispatch op `plugin_bundle_prefetch`. Operation: `capability.plugin_bundle_prefetch`. */
+  pluginBundlePrefetch(request: PluginUiEvaluationRequest): Promise<JsonObject>;
   /** completePluginCapabilityRequest maps to `flare_sdk_invoke_json`. Operation: `plugin.capability_complete`. */
   completePluginCapabilityRequest(request: PluginCapabilityCompletion): Promise<void>;
   /** pluginAccountEntries maps to `flare_capability_dispatch_json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`. */

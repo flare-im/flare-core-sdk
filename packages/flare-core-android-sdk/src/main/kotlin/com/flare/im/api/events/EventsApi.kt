@@ -77,4 +77,5 @@ interface EventsApi {
     fun onPluginRealtime(listener: EventCallback<PluginRealtimeEvent>): EventSubscription
     fun onPluginCatalogChanged(listener: EventCallback<PluginCatalogChangedEvent>): EventSubscription
     fun onPluginCapabilityRequest(listener: EventCallback<PluginCapabilityRequestEvent>): EventSubscription
+    fun onPluginBundleEvent(listener: EventCallback<PluginBundleEvent>): EventSubscription
 }

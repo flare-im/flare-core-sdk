@@ -6,4 +6,5 @@ public enum PluginEventName {
     | Realtime
     | CatalogChanged
     | CapabilityRequest
+    | BundleEvent
 }
