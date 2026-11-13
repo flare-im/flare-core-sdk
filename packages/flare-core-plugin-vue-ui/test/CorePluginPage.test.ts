@@ -501,9 +501,9 @@ describe("CorePluginPage", () => {
   });
   it("locates once through the engine into a location input and clears it again", async () => {
     const port = pagePort(async () => page({ data: { _session: { tenantId: "t", userId: "u" } } }));
-    const asked: Record<string, unknown>[] = [];
+    const asked: unknown[] = [];
     const answer = deferred<unknown>();
-    (port as PluginUiPort).capabilityInvoke = vi.fn(async (request: Record<string, unknown>) => { asked.push(request); return answer.promise; });
+    (port as PluginUiPort).capabilityInvoke = vi.fn(async (request: Parameters<NonNullable<PluginUiPort["capabilityInvoke"]>>[0]) => { asked.push(request); return answer.promise; });
     const { host } = render(port, { root: { ...root, args: { planId: "p1" } } });
     await flushPromises();
     const input = { id: "area", kind: "location", label: "Area", precision: "coarse" };
