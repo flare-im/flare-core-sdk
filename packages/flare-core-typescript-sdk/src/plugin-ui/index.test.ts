@@ -232,6 +232,15 @@ describe("plugin UI card protocol v2", () => {
     await session.invokePageAction("flare.checkin","flare.checkin.plans","open",{conversationId:"group-1",data:view.data,userGesture:true});
     expect(opened[1]).toEqual([{pluginId:"flare.checkin",page:"flare.checkin.plan",conversationId:"group-1"},{planId:"p1",conversationId:"injected"}]);
   });
+  it("passes the page's bundle marker through and drops anything but true", async () => {
+    const api = port();
+    let answer: Record<string, unknown> = { available: true, title: "Board", fields: [], actions: [], bundle: true };
+    api.pluginPage = async () => answer;
+    const session = new PluginUiSession(api, "web");
+    expect((await session.page("example.poll", "example.poll.board")).bundle).toBe(true);
+    answer = { available: true, title: "Board", fields: [], actions: [], bundle: "yes" };
+    expect((await session.page("example.poll", "example.poll.board")).bundle).toBeUndefined();
+  });
   it("maps the host's UI language onto the manifest locales", () => {
     for (const tag of ["en", "en-US", "en-GB", " EN-au "]) expect(pluginManifestLocale(tag)).toBe("en-US");
     for (const tag of ["zh-CN", "zh-Hant-TW", "ja-JP", "", undefined, null]) expect(pluginManifestLocale(tag)).toBe("zh-CN");

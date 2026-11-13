@@ -97,13 +97,15 @@ watch([() => props.port, () => props.viewerId], ([port]) => {
 
 const view = shallowRef<PluginPagePresentation>();
 /**
- * A page whose bundle variant Core selected opens in the kit's bundle host when the host provides bundles; the entries
- * the bundle could not show (no bundle offered, closed by the bridge, failing) draw the declarative page instead.
+ * The declarative page is always read first; when it says a web bundle is offered to this client (`view.bundle`), the
+ * page opens in the kit's bundle host instead, so a declarative page never shows an opening state. The entries the
+ * bundle could not show (closed by the bridge, failing) draw the view already read.
  */
 const bundles = computed(() => pluginHost().bundles);
 const entryKey = (entry: CorePluginPageEntry) => `${entry.pluginId}\u0000${entry.page}\u0000${entry.route ?? ""}`;
 const declarative = ref<ReadonlySet<string>>(new Set());
-const bundleShown = computed(() => Boolean(bundles.value) && !declarative.value.has(entryKey(top.value)));
+const bundleShown = computed(() => Boolean(bundles.value) && view.value?.bundle === true
+  && !declarative.value.has(entryKey(top.value)));
 function bundleFallback(): void {
   declarative.value = new Set([...declarative.value, entryKey(top.value)]);
 }
@@ -318,7 +320,7 @@ async function load(mode: "open" | "filter" | "refresh" = "open", requestedFilte
   }
 }
 // Getters only: the stack array among the sources would make the watcher fire on every stack write (a filter, say).
-watch([() => props.root, () => session.value, () => top.value.pluginId, () => top.value.page, () => top.value.conversationId, () => JSON.stringify(top.value.args), () => stack.value.length, () => bundleShown.value], () => {
+watch([() => props.root, () => session.value, () => top.value.pluginId, () => top.value.page, () => top.value.conversationId, () => JSON.stringify(top.value.args), () => stack.value.length, () => top.value.route], () => {
   // Invalidate both old UI settlement and the session's automatic page navigation. The SDK command journal lives
   // in the port; resetting this presentation session does not cancel, repeat or acknowledge a financial command.
   actionTicket++;
@@ -326,14 +328,6 @@ watch([() => props.root, () => session.value, () => top.value.pluginId, () => to
   busyActionId.value = undefined;
   actionError.value = "";
   formErrors.value = [];
-  // The bundle host loads its own page; the declarative page is read only when it draws.
-  if (bundleShown.value) {
-    generation++;
-    view.value = undefined;
-    loading.value = false;
-    refreshing.value = false;
-    return;
-  }
   void load();
 }, { immediate: true });
 

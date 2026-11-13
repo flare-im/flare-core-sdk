@@ -316,7 +316,7 @@ export class PluginUiSession {
     const nextCursor = typeof view.nextCursor === "string" && view.nextCursor ? view.nextCursor : undefined;
     const data = view.available && view.data && typeof view.data === "object" && !Array.isArray(view.data) ? view.data : undefined;
     return { available: view.available, title: view.title, fields: view.fields, actions: view.actions,
-      ...pluginViewExtras(view as unknown as Record<string, unknown>), ...(nextCursor ? { nextCursor } : {}), ...(typeof view.conversationId === "string" ? { conversationId: view.conversationId } : conversationId ? { conversationId } : {}), ...(data ? { data } : {}) };
+      ...pluginViewExtras(view as unknown as Record<string, unknown>), ...(nextCursor ? { nextCursor } : {}), ...(typeof view.conversationId === "string" ? { conversationId: view.conversationId } : conversationId ? { conversationId } : {}), ...(data ? { data } : {}), ...(view.bundle === true ? { bundle: true as const } : {}) };
   }
   /**
    * Run a page action through Core: a document action binds over the page's `data`, a row action

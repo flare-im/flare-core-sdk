@@ -186,6 +186,11 @@ export interface PluginPagePresentation extends PluginDetailPresentation {
   /** Host conversation context returned separately from plugin source data. */
   conversationId?: string;
   data?: Record<string, unknown>;
+  /**
+   * The page has a web bundle offered to this client: open it through the bundle host
+   * (`contributionId` = the page) and keep this view as its fallback. Absent: draw this view at once.
+   */
+  bundle?: true;
 }
 
 /** Paging options of `PluginUiSession.page`. */

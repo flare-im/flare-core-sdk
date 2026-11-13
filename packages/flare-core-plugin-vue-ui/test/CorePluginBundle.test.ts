@@ -1,7 +1,7 @@
 /**
- * Web bundles in the Core plugin surfaces: a page whose bundle the engine offers opens in the kit's bundle host and the
- * declarative page is never read; a page the engine offers no bundle for, or whose bundle the bridge closes, draws the
- * declarative page; the session ends with the page.
+ * Web bundles in the Core plugin surfaces: a page whose view carries the engine's bundle marker opens in the kit's
+ * bundle host; a page without it draws the declarative page and never tries a bundle; a bundle the bridge closes or the
+ * engine fails to open falls back to the view already read; the session ends with the page.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, type Component } from "vue";
@@ -26,8 +26,8 @@ function bundlePort(open: PluginBundlePort["pluginBundleOpen"]): PluginBundlePor
   };
 }
 
-function render(bundles: CorePluginBundleHost) {
-  const port = { ...fakePort(), pluginPage: vi.fn(async () => ({ available: true, title: "Tasks", fields: [], actions: [] })) };
+function render(bundles: CorePluginBundleHost, bundle = true) {
+  const port = { ...fakePort(), pluginPage: vi.fn(async () => ({ available: true, title: "Tasks", fields: [], actions: [], ...(bundle ? { bundle: true } : {}) })) };
   const Host = defineComponent({ setup() {
     provideCorePluginHost({ bundles });
     return () => h(CorePluginPage as Component, { root, port, platform: "web", loadFailedText: "failed" });
@@ -40,20 +40,30 @@ function render(bundles: CorePluginBundleHost) {
 const opened = { sessionId: "s1", origin: "null", root: "https://plugin-sandbox.example.com/b/abc/", entry: "index.html", csp: "", hello: {} };
 
 describe("CorePluginPage with web bundles", () => {
-  it("opens the bundle the engine offers and never reads the declarative page", async () => {
+  it("opens the bundle the page view marks as offered", async () => {
     const port = bundlePort(async () => opened);
     const { wrapper, port: pagePort } = render({ port, events: createPluginBundleEventHub(), theme: () => ({ mode: "light" }) });
     await flushPromises();
     expect(port.pluginBundleOpen).toHaveBeenCalledWith(expect.objectContaining({ pluginId: "sdk.plugin.task", contributionId: "task.dashboard", presentation: "page" }));
     const host = wrapper.getComponent(FlarePluginBundleHost);
     expect(host.props("files")).toBe("https://plugin-sandbox.example.com/b/abc/");
-    expect(pagePort.pluginPage).not.toHaveBeenCalled();
+    expect(pagePort.pluginPage).toHaveBeenCalledTimes(1);
     wrapper.unmount();
     expect(port.pluginBundleClose).toHaveBeenCalledWith({ sessionId: "s1" });
   });
 
-  it("draws the declarative page when no bundle is offered", async () => {
-    const port = bundlePort(async () => { throw new Error("sdk.plugin_bundle.not_offered"); });
+  it("draws the declarative page without trying a bundle when the view has no marker", async () => {
+    const port = bundlePort(async () => opened);
+    const { wrapper, port: pagePort } = render({ port, events: createPluginBundleEventHub(), theme: () => ({ mode: "light" }) }, false);
+    await flushPromises();
+    expect(wrapper.findComponent(FlarePluginPage).exists()).toBe(true);
+    expect(wrapper.findComponent(FlarePluginBundleHost).exists()).toBe(false);
+    expect(port.pluginBundleOpen).not.toHaveBeenCalled();
+    expect(pagePort.pluginPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the view already read when the open fails", async () => {
+    const port = bundlePort(async () => { throw new Error("sdk.plugin_bundle.unavailable"); });
     const { wrapper, port: pagePort } = render({ port, events: createPluginBundleEventHub(), theme: () => ({ mode: "light" }) });
     await flushPromises();
     expect(wrapper.findComponent(FlarePluginPage).exists()).toBe(true);
