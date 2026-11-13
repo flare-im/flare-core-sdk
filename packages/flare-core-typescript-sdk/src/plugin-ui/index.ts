@@ -271,7 +271,13 @@ export class PluginUiSession {
    */
   async invokeCapability(pluginId: string, call: PluginCapabilityCall,
     options: { conversationId?: string; context?: PluginCapabilityPageContext; commandId?: string } = {}): Promise<PluginActionOutcome> {
-    if (!this.port.capabilityInvoke) return { kind: "declined", reason: "unavailable" };
+    const value = await this.capabilityValue(pluginId, call, options);
+    return value === undefined ? { kind: "declined", reason: "unavailable" } : pluginCapabilityOutcome(value);
+  }
+  /** The engine's raw answer to `capabilityInvoke`; undefined when the port has none. */
+  private async capabilityValue(pluginId: string, call: PluginCapabilityCall,
+    options: { conversationId?: string; context?: PluginCapabilityPageContext; commandId?: string }): Promise<unknown> {
+    if (!this.port.capabilityInvoke) return undefined;
     const generation = this.generation;
     const { conversationId, context, commandId } = options;
     const value = await this.port.capabilityInvoke({ pluginId, capability: call.capability,
@@ -282,7 +288,7 @@ export class PluginUiSession {
       ...(context?.formValues ? { formValues: context.formValues } : {}), ...(commandId ? { commandId } : {}),
       userGesture: true });
     if (generation !== this.generation) throw new Error("Plugin session changed");
-    return pluginCapabilityOutcome(value);
+    return value;
   }
   /**
    * A plugin page (a `page` contribution, such as a wallet) through Core: its source query is called
@@ -341,8 +347,13 @@ export class PluginUiSession {
     if (result?.kind === "operation" && result.response && typeof result.response === "object") {
       const order = result.confirmation;
       if (order && typeof order === "object" && !Array.isArray(order)) {
-        return this.invokeCapability(pluginId, { capability: "paymentConfirmation", order: order as Record<string, unknown> },
+        const confirmed = await this.capabilityValue(pluginId, { capability: "paymentConfirmation", order: order as Record<string, unknown> },
           { ...(conversationId ? { conversationId } : {}) });
+        if (confirmed === undefined) return { kind: "declined", reason: "unavailable" };
+        // A pay action's continuation runs after the confirmed payment: its page opens like the action's own would.
+        const next = confirmed as { kind?: unknown; target?: { kind?: unknown } } | null;
+        if (next?.kind === "host" && next.target?.kind === "page") return this.actionOutcome(confirmed, pluginId, conversationId, context);
+        return pluginCapabilityOutcome(confirmed);
       }
       return { kind: "operation", response: result.response as Extract<PluginActionOutcome, { kind: "operation" }>["response"] };
     }

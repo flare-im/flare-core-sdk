@@ -21,6 +21,7 @@ import {
   FlareDocumentCapture,
   FlareInput,
   FlarePaymentConfirmation,
+  flareCapabilityConsentAnswer,
   type FlareCapabilityConsentDecision,
   type FlareCapturedDocument,
   type FlareDocumentSide,
@@ -106,7 +107,7 @@ const consentParams = computed(() => {
   return params && typeof params === "object" && !Array.isArray(params) ? params as Record<string, unknown> : null;
 });
 function decide(decision: FlareCapabilityConsentDecision): void {
-  void answer({ decision });
+  void answer({ ...flareCapabilityConsentAnswer(decision) });
 }
 
 // ---- pickFile, locateOnce ----

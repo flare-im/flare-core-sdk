@@ -283,6 +283,20 @@ describe("plugin host capabilities through the engine", () => {
     expect(await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { userGesture: true }))
       .toEqual({ kind: "declined", reason: "unavailable" });
   });
+  it("opens the pay action's continuation page once the engine confirmed the payment", async () => {
+    const api = port(); const opened: unknown[] = [];
+    api.invokePageAction = async () => ({ kind: "operation", response: { success: true, data: { confirmation: order } }, confirmation: order });
+    api.capabilityInvoke = async () => ({ kind: "host", target: { kind: "page", page: "flare.wallet.page.result" }, payload: { commandId: "cmd-1" } });
+    const session = new PluginUiSession(api, "web", () => "zh-CN", undefined, (target, args) => { opened.push([target, args]); });
+    const outcome = await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { conversationId: "c-1", userGesture: true });
+    expect(outcome.kind).toBe("host");
+    expect(opened).toEqual([[{ pluginId: "flare.wallet", page: "flare.wallet.page.result", conversationId: "c-1" }, { commandId: "cmd-1" }]]);
+    // A cancelled confirmation opens nothing.
+    api.capabilityInvoke = async () => ({ kind: "cancelled" });
+    expect(await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { userGesture: true }))
+      .toEqual({ kind: "declined", reason: "cancelled" });
+    expect(opened).toHaveLength(1);
+  });
   it("sends a native target with its params and into, with the page context, and writes the result into the input", async () => {
     const api = port(); const asked: Record<string, unknown>[] = [];
     api.invokePageAction = async () => ({ kind: "host", target: { kind: "native", capability: "documentCapture", params: { side: "front" }, into: "front" }, payload: {} });
