@@ -67,15 +67,16 @@ export interface PluginFileUploadRequest {
 }
 /**
  * `capability.plugin_capability_invoke` payload. `into` names a page input the result is written to (a document's
- * upload, a location fix); it then needs the page and its form context, as `uploadFile` does. `order` is the payment
- * order an operation returned (`confirmation`), for `paymentConfirmation` only.
+ * upload, a location fix); it then needs the page and its form context, as `uploadFile` does. `orderId` names the
+ * payment order an operation returned (`confirmation`), for `paymentConfirmation` only: the engine confirms only an
+ * order it recorded from that result, never one the host supplies.
  */
 export interface PluginCapabilityInvokeRequest {
   pluginId: string;
   capability: string;
   params?: Record<string, unknown>;
   into?: string;
-  order?: Record<string, unknown>;
+  orderId?: string;
   platform: PluginPlatform;
   locale?: string;
   page?: { pluginId: string; page: string };
@@ -86,12 +87,12 @@ export interface PluginCapabilityInvokeRequest {
   commandId?: string;
   userGesture: true;
 }
-/** What a capability request asks for besides its capability: the native target's `params` and `into`, or an order. */
+/** What a capability request asks for besides its capability: the native target's `params` and `into`, or an order id. */
 export interface PluginCapabilityCall {
   capability: string;
   params?: Record<string, unknown>;
   into?: string;
-  order?: Record<string, unknown>;
+  orderId?: string;
 }
 /** The page a capability writes into, with the form it reads: the same context `uploadFile` takes. */
 export interface PluginCapabilityPageContext {
@@ -243,7 +244,8 @@ export class PluginUiSession {
       const data = view.available && view.data && typeof view.data === "object" && !Array.isArray(view.data) ? view.data : undefined;
       return { available: view.available, title: view.title, fields: view.fields, actions: view.actions,
         ...pluginViewExtras(view as unknown as Record<string, unknown>), stateVersion,
-        ...(sharedStateVersion ? { sharedStateVersion } : {}), ...(data ? { data } : {}) };
+        ...(sharedStateVersion ? { sharedStateVersion } : {}), ...(data ? { data } : {}),
+        ...((view as { bundle?: unknown }).bundle === true ? { bundle: true as const } : {}) };
     } catch { return fallback(); }
   }
   /**
@@ -266,7 +268,7 @@ export class PluginUiSession {
   }
   /**
    * A host capability through the engine (`capabilityInvoke`): a native target's capability with its `params` and
-   * `into`, or `paymentConfirmation` with the `order` an operation returned. With `context` (a page) the result may be
+   * `into`, or `paymentConfirmation` with the `orderId` of the order an operation returned. With `context` (a page) the result may be
    * written into one of its inputs (`{kind: "input"}`). A capability the engine leaves to the host (`clipboardWrite`)
    * comes back as `{kind: "host", result: {capability}}`. Throws when the session changed meanwhile.
    */
@@ -283,7 +285,7 @@ export class PluginUiSession {
     const { conversationId, context, commandId } = options;
     const value = await this.port.capabilityInvoke({ pluginId, capability: call.capability,
       ...(call.params ? { params: call.params } : {}), ...(call.into ? { into: call.into } : {}),
-      ...(call.order ? { order: call.order } : {}), platform: this.platform, locale: this.locale(),
+      ...(call.orderId ? { orderId: call.orderId } : {}), platform: this.platform, locale: this.locale(),
       ...(conversationId ? { conversationId } : {}), ...(context ? { page: context.page } : {}),
       ...(context?.arguments ? { arguments: context.arguments } : {}), ...(context?.data ? { data: context.data } : {}),
       ...(context?.formValues ? { formValues: context.formValues } : {}), ...(commandId ? { commandId } : {}),
@@ -346,9 +348,9 @@ export class PluginUiSession {
     context?: PluginCapabilityPageContext): Promise<PluginActionOutcome> {
     const result = value as { kind?: unknown; response?: unknown; errors?: unknown; conversationId?: unknown; confirmation?: unknown; target?: { kind: string; page?: string; pluginId?: string; capability?: string; params?: unknown; into?: unknown }; payload?: Record<string, unknown> } | null;
     if (result?.kind === "operation" && result.response && typeof result.response === "object") {
-      const order = result.confirmation;
-      if (order && typeof order === "object" && !Array.isArray(order)) {
-        const confirmed = await this.capabilityValue(pluginId, { capability: "paymentConfirmation", order: order as Record<string, unknown> },
+      const order = result.confirmation as { orderId?: unknown } | null | undefined;
+      if (order && typeof order === "object" && !Array.isArray(order) && typeof order.orderId === "string") {
+        const confirmed = await this.capabilityValue(pluginId, { capability: "paymentConfirmation", orderId: order.orderId },
           { ...(conversationId ? { conversationId } : {}) });
         if (confirmed === undefined) return { kind: "declined", reason: "unavailable" };
         // A pay action's continuation runs after the confirmed payment: its page opens like the action's own would.

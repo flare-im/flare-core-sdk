@@ -179,8 +179,9 @@ async function loadMoreDetail(cursor: string): Promise<void> {
 }
 /**
  * A card whose contribution's bundle variant Core selected opens its "view all" in the kit's bundle host when the host
- * provides bundles (design 8.9, presentation `detail`); the card itself stays declarative (D-02). A bundle that cannot
- * show falls back to the declarative detail sheet for this card.
+ * provides bundles (design 8.9, presentation `detail`); the card itself stays declarative (D-02). Only a card the
+ * engine marks (`bundle` on its presented view) tries one, so every other card opens its detail sheet at once. A
+ * bundle that cannot show falls back to the declarative detail sheet for this card.
  */
 const bundleDetail = shallowRef<{ pluginId: string; contributionId: string; args: Record<string, unknown> } | null>(null);
 const bundleTitle = ref("");
@@ -199,7 +200,8 @@ function bundleDetailFallback(): void {
 function openDetail(): void {
   if (!view.value.available || !view.value.detail) return;
   const message = session.value?.envelope(props.content);
-  if (pluginHost.bundles && message && !detailDeclarative) {
+  const offered = (view.value as { bundle?: unknown }).bundle === true;
+  if (pluginHost.bundles && message && offered && !detailDeclarative) {
     bundleTitle.value = "";
     bundleDetail.value = { pluginId: message.pluginId, contributionId: message.contributionId, args: bundleArguments(message.payload) };
     return;

@@ -209,6 +209,11 @@ export interface PluginCardPresentation extends PluginPresentation {
   stateVersion: number;
   /** Version of the shared layer Core publishes for the card's entity; absent when there is none. */
   sharedStateVersion?: number;
+  /**
+   * The contribution has a web bundle offered to this client: a "+" form opens it through the bundle host instead of
+   * this view, a card its "view all" (presentation `detail`). This view stays the fallback. Absent: no bundle is tried.
+   */
+  bundle?: true;
 }
 
 /** Outcome of a card action: the capability response, what a host target returned, or form problems. */

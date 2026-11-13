@@ -6,15 +6,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, type Component } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
-import { FlarePluginBundleHost, FlarePluginPage } from "@flare-im/vue-ui";
+import { FlarePluginBundleHost, FlarePluginPage, FlarePluginView } from "@flare-im/vue-ui";
 import { useFlareI18nProvider } from "@flare-im/vue-ui/i18n";
 import { createPluginBundleEventHub, type PluginBundlePort } from "@flare-im/sdk/plugin-ui";
-import { CorePluginPage, corePluginBundleFailed, corePluginBundleGaveUp, corePluginBundleResultData, provideCorePluginHost, resetCorePluginBundleFailures, type CorePluginBundleHost, type CorePluginPageEntry } from "../src/index";
-import { fakePort } from "./support";
+import { CorePluginMessage, CorePluginPage, PluginComposerSheet, corePluginBundleFailed, corePluginBundleGaveUp, corePluginBundleResultData, provideCorePluginHost, resetCorePluginBundleFailures, type CorePluginBundleHost, type CorePluginPageEntry } from "../src/index";
+import { cardContent, fakePort, mountWithSession, unmountAll } from "./support";
 
 const root: CorePluginPageEntry = { pluginId: "sdk.plugin.task", page: "task.dashboard", title: "Tasks" };
 const mounted: Array<{ unmount(): void }> = [];
-afterEach(() => { mounted.splice(0).forEach((wrapper) => wrapper.unmount()); resetCorePluginBundleFailures(); });
+afterEach(() => { mounted.splice(0).forEach((wrapper) => wrapper.unmount()); unmountAll(); resetCorePluginBundleFailures(); });
 
 function bundlePort(open: PluginBundlePort["pluginBundleOpen"]): PluginBundlePort {
   return {
@@ -95,5 +95,38 @@ describe("bundle failure budget", () => {
     expect(corePluginBundleResultData({ operationResult: { data: { posted: 1 } } })).toEqual({ posted: 1 });
     expect(corePluginBundleResultData({ data: { posted: 2 } })).toEqual({ posted: 2 });
     expect(corePluginBundleResultData("x")).toBe("x");
+  });
+});
+
+describe("forms and card details with web bundles", () => {
+  const bundles = () => ({ port: bundlePort(async () => opened), events: createPluginBundleEventHub(), theme: () => ({ mode: "light" as const }) });
+  const item = { id: "plugin:acme.task.create", kind: "plugin" as const, pluginId: "acme.task", contributionId: "acme.task.create", label: "Task", order: 1 };
+  const form = (bundle: boolean) => ({ available: true, title: "New task", fields: [], actions: [], stateVersion: 0, ...(bundle ? { bundle: true } : {}) });
+
+  it("tries a bundle for a '+' form only when its presented view is marked", async () => {
+    for (const marked of [true, false]) {
+      const host = bundles();
+      const port = fakePort({ presentMessage: vi.fn(async () => form(marked)) });
+      const { wrapper } = mountWithSession(port, () => h(PluginComposerSheet, { item, conversationId: "group-1" }), undefined, { plugin: { bundles: host } });
+      await flushPromises();
+      expect(port.presentMessage).toHaveBeenCalledTimes(1);
+      expect(host.port.pluginBundleOpen).toHaveBeenCalledTimes(marked ? 1 : 0);
+      expect(wrapper.findComponent(FlarePluginBundleHost).exists()).toBe(marked);
+    }
+  });
+
+  it("opens a card's 'view all' as a bundle only when the card is marked", async () => {
+    const envelope = { pluginId: "acme.poll", contributionId: "acme.poll.card", schemaVersion: 1, summary: "Lunch?", payload: {} };
+    for (const marked of [true, false]) {
+      const host = bundles();
+      const port = fakePort({ presentMessage: vi.fn(async () => ({ available: true, title: "Lunch?", fields: [], actions: [], detail: true, stateVersion: 1, ...(marked ? { bundle: true } : {}) })),
+        pluginDetail: vi.fn(async () => ({ available: true, title: "All", fields: [], actions: [] })) });
+      const { wrapper } = mountWithSession(port, () => h(CorePluginMessage, { content: cardContent(envelope), messageId: "srv-1" }), undefined, { plugin: { bundles: host } });
+      await flushPromises();
+      wrapper.getComponent(FlarePluginView).vm.$emit("openDetail");
+      await flushPromises();
+      expect(host.port.pluginBundleOpen).toHaveBeenCalledTimes(marked ? 1 : 0);
+      expect(port.pluginDetail).toHaveBeenCalledTimes(marked ? 0 : 1);
+    }
   });
 });

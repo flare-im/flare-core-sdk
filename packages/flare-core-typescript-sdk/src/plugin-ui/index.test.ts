@@ -67,6 +67,14 @@ describe("plugin UI runtime adapter", () => {
     api.presentMessage = async () => { throw new Error("offline"); };
     expect(await host.present(message, "client-1")).toEqual({ available: false, title: "Poll", fields: [], actions: [], stateVersion: 0 });
   });
+  it("keeps the engine's bundle marker on a presented form or card, and nothing else", async () => {
+    const api = port();
+    api.presentMessage = async () => ({ available: true, title: "Board", fields: [], actions: [], stateVersion: 0, bundle: true });
+    const host = new PluginUiSession(api, "web", () => "zh-CN");
+    expect((await host.present(message, undefined, "composer-action")).bundle).toBe(true);
+    api.presentMessage = async () => ({ available: true, title: "Board", fields: [], actions: [], stateVersion: 0, bundle: "yes" });
+    expect(await host.present(message)).not.toHaveProperty("bundle");
+  });
   it("invokes a card action through Core with the message and conversation", async () => {
     const api = port(); let request: unknown;
     api.invokeAction = async (value) => { request = value; return { kind: "operation", response: { success: true, data: { messageState: { version: 4, values: {} } } } }; };
@@ -286,7 +294,7 @@ describe("plugin host capabilities through the engine", () => {
     const session = new PluginUiSession(api, "web", () => "zh-CN");
     const outcome = await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { conversationId: "c-1", userGesture: true });
     expect(outcome).toEqual({ kind: "operation", response: { success: true, data: { paid: true } } });
-    expect(asked).toEqual([{ pluginId: "flare.wallet", capability: "paymentConfirmation", order, platform: "web", locale: "zh-CN", conversationId: "c-1", userGesture: true }]);
+    expect(asked).toEqual([{ pluginId: "flare.wallet", capability: "paymentConfirmation", orderId: "o-1", platform: "web", locale: "zh-CN", conversationId: "c-1", userGesture: true }]);
     // Without the engine route the order is never reported as paid.
     delete api.capabilityInvoke;
     expect(await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { userGesture: true }))
