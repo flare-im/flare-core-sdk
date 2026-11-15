@@ -13,4 +13,6 @@ public protocol UpdateApiProtocol: AnyObject {
     func markPrompted(_ request: UpdateMarkPromptedRequest) async throws -> UpdateStatus
     func setLocale(_ request: UpdateSetLocaleRequest) async throws -> UpdateStatus
     func getResources(_ request: UpdateGetResourcesRequest) async throws -> UpdateResources
+    func pluginUpgradeStatus(_ request: UpdatePluginUpgradeStatusRequest) async throws -> PluginUpgradeStatus
+    func openFlow(_ request: UpdateOpenFlowRequest) async throws -> UpdateStatus
 }

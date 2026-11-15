@@ -11,7 +11,9 @@ import {
   type FlarePluginMember, type FlarePluginResolveUser, type FlarePluginViewModel,
 } from "@flare-im/vue-ui";
 import type { PluginMessageEnvelope } from "@flare-im/sdk/plugin-ui";
-import { pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiSessionKey } from "./context";
+import { pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiHostKey, pluginUiSessionKey } from "./context";
+import CorePluginBundle from "./CorePluginBundle.vue";
+import { corePluginBundleResultData } from "./pluginBundle";
 import { type ComposerPluginItem, type PluginPostedCard } from "./composerMenu";
 import { pluginPagePostedCard } from "./pluginPage";
 
@@ -23,6 +25,8 @@ const props = defineProps<{
   members?: FlarePluginMember[];
   /** Overrides the provided directory's resolver. */
   resolveUser?: FlarePluginResolveUser;
+  /** The conversation's type for a web bundle form's hello (`single`, `group`, ...). */
+  conversationType?: string;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -35,6 +39,27 @@ const session = inject(pluginUiSessionKey, ref(null));
 const directory = inject(pluginUiDirectoryKey, {});
 const errorText = inject(pluginUiErrorTextKey, () => undefined);
 const members = computed(() => props.members ?? directory.members?.() ?? []);
+const pluginHost = inject(pluginUiHostKey, {});
+/**
+ * A "+" form whose bundle variant Core selected (design 8.9) runs in the kit's bundle host when the host provides
+ * bundles: the bundle closes with `ui.close({operationResult})` and the card Core posted is located as for the
+ * declarative form. Only a form the engine marks (`bundle` on its presented view) tries one, so every other plugin
+ * draws its document at once; the items the bundle could not show draw that document instead.
+ */
+const declarative = ref<ReadonlySet<string>>(new Set());
+const itemKey = (item: ComposerPluginItem) => `${item.pluginId}\u0000${item.contributionId}`;
+const bundleOffered = ref(false);
+const bundleShown = computed(() => Boolean(pluginHost.bundles && props.item && bundleOffered.value
+  && !declarative.value.has(itemKey(props.item))));
+const bundleTitle = ref("");
+function bundleFallback(): void {
+  if (props.item) declarative.value = new Set([...declarative.value, itemKey(props.item)]);
+}
+function bundleClosed(result: unknown): void {
+  const posted = result === undefined ? null : pluginPagePostedCard(corePluginBundleResultData(result), props.conversationId);
+  if (posted) emit("posted", posted);
+  emit("close");
+}
 const resolver = computed(() => props.resolveUser ?? directory.resolveUser);
 const view = shallowRef<FlarePluginViewModel>({ available: false, title: "", fields: [], actions: [] });
 const busyActionId = ref<string>();
@@ -72,9 +97,12 @@ async function load(): Promise<void> {
   const mine = ++generation, host = session.value, item = props.item;
   busyActionId.value = undefined; error.value = ""; formErrors.value = []; confirming.value = null;
   view.value = { available: false, title: item?.label ?? "", fields: [], actions: [] };
+  bundleTitle.value = ""; bundleOffered.value = false;
   if (!host || !item) return;
   const result = await host.present(message(item), undefined, "composer-action");
-  if (mine === generation) view.value = result;
+  if (mine !== generation) return;
+  view.value = result;
+  bundleOffered.value = result.bundle === true;
 }
 
 async function invoke(id: string, payload: FlarePluginActionPayload): Promise<void> {
@@ -87,6 +115,8 @@ async function invoke(id: string, payload: FlarePluginActionPayload): Promise<vo
       ...(payload.formValues ? { formValues: payload.formValues } : {}), ...(payload.selection ? { selection: payload.selection } : {}) });
     if (mine !== generation) return;
     if (outcome.kind === "formErrors") { formErrors.value = outcome.errors; return; }
+    // A payment the viewer did not confirm keeps the sheet; one the host could not run says so.
+    if (outcome.kind === "declined") { if (outcome.reason === "unavailable") error.value = t("pluginRuntime.unavailable"); return; }
     if (outcome.kind === "operation") {
       if (outcome.response.success === false) { error.value = t("pluginRuntime.rejected"); return; }
       if (outcome.response.success !== true) return;
@@ -129,8 +159,20 @@ watch(() => [props.item, props.conversationId, session.value], () => { void load
 </script>
 
 <template>
-  <FlareBottomSheet :open="Boolean(item)" :title="view.title || item?.label || ''" :dismissible="!busyActionId" @close="close">
-    <template v-if="formAction">
+  <FlareBottomSheet :open="Boolean(item)" :title="(bundleShown ? bundleTitle : view.title) || item?.label || ''" :dismissible="!busyActionId" @close="close">
+    <CorePluginBundle
+      v-if="bundleShown && item && pluginHost.bundles"
+      :host="pluginHost.bundles"
+      :plugin-id="item.pluginId"
+      :contribution-id="item.contributionId"
+      presentation="composerForm"
+      :args="{ conversationId }"
+      :conversation="{ id: conversationId, type: conversationType ?? '' }"
+      @title="(value) => { bundleTitle = value; }"
+      @close="bundleClosed"
+      @fallback="bundleFallback"
+    />
+    <template v-else-if="formAction">
       <FlarePluginView v-if="preface" :view="preface" embedded inset="sheetTop" :resolve-user="resolver" />
       <FlarePluginForm
         :inputs="formInputs"

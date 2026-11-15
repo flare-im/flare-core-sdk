@@ -47,4 +47,8 @@ interface UpdateApi {
     suspend fun setLocale(request: UpdateSetLocaleRequest): UpdateStatus
     /** getResources maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.get_resources`. */
     suspend fun getResources(request: UpdateGetResourcesRequest): UpdateResources
+    /** pluginUpgradeStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.plugin_upgrade_status`. */
+    suspend fun pluginUpgradeStatus(request: UpdatePluginUpgradeStatusRequest): PluginUpgradeStatus
+    /** openFlow maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.open_flow`. */
+    suspend fun openFlow(request: UpdateOpenFlowRequest): UpdateStatus
 }

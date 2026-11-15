@@ -55,6 +55,14 @@ public interface NotificationPresentationCallback {
     func handle(event: NotificationPresentation): Unit
 }
 
+public interface PluginBundleEventCallback {
+    func handle(event: PluginBundleEvent): Unit
+}
+
+public interface PluginCapabilityRequestEventCallback {
+    func handle(event: PluginCapabilityRequestEvent): Unit
+}
+
 public interface PluginCatalogChangedEventCallback {
     func handle(event: PluginCatalogChangedEvent): Unit
 }

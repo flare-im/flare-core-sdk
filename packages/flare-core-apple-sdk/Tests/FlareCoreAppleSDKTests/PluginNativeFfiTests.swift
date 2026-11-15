@@ -39,7 +39,7 @@ final class PluginNativeFfiTests: XCTestCase {
                 XCTAssertEqual(view["title"]?.value as? String, "Poll")
                 let response = try await api.invokePluginAction(PluginUiEvaluationRequest(payload: [
                     "message": AnySendable(message), "platform": AnySendable(platform), "actionId": AnySendable("vote"),
-                    "conversationId": AnySendable("conversation-1"), "userGesture": AnySendable(true), "nativeAllowlist": AnySendable([String]()),
+                    "conversationId": AnySendable("conversation-1"), "userGesture": AnySendable(true),
                 ]))
                 XCTAssertEqual(response["kind"]?.value as? String, "operation")
             }

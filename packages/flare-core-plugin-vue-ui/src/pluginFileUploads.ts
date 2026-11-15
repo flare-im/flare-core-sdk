@@ -1,5 +1,5 @@
 import type { FlarePluginFileAction, FlarePluginFileState, FlarePluginInput } from "@flare-im/vue-ui";
-import type { PluginFileUploadRequest, PluginUiPort } from "@flare-im/sdk/plugin-ui";
+import type { PluginActionOutcome, PluginFileUploadRequest, PluginUiPort } from "@flare-im/sdk/plugin-ui";
 
 export interface PluginFileContext {
   /** Changes with the authenticated viewer, page or presentation lifetime. */
@@ -52,6 +52,7 @@ export class PluginFileUploads {
   clear(): void {
     for (const selection of this.selections.values()) this.release(selection);
     this.selections.clear();
+    this.seen.clear();
     this.states = {};
     this.publish();
   }
@@ -64,8 +65,68 @@ export class PluginFileUploads {
 
   private publish(): void { this.options.changed({ ...this.states }); }
 
+  /**
+   * A document input (or any upload input a host capability fills): the engine captures and uploads it
+   * (`documentCapture` with `into`), so the host only shows the input uploading and then the reference the engine
+   * wrote. A refusal or a cancel leaves the input as it was; a failure marks it failed.
+   */
+  async captured(event: FlarePluginFileAction, run: () => Promise<PluginActionOutcome>, fileName?: string): Promise<void> {
+    const { inputId, scope, generation } = event;
+    this.seen.set(inputId, { scope, generation });
+    const previous = this.selections.get(inputId);
+    if (previous?.scope === scope && previous.generation > generation) return;
+    const context = this.options.context();
+    if (!context) return;
+    const oldState = this.states[inputId];
+    this.release(previous);
+    const selected: Selection = { scope, generation, commandId: "" };
+    this.selections.set(inputId, selected);
+    const current = () => {
+      const now = this.options.context();
+      return now !== null && this.selections.get(inputId) === selected && now.identity === context.identity && now.port === context.port;
+    };
+    const state = (value: Omit<FlarePluginFileState, "scope" | "generation">) => {
+      if (!current()) return;
+      this.states[inputId] = { scope, generation, ...value };
+      this.publish();
+    };
+    state({ phase: "uploading", ...(fileName ? { fileName } : {}) });
+    try {
+      const outcome = await run();
+      if (!current()) return;
+      if (outcome.kind === "input" && outcome.input === inputId && pluginFileReference(outcome.value)) {
+        state({ phase: "uploaded", value: { fileId: outcome.value.fileId }, ...(fileName ? { fileName } : {}) });
+      } else if (outcome.kind === "declined" && outcome.reason !== "unavailable") {
+        if (oldState && oldState.scope === scope) this.states[inputId] = { ...oldState, generation };
+        else this.states[inputId] = { scope, generation, phase: "empty" };
+        this.publish();
+      } else {
+        state({ phase: "failed", error: this.options.failure("transport"), ...(fileName ? { fileName } : {}) });
+      }
+    } catch {
+      state({ phase: "failed", error: this.options.failure("transport"), ...(fileName ? { fileName } : {}) });
+    }
+  }
+
+  /**
+   * A reference a host capability wrote into `inputId` outside the input's own key (a page's native action with
+   * `into`): shown as uploaded in the input's current form, when the form has told us which one it is.
+   */
+  settle(inputId: string, value: unknown, fileName?: string): boolean {
+    const known = this.selections.get(inputId) ?? this.seen.get(inputId);
+    if (!known || !pluginFileReference(value)) return false;
+    this.states[inputId] = { scope: known.scope, generation: known.generation, phase: "uploaded", value: { fileId: value.fileId },
+      ...(fileName ? { fileName } : {}) };
+    this.publish();
+    return true;
+  }
+
+  /** The form an input was last seen in (every file action names it). */
+  private readonly seen = new Map<string, { scope: string; generation: number }>();
+
   async action(event: FlarePluginFileAction): Promise<void> {
     const { inputId, scope, generation } = event;
+    this.seen.set(inputId, { scope, generation });
     const previous = this.selections.get(inputId);
     const oldState = this.states[inputId];
     if (event.action === "preview") {
@@ -162,6 +223,12 @@ export class PluginFileUploads {
 }
 
 class PluginFilePolicyError extends Error {}
+
+/** A stored file reference `{fileId}` as Core returns it, nothing else. */
+export function pluginFileReference(value: unknown): value is { fileId: string } {
+  return !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 1
+    && typeof (value as { fileId?: unknown }).fileId === "string" && /^[A-Za-z0-9_:-]{1,128}$/.test((value as { fileId: string }).fileId);
+}
 
 export function pluginFileContentType(file: Pick<File, "type" | "name">): string {
   if (file.type) return file.type.toLowerCase();

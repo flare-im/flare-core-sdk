@@ -93,7 +93,9 @@
     {
       "names": [
         "realtime",
-        "catalog_changed"
+        "catalog_changed",
+        "capability_request",
+        "bundle_event"
       ],
       "type": "plugin"
     },

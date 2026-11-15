@@ -215,6 +215,14 @@ final class _FakeUpdate implements UpdateApi {
   }
 
   @override
+  Future<PluginUpgradeStatus> pluginUpgradeStatus(
+    UpdatePluginUpgradeStatusRequest request,
+  ) async => const PluginUpgradeStatus();
+
+  @override
+  Future<UpdateStatus> openFlow(UpdateOpenFlowRequest request) async => _status;
+
+  @override
   Future<UpdateResources> getResources(
     UpdateGetResourcesRequest request,
   ) async =>

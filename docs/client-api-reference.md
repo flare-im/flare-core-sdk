@@ -85,6 +85,8 @@ Update center: release evaluation, download and the install plan. Works before s
 | `markPrompted` | `UpdateMarkPromptedRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `setLocale` | `UpdateSetLocaleRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `getResources` | `UpdateGetResourcesRequest` | `UpdateResources` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `pluginUpgradeStatus` | `UpdatePluginUpgradeStatusRequest` | `PluginUpgradeStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `openFlow` | `UpdateOpenFlowRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 
 ## client.conversations
 
@@ -268,9 +270,20 @@ Capability discovery and optional plugin dispatch through capability dispatch op
 | `pluginDetail` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `pluginPage` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `pluginFileUpload` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginCapabilityInvoke` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginCapabilityConsents` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `revokePluginCapabilityConsent` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundleOpen` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundleBridge` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundleHostResult` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundleHostEvent` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundleClose` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginBundlePrefetch` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `completePluginCapabilityRequest` | `PluginCapabilityCompletion` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `pluginAccountEntries` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `pluginScanHandlers` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `invalidatePluginCatalog` | `ListCapabilitiesRequest` | `Unit` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `setPluginHostProfile` | `PluginHostProfile` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `listCapabilities` | `ListCapabilitiesRequest` | `ListCapabilitiesResponse` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `dispatchCapability` | `DispatchCapabilityRequest` | `DispatchCapabilityResponse` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 

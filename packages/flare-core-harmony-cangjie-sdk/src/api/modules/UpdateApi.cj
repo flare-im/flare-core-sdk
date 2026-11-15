@@ -15,4 +15,6 @@ public interface UpdateApi {
     func markPrompted(request: UpdateMarkPromptedRequest): UpdateStatus
     func setLocale(request: UpdateSetLocaleRequest): UpdateStatus
     func getResources(request: UpdateGetResourcesRequest): UpdateResources
+    func pluginUpgradeStatus(request: UpdatePluginUpgradeStatusRequest): PluginUpgradeStatus
+    func openFlow(request: UpdateOpenFlowRequest): UpdateStatus
 }

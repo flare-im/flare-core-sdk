@@ -64,6 +64,46 @@ public final class DefaultCapabilitiesApi: CapabilitiesApiProtocol {
         return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginFileUpload, request: pluginUiEvaluationRequestToMap(request))
     }
 
+    public func pluginCapabilityInvoke(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginCapabilityInvoke, request: pluginUiEvaluationRequestToMap(request))
+    }
+
+    public func pluginCapabilityConsents(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginCapabilityConsents, request: pluginUiEvaluationRequestToMap(request))
+    }
+
+    public func revokePluginCapabilityConsent(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginCapabilityConsentRevoke, request: pluginUiEvaluationRequestToMap(request))
+    }
+
+    public func pluginBundleOpen(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginBundleOpen, request: pluginUiEvaluationRequestToMap(request))
+    }
+
+    public func pluginBundleBridge(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginBundleBridge, request: pluginUiEvaluationRequestToMap(request))
+    }
+
+    public func pluginBundleHostResult(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginBundleHostResult, request: pluginUiEvaluationRequestToMap(request))
+    }
+
+    public func pluginBundleHostEvent(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginBundleHostEvent, request: pluginUiEvaluationRequestToMap(request))
+    }
+
+    public func pluginBundleClose(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginBundleClose, request: pluginUiEvaluationRequestToMap(request))
+    }
+
+    public func pluginBundlePrefetch(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginBundlePrefetch, request: pluginUiEvaluationRequestToMap(request))
+    }
+
+    public func completePluginCapabilityRequest(_ request: PluginCapabilityCompletion) async throws -> Void {
+        try await invokeVoid(bridge, descriptor: NativeCallMap.pluginCapabilityComplete, request: AnySendable(pluginCapabilityCompletionToMap(request)))
+    }
+
     public func pluginAccountEntries(_ request: PluginUiEvaluationRequest) async throws -> [String: AnySendable] {
         return try await invokeMap(bridge, descriptor: NativeCallMap.capabilityPluginAccountEntries, request: pluginUiEvaluationRequestToMap(request))
     }
@@ -74,6 +114,10 @@ public final class DefaultCapabilitiesApi: CapabilitiesApiProtocol {
 
     public func invalidatePluginCatalog(_ request: [String: AnySendable]) async throws -> Void {
         try await invokeVoid(bridge, descriptor: NativeCallMap.capabilityPluginCatalogInvalidate, request: AnySendable(request))
+    }
+
+    public func setPluginHostProfile(_ request: PluginHostProfile) async throws -> Void {
+        try await invokeVoid(bridge, descriptor: NativeCallMap.pluginSetHostProfile, request: AnySendable(pluginHostProfileToMap(request)))
     }
 
     public func listCapabilities(_ request: [String: AnySendable]) async throws -> [String: AnySendable] {

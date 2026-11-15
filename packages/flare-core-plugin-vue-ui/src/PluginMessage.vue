@@ -7,12 +7,16 @@
 // detail sheet over `session.detail` with its own action state and its pages.
 import { computed, inject, onBeforeUnmount, ref, shallowReactive, shallowRef, watch } from "vue";
 import {
-  FlarePluginDetailSheet, FlarePluginView, useFlareI18n,
-  type FlarePluginActionPayload, type FlarePluginFormError, type FlarePluginMember, type FlarePluginResolveUser,
-  type FlarePluginViewModel,
+  FlareBottomSheet, FlarePluginDetailSheet, FlarePluginView, useFlareI18n,
+  type FlarePluginActionPayload, type FlarePluginFormError, type FlarePluginMember, type FlarePluginQrRefresh,
+  type FlarePluginResolveUser, type FlarePluginViewModel,
 } from "@flare-im/vue-ui";
 import type { PluginDetailPresentation } from "@flare-im/sdk/plugin-ui";
-import { pluginUiConversationKey, pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiSessionKey, pluginUiStateFeedKey } from "./context";
+import {
+  pluginUiConversationKey, pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiHostKey, pluginUiSessionKey, pluginUiStateFeedKey,
+} from "./context";
+import { useCorePluginUpgrade } from "./upgrade";
+import CorePluginBundle from "./CorePluginBundle.vue";
 
 // The kit hands renderers more than these (isSelf, listeners); a card with a detail sheet has two roots.
 defineOptions({ inheritAttrs: false });
@@ -33,6 +37,7 @@ const hostConversation = inject(pluginUiConversationKey, () => undefined);
 const directory = inject(pluginUiDirectoryKey, {});
 const stateChanges = inject(pluginUiStateFeedKey, null);
 const errorText = inject(pluginUiErrorTextKey, () => undefined);
+const pluginHost = inject(pluginUiHostKey, {});
 const resolver = computed(() => props.resolveUser ?? directory.resolveUser);
 const members = computed(() => props.members ?? directory.members?.() ?? []);
 const conversation = () => props.conversationId || hostConversation();
@@ -58,6 +63,19 @@ async function refresh(reset: boolean): Promise<void> {
   if (mine !== viewGeneration || host !== session.value) return;
   if (!reset && JSON.stringify(result) === JSON.stringify(view.value)) return;
   view.value = result;
+}
+
+// An upgrade placeholder (D-18): the card's notice asks whether this device is offered the build it needs.
+const upgrade = useCorePluginUpgrade(() => view.value, () => pluginHost);
+/**
+ * An expired QR code: run the query the block declares (Core checks the grant), then present the card again. A failed
+ * query keeps the expired code, whose key the viewer can press again.
+ */
+async function refreshQr(request: FlarePluginQrRefresh): Promise<void> {
+  const host = session.value;
+  if (!host || !view.value.available) return;
+  try { await host.query(request.operation, conversation()); } catch { return; }
+  if (host === session.value) void refresh(false);
 }
 
 // ── actions ──────────────────────────────────────────────────────────────
@@ -91,6 +109,8 @@ async function runAction(surface: ActionSurface, id: string, payload: FlarePlugi
     if (scope !== actionScope) return;
     if (outcome.kind === "formErrors") surface.formErrors = outcome.errors;
     else if (outcome.kind === "operation" && outcome.response.success === false) surface.error = t("pluginRuntime.rejected");
+    // A host capability that did not run (refused, backed out) changed nothing; one the host could not run says so.
+    else if (outcome.kind === "declined") { if (outcome.reason === "unavailable") surface.error = t("pluginRuntime.unavailable"); }
     // Core has stored the state the plugin returned on this message: show it without waiting for the event.
     else changed = true;
   } catch (failure) {
@@ -157,13 +177,41 @@ async function loadMoreDetail(cursor: string): Promise<void> {
     if (mine === detailGeneration) detailLoadingMore.value = false;
   }
 }
+/**
+ * A card whose contribution's bundle variant Core selected opens its "view all" in the kit's bundle host when the host
+ * provides bundles (design 8.9, presentation `detail`); the card itself stays declarative (D-02). Only a card the
+ * engine marks (`bundle` on its presented view) tries one, so every other card opens its detail sheet at once. A
+ * bundle that cannot show falls back to the declarative detail sheet for this card.
+ */
+const bundleDetail = shallowRef<{ pluginId: string; contributionId: string; args: Record<string, unknown> } | null>(null);
+const bundleTitle = ref("");
+let detailDeclarative = false;
+function bundleArguments(payload: Record<string, unknown>): Record<string, unknown> {
+  const args: Record<string, unknown> = props.messageId ? { messageId: props.messageId } : {};
+  // The hello carries at most 16 KiB of arguments: a large payload is left for the bundle to query.
+  try { if (JSON.stringify(payload).length <= 12 * 1024) args.payload = payload; } catch { /* left out */ }
+  return args;
+}
+function bundleDetailFallback(): void {
+  bundleDetail.value = null;
+  detailDeclarative = true;
+  openDetail();
+}
 function openDetail(): void {
   if (!view.value.available || !view.value.detail) return;
+  const message = session.value?.envelope(props.content);
+  const offered = (view.value as { bundle?: unknown }).bundle === true;
+  if (pluginHost.bundles && message && offered && !detailDeclarative) {
+    bundleTitle.value = "";
+    bundleDetail.value = { pluginId: message.pluginId, contributionId: message.contributionId, args: bundleArguments(message.payload) };
+    return;
+  }
   detailUsed.value = true; detailOpen.value = true; detailView.value = undefined;
   inDetail.error = ""; inDetail.formErrors = [];
   void loadDetail();
 }
 function closeDetail(): void {
+  bundleDetail.value = null;
   detailGeneration++;
   detailOpen.value = false; detailLoading.value = false; detailError.value = ""; detailLoadingMore.value = false;
 }
@@ -187,6 +235,20 @@ const stopStateChanges = stateChanges?.((change) => {
 onBeforeUnmount(() => { viewGeneration++; actionScope++; detailGeneration++; stopStateChanges?.(); });
 </script>
 <template>
+  <FlareBottomSheet v-if="bundleDetail" :open="true" :title="bundleTitle || view.title" @close="bundleDetail = null">
+    <CorePluginBundle
+      v-if="pluginHost.bundles"
+      :host="pluginHost.bundles"
+      :plugin-id="bundleDetail.pluginId"
+      :contribution-id="bundleDetail.contributionId"
+      presentation="detail"
+      :args="bundleDetail.args"
+      :conversation="conversation() ? { id: conversation()!, type: '' } : undefined"
+      @title="(value) => { bundleTitle = value; }"
+      @close="bundleDetail = null"
+      @fallback="bundleDetailFallback"
+    />
+  </FlareBottomSheet>
   <FlarePluginView
     :view="view"
     :display-name="displayName"
@@ -196,8 +258,13 @@ onBeforeUnmount(() => { viewGeneration++; actionScope++; detailGeneration++; sto
     :settle-token="onCard.settleToken"
     :resolve-user="resolver"
     :members="members"
+    :resolve-image="pluginHost.resolveImage"
+    :upgrade-status="upgrade.status.value"
+    :on-update="upgrade.update.value"
+    :upgrade-busy="upgrade.busy.value"
     @action="cardAction"
     @open-detail="openDetail"
+    @qr-refresh="refreshQr"
   />
   <FlarePluginDetailSheet
     v-if="detailUsed"

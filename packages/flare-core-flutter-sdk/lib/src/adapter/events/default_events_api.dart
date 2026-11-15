@@ -239,6 +239,19 @@ final class DefaultEventsApi implements EventsApi {
         _emit(PluginCatalogChangedEvent(
           version: _requiredEventString(eventPayload['version'], 'version'),
         ));
+      case EventCode.pluginCapabilityRequest:
+        _emit(PluginCapabilityRequestEvent(
+          requestId: _requiredEventInt(eventPayload['requestId'], 'requestId'),
+          method: _requiredEventString(eventPayload['method'], 'method'),
+          request: _requiredEventObject(eventPayload['request'], 'request'),
+        ));
+      case EventCode.pluginBundleEvent:
+        _emit(PluginBundleEvent(
+          sessionId:
+              _requiredEventString(eventPayload['sessionId'], 'sessionId'),
+          envelope: _optionalEventString(eventPayload['envelope'], 'envelope'),
+          close: _optionalEventString(eventPayload['close'], 'close'),
+        ));
       case EventCode.notificationPresent:
         _emit(notificationPresentationFromJson(eventPayload));
       case EventCode.notificationClear:
@@ -474,6 +487,16 @@ final class DefaultEventsApi implements EventsApi {
   ) =>
       _addTyped(listener);
   @override
+  EventSubscription onPluginCapabilityRequest(
+    EventCallback<PluginCapabilityRequestEvent> listener,
+  ) =>
+      _addTyped(listener);
+  @override
+  EventSubscription onPluginBundleEvent(
+    EventCallback<PluginBundleEvent> listener,
+  ) =>
+      _addTyped(listener);
+  @override
   EventSubscription onNotificationPresent(
     EventCallback<NotificationPresentation> listener,
   ) =>
@@ -609,6 +632,10 @@ final class _ListenerHandler {
         listener.onPluginRealtime(event);
       case PluginCatalogChangedEvent():
         listener.onPluginCatalogChanged(event);
+      case PluginCapabilityRequestEvent():
+        listener.onPluginCapabilityRequest(event);
+      case PluginBundleEvent():
+        listener.onPluginBundleEvent(event);
       case NotificationPresentation():
         listener.onNotificationPresent(event);
       case NotificationClearEvent():

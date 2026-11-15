@@ -656,6 +656,32 @@ abstract final class NativeCallMap {
       handlePolicy: "client-handle",
       callback: "FlareResultCallback");
 
+  /// pluginUpgradeStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.plugin_upgrade_status`.
+  static const updatePluginUpgradeStatus = NativeCallDescriptor(
+      module: "update",
+      method: "pluginUpgradeStatus",
+      operation: "update.plugin_upgrade_status",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// openFlow maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `update.open_flow`.
+  static const updateOpenFlow = NativeCallDescriptor(
+      module: "update",
+      method: "openFlow",
+      operation: "update.open_flow",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
   /// listConversations maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.list`.
   static const conversationList = NativeCallDescriptor(
       module: "conversations",
@@ -2386,6 +2412,145 @@ abstract final class NativeCallMap {
       dispatchOp: "plugin_file_upload",
       callback: "FlareResultCallback");
 
+  /// pluginCapabilityInvoke maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_invoke`. Operation: `capability.plugin_capability_invoke`.
+  static const capabilityPluginCapabilityInvoke = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginCapabilityInvoke",
+      operation: "capability.plugin_capability_invoke",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_capability_invoke",
+      callback: "FlareResultCallback");
+
+  /// pluginCapabilityConsents maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_consents`. Operation: `capability.plugin_capability_consents`.
+  static const capabilityPluginCapabilityConsents = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginCapabilityConsents",
+      operation: "capability.plugin_capability_consents",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_capability_consents",
+      callback: "FlareResultCallback");
+
+  /// revokePluginCapabilityConsent maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_consent_revoke`. Operation: `capability.plugin_capability_consent_revoke`.
+  static const capabilityPluginCapabilityConsentRevoke = NativeCallDescriptor(
+      module: "capabilities",
+      method: "revokePluginCapabilityConsent",
+      operation: "capability.plugin_capability_consent_revoke",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_capability_consent_revoke",
+      callback: "FlareResultCallback");
+
+  /// pluginBundleOpen maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_open`. Operation: `capability.plugin_bundle_open`.
+  static const capabilityPluginBundleOpen = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginBundleOpen",
+      operation: "capability.plugin_bundle_open",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_bundle_open",
+      callback: "FlareResultCallback");
+
+  /// pluginBundleBridge maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_bridge`. Operation: `capability.plugin_bundle_bridge`.
+  static const capabilityPluginBundleBridge = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginBundleBridge",
+      operation: "capability.plugin_bundle_bridge",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_bundle_bridge",
+      callback: "FlareResultCallback");
+
+  /// pluginBundleHostResult maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_host_result`. Operation: `capability.plugin_bundle_host_result`.
+  static const capabilityPluginBundleHostResult = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginBundleHostResult",
+      operation: "capability.plugin_bundle_host_result",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_bundle_host_result",
+      callback: "FlareResultCallback");
+
+  /// pluginBundleHostEvent maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_host_event`. Operation: `capability.plugin_bundle_host_event`.
+  static const capabilityPluginBundleHostEvent = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginBundleHostEvent",
+      operation: "capability.plugin_bundle_host_event",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_bundle_host_event",
+      callback: "FlareResultCallback");
+
+  /// pluginBundleClose maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_close`. Operation: `capability.plugin_bundle_close`.
+  static const capabilityPluginBundleClose = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginBundleClose",
+      operation: "capability.plugin_bundle_close",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_bundle_close",
+      callback: "FlareResultCallback");
+
+  /// pluginBundlePrefetch maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_prefetch`. Operation: `capability.plugin_bundle_prefetch`.
+  static const capabilityPluginBundlePrefetch = NativeCallDescriptor(
+      module: "capabilities",
+      method: "pluginBundlePrefetch",
+      operation: "capability.plugin_bundle_prefetch",
+      transport: "capability-dispatch-json",
+      cApi: "flare_capability_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "plugin_bundle_prefetch",
+      callback: "FlareResultCallback");
+
+  /// completePluginCapabilityRequest maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `plugin.capability_complete`.
+  static const pluginCapabilityComplete = NativeCallDescriptor(
+      module: "capabilities",
+      method: "completePluginCapabilityRequest",
+      operation: "plugin.capability_complete",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
   /// pluginAccountEntries maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`.
   static const capabilityPluginAccountEntries = NativeCallDescriptor(
       module: "capabilities",
@@ -2426,6 +2591,19 @@ abstract final class NativeCallMap {
       returnMode: "callback-unit",
       handlePolicy: "client-handle",
       dispatchOp: "plugin_catalog_invalidate",
+      callback: "FlareResultCallback");
+
+  /// setPluginHostProfile maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `plugin.set_host_profile`.
+  static const pluginSetHostProfile = NativeCallDescriptor(
+      module: "capabilities",
+      method: "setPluginHostProfile",
+      operation: "plugin.set_host_profile",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
       callback: "FlareResultCallback");
 
   /// listCapabilities maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_list`. Operation: `capability.list`.

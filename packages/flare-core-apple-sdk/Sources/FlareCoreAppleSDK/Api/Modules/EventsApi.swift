@@ -48,6 +48,8 @@ public protocol EventsApiProtocol: AnyObject {
     func onDownloadProgress(_ listener: @escaping EventCallback<ProgressEvent>) -> any EventSubscription
     func onPluginRealtime(_ listener: @escaping EventCallback<PluginRealtimeEvent>) -> any EventSubscription
     func onPluginCatalogChanged(_ listener: @escaping EventCallback<PluginCatalogChangedEvent>) -> any EventSubscription
+    func onPluginCapabilityRequest(_ listener: @escaping EventCallback<PluginCapabilityRequestEvent>) -> any EventSubscription
+    func onPluginBundleEvent(_ listener: @escaping EventCallback<PluginBundleEvent>) -> any EventSubscription
     func onNotificationPresent(_ listener: @escaping EventCallback<NotificationPresentation>) -> any EventSubscription
     func onNotificationClear(_ listener: @escaping EventCallback<NotificationClearEvent>) -> any EventSubscription
     func onNotificationBadge(_ listener: @escaping EventCallback<NotificationBadgeEvent>) -> any EventSubscription

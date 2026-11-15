@@ -50,4 +50,6 @@ public enum EventCode {
     public static let viewUpdated: Int = 6001
     public static let pluginRealtime: Int = 7001
     public static let pluginCatalogChanged: Int = 7002
+    public static let pluginCapabilityRequest: Int = 7003
+    public static let pluginBundleEvent: Int = 7004
 }

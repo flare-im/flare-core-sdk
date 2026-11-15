@@ -128,11 +128,16 @@ import {
   OpenConversationListViewRequest,
   OpenConversationTimelineRequest,
   OpenTimelineViewRequest,
+  PluginBundleEvent,
+  PluginCapabilityCompletion,
+  PluginCapabilityRequestEvent,
   PluginCatalogChangedEvent,
   PluginCommandRequest,
   PluginEventName,
+  PluginHostProfile,
   PluginRealtimeEvent,
   PluginUiEvaluationRequest,
+  PluginUpgradeStatus,
   PresenceChangedEvent,
   ProgressEvent,
   ProgressEventName,
@@ -184,6 +189,8 @@ import {
   UpdateGetStateRequest,
   UpdateInstallPlan,
   UpdateMarkPromptedRequest,
+  UpdateOpenFlowRequest,
+  UpdatePluginUpgradeStatusRequest,
   UpdateProgress,
   UpdateReleaseSummary,
   UpdateReportInstallRequest,
@@ -908,6 +915,21 @@ export function updateInstallPlanToMap(request: UpdateInstallPlan): Record<strin
   ...(request.target !== undefined ? { target: request.target } : {}),
   };
 }
+
+export function updatePluginUpgradeStatusRequestToMap(request: UpdatePluginUpgradeStatusRequest): Record<string, unknown> {
+  return {
+  ...(request.minBuild !== undefined ? { minBuild: request.minBuild } : {}),
+  };
+}
+
+export function pluginUpgradeStatusToMap(request: PluginUpgradeStatus): Record<string, unknown> {
+  return {
+  available: request.available,
+  ...(request.build !== undefined ? { build: request.build } : {}),
+  };
+}
+
+export function updateOpenFlowRequestToMap(request: UpdateOpenFlowRequest): Record<string, unknown> { return {}; }
 
 export function runtimeHealthResponseToMap(request: RuntimeHealthResponse): Record<string, unknown> {
   return {
@@ -1720,9 +1742,41 @@ export function pluginCatalogChangedEventToMap(request: PluginCatalogChangedEven
   };
 }
 
+export function pluginCapabilityRequestEventToMap(request: PluginCapabilityRequestEvent): Record<string, unknown> {
+  return {
+  requestId: request.requestId,
+  method: request.method,
+  request: request.request,
+  };
+}
+
+export function pluginBundleEventToMap(request: PluginBundleEvent): Record<string, unknown> {
+  return {
+  sessionId: request.sessionId,
+  ...(request.envelope !== undefined ? { envelope: request.envelope } : {}),
+  ...(request.close !== undefined ? { close: request.close } : {}),
+  };
+}
+
 export function pluginUiEvaluationRequestToMap(request: PluginUiEvaluationRequest): Record<string, unknown> {
   return {
   payload: request.payload,
+  };
+}
+
+export function pluginCapabilityCompletionToMap(request: PluginCapabilityCompletion): Record<string, unknown> {
+  return {
+  requestId: request.requestId,
+  result: request.result,
+  };
+}
+
+export function pluginHostProfileToMap(request: PluginHostProfile): Record<string, unknown> {
+  return {
+  platform: request.platform,
+  kitVocabulary: request.kitVocabulary,
+  ...(request.nativeAllowlist !== undefined ? { nativeAllowlist: request.nativeAllowlist } : {}),
+  bundleRuntime: request.bundleRuntime,
   };
 }
 

@@ -63,7 +63,7 @@ describe("CorePluginPage", () => {
     const port = pagePort(async () => page(), invoke);
     const { host, visibleRef } = render(port, {}, native); await flushPromises();
     host().vm.$emit("action", "reauth", { page: host().props("page"), data: {} }); await flushPromises();
-    expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ nativeAllowlist: ["reauthenticate"], pluginId: root.pluginId, page: root.page }));
+    expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ pluginId: root.pluginId, page: root.page }));
     expect(context).toMatchObject({ pluginId: root.pluginId, page: root.page, actionId: "reauth" }); expect(context?.isCurrent()).toBe(true);
     visibleRef.value = false; await nextTick(); expect(context?.isCurrent()).toBe(false);
     pending.resolve({ status: "cancelled" }); await flushPromises(); expect(calls(port)).toHaveLength(1);
@@ -374,7 +374,7 @@ describe("CorePluginPage", () => {
       row: { key: "l1", input: { packetId: "p1" } } });
     await flushPromises();
     const request = port.invokePageAction.mock.calls[0][0];
-    expect(request).toEqual({ pluginId: root.pluginId, page: root.page, actionId: "open", userGesture: true, platform: "web", nativeAllowlist: [],
+    expect(request).toEqual({ pluginId: root.pluginId, page: root.page, actionId: "open", userGesture: true, platform: "web",
       data: { balanceText: "¥12.30" }, row: { key: "l1", input: { packetId: "p1" } } });
     expect(port.invokeAction).not.toHaveBeenCalled();
     expect(host().props()).toMatchObject({ busyActionId: undefined, settleToken: 1 });
@@ -464,5 +464,137 @@ describe("CorePluginPage", () => {
     expect(corePluginPageEntry({ pluginId: "acme.task", page: "acme.task.board" }, { boardId: "b1" }, "Board"))
       .toEqual({ pluginId: "acme.task", page: "acme.task.board", title: "Board", args: { boardId: "b1" } });
     expect(corePluginPageEntry({ pluginId: "acme.task", page: "acme.task.board" })).toEqual({ pluginId: "acme.task", page: "acme.task.board", title: "" });
+  });
+
+  it("shows an upgrade placeholder page with the device's update status and opens the update flow on its key", async () => {
+    const placeholder = { available: false, title: "Board", fields: [], actions: [], unavailableReason: "upgrade_required", minBuild: 41020 };
+    let opened!: () => void;
+    const host = {
+      upgradeStatus: vi.fn(async () => ({ available: true, build: 41020 })),
+      openUpdate: vi.fn(() => new Promise<void>((resolve) => { opened = resolve; })),
+    };
+    const { host: kit } = render(pagePort(async () => placeholder), { host });
+    await flushPromises();
+    expect(host.upgradeStatus).toHaveBeenCalledWith(41020);
+    expect(kit().props("upgradeStatus")).toEqual({ available: true, build: 41020 });
+    expect(kit().props("upgradeBusy")).toBe(false);
+    kit().props("onUpdate")?.();
+    await nextTick();
+    expect(host.openUpdate).toHaveBeenCalledOnce();
+    expect(kit().props("upgradeBusy")).toBe(true);
+    kit().props("onUpdate")?.();
+    expect(host.openUpdate).toHaveBeenCalledOnce();
+    opened();
+    await flushPromises();
+    expect(kit().props("upgradeBusy")).toBe(false);
+  });
+
+  it("asks nothing for a page that draws, and leaves the notice keyless without a host", async () => {
+    const host = { upgradeStatus: vi.fn(async () => ({ available: false })) };
+    const { host: kit } = render(pagePort(async () => page()), { host });
+    await flushPromises();
+    expect(host.upgradeStatus).not.toHaveBeenCalled();
+    expect(kit().props("upgradeStatus")).toBeNull();
+    const bare = render(pagePort(async () => ({ available: false, title: "", fields: [], actions: [], unavailableReason: "upgrade_required" })));
+    await flushPromises();
+    expect(bare.host().props("onUpdate")).toBeUndefined();
+  });
+
+  it("refreshes an expired QR code by running the declared query, then reading the page again", async () => {
+    const port = pagePort(async () => page());
+    const { host } = render(port);
+    await flushPromises();
+    host().vm.$emit("qrRefresh", { operation: "flare.wallet.receive_code", valuePath: "/code" });
+    await flushPromises();
+    expect(port.dispatch).toHaveBeenCalledWith({ capabilityId: "flare.wallet.receive_code", payload: {} });
+    expect(calls(port)).toHaveLength(2);
+    expect(calls(port)[1]).toMatchObject({ refresh: true });
+    // A refused query keeps the shown page.
+    port.dispatch.mockRejectedValueOnce(new Error("denied"));
+    host().vm.$emit("qrRefresh", { operation: "flare.wallet.receive_code", valuePath: "/code" });
+    await flushPromises();
+    expect(calls(port)).toHaveLength(2);
+  });
+
+  it("hands the host's image resolver to the page", async () => {
+    const resolveImage = vi.fn(() => "blob:x");
+    const { host } = render(pagePort(async () => page()), { host: { resolveImage } });
+    await flushPromises();
+    expect(host().props("resolveImage")).toBe(resolveImage);
+  });
+  it("locates once through the engine into a location input and clears it again", async () => {
+    const port = pagePort(async () => page({ data: { _session: { tenantId: "t", userId: "u" } } }));
+    const asked: unknown[] = [];
+    const answer = deferred<unknown>();
+    (port as PluginUiPort).capabilityInvoke = vi.fn(async (request: Parameters<NonNullable<PluginUiPort["capabilityInvoke"]>>[0]) => { asked.push(request); return answer.promise; });
+    const { host } = render(port, { root: { ...root, args: { planId: "p1" } } });
+    await flushPromises();
+    const input = { id: "area", kind: "location", label: "Area", precision: "coarse" };
+    host().vm.$emit("locationAction", { action: "locate", inputId: "area", input, formValues: { note: "hi" } });
+    await flushPromises();
+    expect(host().props("locationStates")).toEqual({ area: { locating: true, error: undefined } });
+    expect(asked[0]).toMatchObject({ pluginId: root.pluginId, capability: "locationOnce", params: { precision: "coarse" }, into: "area",
+      page: { pluginId: root.pluginId, page: root.page }, arguments: { planId: "p1" }, formValues: { note: "hi" },
+      data: { _session: { tenantId: "t", userId: "u" } }, userGesture: true });
+    const value = { latitude: 31.23, longitude: 121.47, accuracyM: 1000, precision: "coarse" };
+    answer.resolve({ kind: "input", input: "area", value });
+    await flushPromises();
+    expect(host().props("locationStates")).toEqual({ area: { value } });
+    host().vm.$emit("locationAction", { action: "clear", inputId: "area", input, formValues: {} });
+    await flushPromises();
+    expect(host().props("locationStates")).toEqual({});
+  });
+
+  it("keeps a location input as it was when the viewer refuses, and says so when the host cannot locate", async () => {
+    const port = pagePort(async () => page());
+    const invoke = vi.fn(async (): Promise<unknown> => ({ kind: "denied" }));
+    (port as PluginUiPort).capabilityInvoke = invoke;
+    const { host } = render(port);
+    await flushPromises();
+    const input = { id: "spot", kind: "location", label: "Spot", precision: "fine" };
+    host().vm.$emit("locationAction", { action: "locate", inputId: "spot", input, formValues: {} });
+    await flushPromises();
+    expect(host().props("locationStates")).toEqual({});
+    invoke.mockResolvedValueOnce({ kind: "unavailable" });
+    host().vm.$emit("locationAction", { action: "locate", inputId: "spot", input, formValues: {} });
+    await flushPromises();
+    expect((host().props("locationStates") as Record<string, { error?: string }>).spot.error).toBeTruthy();
+  });
+
+  it("captures a document through the engine into its input, never through the file picker", async () => {
+    const port = pagePort(async () => page());
+    const invoke = vi.fn(async (): Promise<unknown> => ({ kind: "input", input: "front", value: { fileId: "file:front-1" } }));
+    (port as PluginUiPort).capabilityInvoke = invoke;
+    const picker = vi.spyOn(HTMLInputElement.prototype, "click");
+    const { host } = render(port);
+    await flushPromises();
+    const input = { id: "front", kind: "document", label: "ID", side: "front", required: true,
+      file: { accept: ["image/jpeg"], maxBytes: 4194304 } };
+    host().vm.$emit("fileAction", { action: "choose", inputId: "front", input, scope: "s-1", generation: 1, formValues: {} });
+    await flushPromises();
+    expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ capability: "documentCapture", params: { side: "front" }, into: "front" }));
+    expect(port.uploadFile).not.toHaveBeenCalled();
+    expect(picker).not.toHaveBeenCalled();
+    expect(host().props("fileStates")).toEqual({ front: { scope: "s-1", generation: 1, phase: "uploaded", value: { fileId: "file:front-1" },
+      fileName: "document-front.jpg" } });
+    picker.mockRestore();
+  });
+
+  it("reads protected media one item at a time through its declared action and keeps the address in memory", async () => {
+    const port = pagePort(async () => page({ data: { application: { applicationId: "a-1" } } }),
+      async () => ({ kind: "operation", response: { success: true, data: { readUrl: "https://example.test/m/1?grant=g" } } }));
+    const { host } = render(port);
+    await flushPromises();
+    const item = { id: "m-1", label: "Front", input: { materialId: "m-1" } };
+    host().vm.$emit("protectedMediaRead", { action: { id: "viewDocument", label: "View" }, item, reason: "", urlPath: "/readUrl",
+      formValues: { materialId: "m-1" } });
+    await flushPromises();
+    expect(port.invokePageAction).toHaveBeenCalledWith(expect.objectContaining({ actionId: "viewDocument", formValues: { materialId: "m-1" },
+      data: { application: { applicationId: "a-1" } } }));
+    expect(host().props("protectedMedia")).toEqual({ "m-1": { url: "https://example.test/m/1?grant=g" } });
+    // The page read again from scratch forgets it.
+    host().vm.$emit("retry");
+    await flushPromises();
+    expect(host().props("protectedMedia")).toEqual({});
   });
 });

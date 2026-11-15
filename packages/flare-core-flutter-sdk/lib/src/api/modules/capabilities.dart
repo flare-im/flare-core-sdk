@@ -32,12 +32,34 @@ abstract interface class CapabilitiesApi {
   Future<Map<String, Object?>> pluginPage(PluginUiEvaluationRequest request);
   /// pluginFileUpload maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_file_upload`. Operation: `capability.plugin_file_upload`.
   Future<Map<String, Object?>> pluginFileUpload(PluginUiEvaluationRequest request);
+  /// pluginCapabilityInvoke maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_invoke`. Operation: `capability.plugin_capability_invoke`.
+  Future<Map<String, Object?>> pluginCapabilityInvoke(PluginUiEvaluationRequest request);
+  /// pluginCapabilityConsents maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_consents`. Operation: `capability.plugin_capability_consents`.
+  Future<Map<String, Object?>> pluginCapabilityConsents(PluginUiEvaluationRequest request);
+  /// revokePluginCapabilityConsent maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_capability_consent_revoke`. Operation: `capability.plugin_capability_consent_revoke`.
+  Future<Map<String, Object?>> revokePluginCapabilityConsent(PluginUiEvaluationRequest request);
+  /// pluginBundleOpen maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_open`. Operation: `capability.plugin_bundle_open`.
+  Future<Map<String, Object?>> pluginBundleOpen(PluginUiEvaluationRequest request);
+  /// pluginBundleBridge maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_bridge`. Operation: `capability.plugin_bundle_bridge`.
+  Future<Map<String, Object?>> pluginBundleBridge(PluginUiEvaluationRequest request);
+  /// pluginBundleHostResult maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_host_result`. Operation: `capability.plugin_bundle_host_result`.
+  Future<Map<String, Object?>> pluginBundleHostResult(PluginUiEvaluationRequest request);
+  /// pluginBundleHostEvent maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_host_event`. Operation: `capability.plugin_bundle_host_event`.
+  Future<Map<String, Object?>> pluginBundleHostEvent(PluginUiEvaluationRequest request);
+  /// pluginBundleClose maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_close`. Operation: `capability.plugin_bundle_close`.
+  Future<Map<String, Object?>> pluginBundleClose(PluginUiEvaluationRequest request);
+  /// pluginBundlePrefetch maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_bundle_prefetch`. Operation: `capability.plugin_bundle_prefetch`.
+  Future<Map<String, Object?>> pluginBundlePrefetch(PluginUiEvaluationRequest request);
+  /// completePluginCapabilityRequest maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `plugin.capability_complete`.
+  Future<void> completePluginCapabilityRequest(PluginCapabilityCompletion request);
   /// pluginAccountEntries maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_account_entries`. Operation: `capability.plugin_account_entries`.
   Future<Map<String, Object?>> pluginAccountEntries(PluginUiEvaluationRequest request);
   /// pluginScanHandlers maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_scan_handlers`. Operation: `capability.plugin_scan_handlers`.
   Future<Map<String, Object?>> pluginScanHandlers(PluginUiEvaluationRequest request);
   /// invalidatePluginCatalog maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `plugin_catalog_invalidate`. Operation: `capability.plugin_catalog_invalidate`.
   Future<void> invalidatePluginCatalog(Map<String, Object?> request);
+  /// setPluginHostProfile maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `plugin.set_host_profile`.
+  Future<void> setPluginHostProfile(PluginHostProfile request);
   /// listCapabilities maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_list`. Operation: `capability.list`.
   Future<Map<String, Object?>> listCapabilities(Map<String, Object?> request);
   /// dispatchCapability maps to `flare_capability_dispatch_json` via `capability-dispatch-json`, dispatch op `capability_dispatch`. Operation: `capability.dispatch`.

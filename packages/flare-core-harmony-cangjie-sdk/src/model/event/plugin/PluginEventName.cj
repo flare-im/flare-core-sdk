@@ -5,4 +5,6 @@ package flare_core_harmony_cangjie_sdk.model.event.plugin
 public enum PluginEventName {
     | Realtime
     | CatalogChanged
+    | CapabilityRequest
+    | BundleEvent
 }

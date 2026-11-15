@@ -68,6 +68,46 @@ public class DefaultCapabilitiesApi <: CapabilitiesApi {
         return bridge.invoke(descriptor: NativeCallMap.capabilityPluginFileUpload, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
     }
 
+    public func pluginCapabilityInvoke(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginCapabilityInvoke, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
+    }
+
+    public func pluginCapabilityConsents(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginCapabilityConsents, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
+    }
+
+    public func revokePluginCapabilityConsent(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginCapabilityConsentRevoke, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
+    }
+
+    public func pluginBundleOpen(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginBundleOpen, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
+    }
+
+    public func pluginBundleBridge(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginBundleBridge, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
+    }
+
+    public func pluginBundleHostResult(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginBundleHostResult, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
+    }
+
+    public func pluginBundleHostEvent(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginBundleHostEvent, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
+    }
+
+    public func pluginBundleClose(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginBundleClose, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
+    }
+
+    public func pluginBundlePrefetch(request: PluginUiEvaluationRequest): String {
+        return bridge.invoke(descriptor: NativeCallMap.capabilityPluginBundlePrefetch, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
+    }
+
+    public func completePluginCapabilityRequest(request: PluginCapabilityCompletion): Unit {
+        let _ignored = bridge.invoke(descriptor: NativeCallMap.pluginCapabilityComplete, requestJson: wireEncodeRequest(pluginCapabilityCompletionToJson(request)))
+    }
+
     public func pluginAccountEntries(request: PluginUiEvaluationRequest): String {
         return bridge.invoke(descriptor: NativeCallMap.capabilityPluginAccountEntries, requestJson: wireEncodeRequest(pluginUiEvaluationRequestToJson(request)))
     }
@@ -78,6 +118,10 @@ public class DefaultCapabilitiesApi <: CapabilitiesApi {
 
     public func invalidatePluginCatalog(requestJson: String): Unit {
         let _ignored = bridge.invoke(descriptor: NativeCallMap.capabilityPluginCatalogInvalidate, requestJson: wireEncodeRequest(requestJson))
+    }
+
+    public func setPluginHostProfile(request: PluginHostProfile): Unit {
+        let _ignored = bridge.invoke(descriptor: NativeCallMap.pluginSetHostProfile, requestJson: wireEncodeRequest(pluginHostProfileToJson(request)))
     }
 
     public func listCapabilities(requestJson: String): String {

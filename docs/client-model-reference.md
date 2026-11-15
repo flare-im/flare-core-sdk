@@ -955,6 +955,30 @@ What the platform package has to do. kind selects the fields that apply.
 | `version` | `version` | `String` | no | desktopUpdater: target version. |
 | `target` | `target` | `String` | no | desktopUpdater: desktop target. |
 
+### UpdatePluginUpgradeStatusRequest
+
+A plugin's minimum build to reach.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `minBuild` | `minBuild` | `UInt64` | no | The placeholder's minBuild; absent asks for any build newer than this one. |
+
+### PluginUpgradeStatus
+
+Whether an update reaching a plugin's minimum build is offered to this device.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `available` | `available` | `Boolean` | yes | A release at or above the floor is offered. |
+| `build` | `build` | `UInt64` | no | That release's build, when available. |
+
+### UpdateOpenFlowRequest
+
+Opens the update prompt at the user's request.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+
 ## Diagnostics
 
 Runtime diagnostics and observability models.
@@ -1824,7 +1848,7 @@ Typed SDK event and notification models for cross-platform subscriptions.
 
 - `NotificationEventName`: Notification event name. Values: `received`, `present`, `clear`, `badge`
 
-- `PluginEventName`: Plugin event notification name. Values: `realtime`, `catalog_changed`
+- `PluginEventName`: Plugin event notification name. Values: `realtime`, `catalog_changed`, `capability_request`, `bundle_event`
 
 ### SdkErrorPayload
 
@@ -2035,6 +2059,26 @@ The tenant's plugin catalog changed; the SDK has already invalidated its plugin 
 |-------|-----------|------|----------|-------------|
 | `version` | `version` | `String` | yes | Plugin authorization projection version Core announced. |
 
+### PluginCapabilityRequestEvent
+
+The engine asks the host to do its part of a plugin host capability; answer with completePluginCapabilityRequest.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `requestId` | `requestId` | `UInt64` | yes | Pass it back with the result. |
+| `method` | `method` | `String` | yes | consent, captureDocument, pickFile, confirmPayment or locateOnce. |
+| `request` | `request` | `JsonObject` | yes | consent: {pluginId, pluginVersion, capability, params?}; captureDocument: {pluginId, side, accept, maxBytes}; pickFile: {pluginId, capability, accept, maxBytes}; confirmPayment: {pluginId, order: {orderId, amount, currency, payee, title, expiresAtMs, operation}}; locateOnce: {pluginId, precision}. |
+
+### PluginBundleEvent
+
+Something for an open web bundle page.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `sessionId` | `sessionId` | `String` | yes | The page's session (pluginBundleOpen). |
+| `envelope` | `envelope` | `String` | no | A bridge event to post to the page as it is: catalog.changed, entity.state, lifecycle.revoked. |
+| `close` | `close` | `String` | no | Close the page: withdrawn, suspended, disabled, replaced, evicted or signedOut. |
+
 ## PluginUi
 
 Data-only plugin UI evaluation, authoritative types and bounds live in flare-plugin-protocol/ui.rs.
@@ -2046,6 +2090,26 @@ Data-only plugin UI evaluation, authoritative types and bounds live in flare-plu
 | Field | Wire name | Type | Required | Description |
 |-------|-----------|------|----------|-------------|
 | `payload` | `payload` | `JsonObject` | yes | Typed UI evaluation envelope defined by the shared UI protocol. presentPluginMessage, invokePluginAction and pluginDetail accept an optional messageId (server id or clientMsgId) of the message the card belongs to: the card resolves over the shared and local state layers stored on that message, and invoke stores a successful operation's data.sharedState and data.messageState on it. invokePluginAction also takes formValues and selection; pluginDetail also takes cursor and previous for the next page of a paged detail, and refresh with previous to re-read a shown sheet keeping the pages it had loaded. pluginPage takes {pluginId, page, platform, conversationId?, locale?, arguments?, filters?, cursor?, previous?, refresh?}; conversationId is host route context outside the business arguments and source DTO. Page results and page navigation host results retain this reserved top-level conversationId. invokePluginAction takes page {pluginId, page}, the same top-level conversationId, data and row {key, input} instead of message for a page action. Plugin data, arguments, filters and row input never select the invocation conversation; Core revalidates current membership. pluginFileUpload carries {page:{pluginId,page},inputId,platform,locale?,conversationId?,arguments?,data?,formValues?,fileName,contentType,bytes:[0..255],commandId}; one completed private file reference {fileId} is returned. File inputs declare exact accept MIME types, maxBytes<=5242880 and same-plugin upload prepare/complete/purpose. showWhen:{field,anyOf:[strings]} reads an earlier unconditional Select in the same collected action scope. Hidden inputs are not required or forwarded, conditional inputs do not fall back to defaults on submission, and hosts invalidate every dependent value/upload on any controller value change. |
+
+### PluginCapabilityCompletion
+
+The host's answer to a plugin.capability_request event.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `requestId` | `requestId` | `UInt64` | yes | The event's requestId. |
+| `result` | `result` | `JsonObject` | no | consent: {decision: once, always or deny} (only always is kept); captureDocument and pickFile: {file: {fileName, contentType, bytes: [0..255]}} (a document photo compressed, without EXIF); confirmPayment: {confirmation: {...}} (the proof the order's operation takes, at most 4 KiB); locateOnce: {location: {latitude, longitude, accuracyM?}}. Any of them may instead be {cancelled: true} (the viewer backed out) or {unavailable: true} (the host could not); absent counts as unavailable. |
+
+### PluginHostProfile
+
+The plugin UI a host can draw.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `platform` | `platform` | `String` | yes | web, tauri, android, ios, flutter or harmonyos. |
+| `kitVocabulary` | `kitVocabulary` | `JsonObject` | yes | The kit's PLUGIN_UI_VOCABULARY. |
+| `nativeAllowlist` | `nativeAllowlist` | `StringList` | no | Native capabilities this host grants plugin actions. |
+| `bundleRuntime` | `bundleRuntime` | `JsonObject` | no | {bridge, engine, engineMajor} when the host can open web bundles. |
 
 ## PluginCommand
 

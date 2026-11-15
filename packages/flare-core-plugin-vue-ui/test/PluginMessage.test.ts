@@ -373,4 +373,30 @@ describe("CorePluginMessage", () => {
     await flushPromises();
     expect(view().props("error")).toBeUndefined();
   });
+
+  it("draws an upgrade placeholder with the device's update status and opens the update flow on its key", async () => {
+    const placeholder = { available: false, title: "Board", fields: [], actions: [], unavailableReason: "upgrade_required", minBuild: 41020, stateVersion: 0 };
+    const plugin = {
+      upgradeStatus: vi.fn(async () => ({ available: false })),
+      openUpdate: vi.fn(async () => undefined),
+    };
+    const { view } = renderCard(fakePort({ presentMessage: vi.fn(async () => placeholder) }), {}, undefined, { plugin });
+    await flushPromises();
+    expect(view().props("view")).toMatchObject({ unavailableReason: "upgrade_required", minBuild: 41020 });
+    expect(plugin.upgradeStatus).toHaveBeenCalledWith(41020);
+    expect(view().props("upgradeStatus")).toEqual({ available: false });
+    view().props("onUpdate")?.();
+    await flushPromises();
+    expect(plugin.openUpdate).toHaveBeenCalledOnce();
+  });
+
+  it("refreshes an expired QR code by running the declared query, then presenting the card again", async () => {
+    const port = fakePort({ presentMessage: vi.fn(async () => card()) });
+    const { view } = renderCard(port);
+    await flushPromises();
+    view().vm.$emit("qrRefresh", { operation: "acme.poll.code", valuePath: "/code" });
+    await flushPromises();
+    expect(port.dispatch).toHaveBeenCalledWith({ capabilityId: "acme.poll.code", payload: {}, conversationId: "conv-1" });
+    expect(port.presentMessage).toHaveBeenCalledTimes(2);
+  });
 });

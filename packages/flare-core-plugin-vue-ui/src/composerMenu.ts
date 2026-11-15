@@ -24,6 +24,11 @@ export interface ComposerPluginItem {
   label: string;
   icon?: string;
   order: number;
+  /**
+   * An upgrade placeholder (D-18): this build cannot draw the item. It stays in the panel with the "needs update" badge
+   * and opens the upgrade notice instead of its form. `minBuild` is the plugin's floor, when it names one.
+   */
+  upgrade?: { minBuild?: number };
 }
 
 export type ComposerMenuItem = ComposerFeatureItem | ComposerPluginItem;
@@ -37,6 +42,13 @@ export interface ComposerMenu {
 export const CLOSED_COMPOSER_MENU: ComposerMenu = Object.freeze({ tools: [], actions: [] }) as ComposerMenu;
 
 const text = (value: unknown): value is string => typeof value === "string" && value.length > 0;
+
+/** An entry's upgrade mark (`{minBuild?}`); a floor that is not a positive build number is dropped, the mark kept. */
+export function parseUpgrade(value: unknown): { minBuild?: number } | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const minBuild = (value as { minBuild?: unknown }).minBuild;
+  return typeof minBuild === "number" && Number.isSafeInteger(minBuild) && minBuild > 0 ? { minBuild } : {};
+}
 
 /** Reads a menu, leaving out anything malformed rather than guessing at it. */
 export function parseComposerMenu(value: unknown): ComposerMenu {
@@ -53,7 +65,9 @@ export function parseComposerMenu(value: unknown): ComposerMenu {
     if (item.kind === "feature") {
       actions.push({ id: item.id, kind: "feature", order, ...(icon ? { icon } : {}), ...(text(item.featureKey) ? { featureKey: item.featureKey } : {}) });
     } else if (item.kind === "plugin" && text(item.pluginId) && text(item.contributionId) && text(item.label)) {
-      actions.push({ id: item.id, kind: "plugin", pluginId: item.pluginId, contributionId: item.contributionId, label: item.label, order, ...(icon ? { icon } : {}) });
+      const upgrade = parseUpgrade(item.upgrade);
+      actions.push({ id: item.id, kind: "plugin", pluginId: item.pluginId, contributionId: item.contributionId, label: item.label, order,
+        ...(icon ? { icon } : {}), ...(upgrade ? { upgrade } : {}) });
     }
   }
   return { tools, actions };
@@ -61,9 +75,10 @@ export function parseComposerMenu(value: unknown): ComposerMenu {
 
 /**
  * The "+" panel items in the kit's action shape, in the menu's order. Built-in items carry no label
- * (the kit names its unified ids); a plugin's unknown icon name draws the kit's plugin glyph.
+ * (the kit names its unified ids); a plugin's unknown icon name draws the kit's plugin glyph. An upgrade
+ * placeholder carries `upgradeBadge` (the kit's `pluginUpgrade.badge` copy) as its badge.
  */
-export function composerPanelActions(menu: ComposerMenu) {
+export function composerPanelActions(menu: ComposerMenu, upgradeBadge?: string) {
   return menu.actions.map((item, index) => ({
     id: item.id,
     kind: item.kind,
@@ -72,6 +87,7 @@ export function composerPanelActions(menu: ComposerMenu) {
     order: index,
     ...(item.kind === "plugin" ? { label: item.label } : {}),
     ...(item.icon ? { icon: item.icon } : {}),
+    ...(item.kind === "plugin" && item.upgrade && upgradeBadge ? { badge: upgradeBadge } : {}),
   }));
 }
 
@@ -82,6 +98,8 @@ export interface ComposerActionRoutes {
   plugins: Readonly<Record<string, (item: ComposerPluginItem) => void>>;
   /** Every other plugin: the generic entry. */
   fallback: (item: ComposerPluginItem) => void;
+  /** An upgrade placeholder: the upgrade notice (`PluginUpgradeSheet`), never the form. Without it nothing happens. */
+  upgrade?: (item: ComposerPluginItem) => void;
 }
 
 /** Runs what a tapped "+" item means. False when the menu does not list it (nothing happens). */
@@ -92,6 +110,11 @@ export function routeComposerAction(menu: ComposerMenu, id: string, routes: Comp
     const send = routes.features[item.id];
     if (!send) return false;
     send();
+    return true;
+  }
+  if (item.upgrade) {
+    if (!routes.upgrade) return false;
+    routes.upgrade(item);
     return true;
   }
   (routes.plugins[`${item.pluginId}/${item.contributionId}`] ?? routes.fallback)(item);

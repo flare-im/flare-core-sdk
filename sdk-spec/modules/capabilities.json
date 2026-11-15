@@ -130,7 +130,7 @@
     },
     {
       "name": "pluginPage",
-      "description": "payload {pluginId, page, platform, locale?, arguments?, filters?, cursor?, previous?, refresh?}. A plugin page (a page contribution, such as a wallet) resolved like a detail into a v2 view (available, title, fields, actions, menuActions?, blocks?, inputs?, nextCursor?, unavailableReason?) plus data, what it was resolved against, to pass back with a page action. arguments is the payload of the page target that opened the page ({} from an account entry); the page's source query is called with its input bound from them, and a page without a source resolves against them. filters are the values of the rows block's filter inputs, validated like a form. Paging and refresh follow pluginDetail: cursor (the view's nextCursor) with previous (the view as returned) appends the next page (rows by key, entries numbered on); refresh with previous re-reads from the first page until at least as many entries and rows are back, there is no next page, or 10 pages were read. The first page and a refresh never fail for an unavailable plugin: an unreadable catalog, a disabled, uninstalled or not permitted plugin, another platform or an unknown page give {available: false, title: \"\", unavailableReason}; a next page fails instead (keep showing previous), and any other source failure is an error with the usual sdk.plugin.* keys. Page calls carry no messageId.",
+      "description": "payload {pluginId, page, platform, locale?, arguments?, filters?, cursor?, previous?, refresh?}. A plugin page (a page contribution, such as a wallet) resolved like a detail into a v2 view (available, title, fields, actions, menuActions?, blocks?, inputs?, nextCursor?, unavailableReason?) plus data, what it was resolved against, to pass back with a page action, and bundle: true when the page has a web bundle offered to this client (the host reported a bundle runtime and the catalog serves the selected variant's bundle): open it with pluginBundleOpen (contributionId = page) and keep this view as the fallback; without bundle, show the view at once with no opening state. arguments is the payload of the page target that opened the page ({} from an account entry); the page's source query is called with its input bound from them, and a page without a source resolves against them. filters are the values of the rows block's filter inputs, validated like a form. Paging and refresh follow pluginDetail: cursor (the view's nextCursor) with previous (the view as returned) appends the next page (rows by key, entries numbered on); refresh with previous re-reads from the first page until at least as many entries and rows are back, there is no next page, or 10 pages were read. The first page and a refresh never fail for an unavailable plugin: an unreadable catalog, a disabled, uninstalled or not permitted plugin, another platform or an unknown page give {available: false, title: \"\", unavailableReason}; a next page fails instead (keep showing previous), and any other source failure is an error with the usual sdk.plugin.* keys. Page calls carry no messageId.",
       "operation": "capability.plugin_page",
       "transport": "capability-dispatch-json",
       "cApi": "flare_capability_dispatch_json",
@@ -149,6 +149,115 @@
       "request": "PluginUiEvaluationRequest",
       "response": "JsonObject",
       "stability": "experimental"
+    },
+    {
+      "name": "pluginCapabilityInvoke",
+      "description": "Run a plugin host capability after a user gesture. payload is {pluginId, capability, params?, into?, orderId?, platform, locale?, page?, conversationId?, arguments?, data?, formValues?, commandId?, userGesture}: capability, params and into from the native target invokePluginAction handed back ({kind: host, target}), or capability paymentConfirmation with orderId, naming the confirmation an operation result carried (the engine records the order from that result and confirms no other). It runs only when the plugin's manifest declares it, the host profile allows it and the viewer consents (asked through a plugin.capability_request consent, kept per plugin, capability and manifest major; never asked for clipboardWrite, selectImage and selectFile). Then the host's part is asked through plugin.capability_request and the result handled: a captured document or picked file is uploaded privately into the page input into names and returned as {kind: input, input, value: {fileId}}; a location fix is truncated to the declared precision and returned for the location input of that precision into names, {kind: input, input, value: {latitude, longitude, accuracyM, precision}}; an open recorded order whose operation is one of the plugin's catalog transientOperations is drawn by the host, the credential it collects goes only to the catalog's paymentProvider operation, which answers with a one-time ticket, and the order's operation is called with {orderId, ticket}, {kind: operation, response}. Also {kind: host, capability} (the host goes on: clipboardWrite, microphone, a pick without into), {kind: denied}, {kind: cancelled}, {kind: unavailable}. An expired order fails with sdk.plugin.payment_order_expired; an undeclared or disallowed capability, or a payment without a payment provider, with sdk.plugin.native_capability_unavailable; an order the engine did not record with sdk.plugin.ui_action_unavailable.",
+      "operation": "capability.plugin_capability_invoke",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_capability_invoke",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "pluginCapabilityConsents",
+      "description": "payload {pluginId?}. Returns {consents: [{pluginId, capability, manifestMajor, level, grantedAtMs}]}: the capability consents the signed-in viewer gave on this device, of one plugin or of all, for a settings screen.",
+      "operation": "capability.plugin_capability_consents",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_capability_consents",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "revokePluginCapabilityConsent",
+      "description": "payload {pluginId, capability?}. Drops the viewer's consent to one capability of the plugin, or to all of them; the next use asks again. Returns {revoked}.",
+      "operation": "capability.plugin_capability_consent_revoke",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_capability_consent_revoke",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "pluginBundleOpen",
+      "description": "Open a web bundle page (L3) a catalog contribution selects: {pluginId, contributionId, route?, arguments?, presentation? (page | detail | composerForm), conversation?: {id, type}, locale, theme: {mode, tokens}, hostOrigin?}. The engine fetches the bundle from the catalog's mirrors, checks its size and SHA-256 before unpacking it into its cache (native) or reads bundle.json from the sandbox copy (Web), and answers {sessionId, origin, root, entry, csp, files?, hello}: root is the cache directory (native) or the sandbox base address (Web); files lists the only paths an interceptor may serve, with their content types; csp is the policy every file is served with; hello is the host.hello result. Errors sdk.plugin_bundle.unsupported (no bundle runtime in the host profile, or an older bridge), not_offered, unavailable, rejected.",
+      "operation": "capability.plugin_bundle_open",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_bundle_open",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "pluginBundleBridge",
+      "description": "Hand one message a bundle posted to the engine: {sessionId, envelope (the JSON text as posted), userGesture? (the host's own record of a recent touch)}. The engine checks it (envelope, bridge version, handshake, method and parameters, bridge permission, operation, rate) and answers {envelope} to post back as is, or {host: {id, method, params}} for the host to draw (ui.navigate, ui.close, ui.setTitle, ui.toast, ui.confirm, ui.resize, ui.openExternal, clipboard.write) and answer with pluginBundleHostResult.",
+      "operation": "capability.plugin_bundle_bridge",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_bundle_bridge",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "pluginBundleHostResult",
+      "description": "Answer a request the engine handed to the host: {sessionId, id, result? | error? (cancelled, unavailable, gesture_required, timeout, not_found)}. ui.confirm takes {confirmed}. Answers {envelope} to post back.",
+      "operation": "capability.plugin_bundle_host_result",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_bundle_host_result",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "pluginBundleHostEvent",
+      "description": "Report theme.changed ({mode, tokens}), locale.changed ({locale}) or visibility.changed ({visible}): {event, payload, sessionId?}. Answers {deliveries: [{sessionId, envelope}]} for the pages that subscribed; post each envelope to its page.",
+      "operation": "capability.plugin_bundle_host_event",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_bundle_host_event",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "pluginBundleClose",
+      "description": "End a bundle page's session when the host closes or destroys it: {sessionId}. Answers {closed}.",
+      "operation": "capability.plugin_bundle_close",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_bundle_close",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "pluginBundlePrefetch",
+      "description": "Let the engine fetch the entry bundles (a Me entry's or a + action's page) ahead: {wifi, idle}; only on Wi-Fi when idle. Answers {fetched}.",
+      "operation": "capability.plugin_bundle_prefetch",
+      "transport": "capability-dispatch-json",
+      "cApi": "flare_capability_dispatch_json",
+      "dispatchOp": "plugin_bundle_prefetch",
+      "request": "PluginUiEvaluationRequest",
+      "response": "JsonObject",
+      "stability": "experimental"
+    },
+    {
+      "name": "completePluginCapabilityRequest",
+      "operation": "plugin.capability_complete",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "PluginCapabilityCompletion",
+      "response": "Unit",
+      "stability": "experimental",
+      "description": "The host's answer to a plugin.capability_request event: {requestId, result}. Refused with sdk.plugin.capability_request_unknown once that request no longer waits (answered, timed out after 10 minutes, or its session ended)."
     },
     {
       "name": "pluginAccountEntries",
@@ -182,6 +291,16 @@
       "request": "ListCapabilitiesRequest",
       "response": "Unit",
       "stability": "experimental"
+    },
+    {
+      "name": "setPluginHostProfile",
+      "operation": "plugin.set_host_profile",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "PluginHostProfile",
+      "response": "Unit",
+      "stability": "experimental",
+      "description": "What this host draws: platform (the kit that renders), kitVocabulary (the kit's PLUGIN_UI_VOCABULARY, passed as it is), nativeAllowlist (native capabilities the host grants) and bundleRuntime when it hosts web bundles. Set once at startup, before the first catalog read; a change drops the cached catalog. Without it the catalog is asked for vocabulary 1."
     },
     {
       "name": "listCapabilities",

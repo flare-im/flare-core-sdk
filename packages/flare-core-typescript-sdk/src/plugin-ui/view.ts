@@ -134,13 +134,17 @@ export interface PluginFormError { input: string; issue: PluginFormIssue }
  */
 export type PluginUnavailableReason =
   | "disabled" | "not_installed" | "no_permission" | "unsupported_platform"
-  | "incompatible_version" | "catalog_unreachable" | "unbound_copy";
+  | "incompatible_version" | "catalog_unreachable" | "unbound_copy"
+  /** This build cannot show it: the host offers the update (kit upgrade notice) with `minBuild`. */
+  | "upgrade_required";
 
 /** A resolved document: a card, a composer form, or a detail sheet. */
 export interface PluginPresentation {
   presentation?: { renderer: string; props: Record<string, unknown>; actions: Record<string, string> };
   available: boolean;
   unavailableReason?: PluginUnavailableReason;
+  /** With `upgrade_required`: the lowest build that shows it, when the plugin names one. */
+  minBuild?: number;
   title: string;
   fields: PluginUiField[];
   /** Button-row actions not owned by a block; block actions live in their block. */
@@ -184,6 +188,11 @@ export interface PluginPagePresentation extends PluginDetailPresentation {
   /** Host conversation context returned separately from plugin source data. */
   conversationId?: string;
   data?: Record<string, unknown>;
+  /**
+   * The page has a web bundle offered to this client: open it through the bundle host
+   * (`contributionId` = the page) and keep this view as its fallback. Absent: draw this view at once.
+   */
+  bundle?: true;
 }
 
 /** Paging options of `PluginUiSession.page`. */
@@ -202,13 +211,22 @@ export interface PluginCardPresentation extends PluginPresentation {
   stateVersion: number;
   /** Version of the shared layer Core publishes for the card's entity; absent when there is none. */
   sharedStateVersion?: number;
+  /**
+   * The contribution has a web bundle offered to this client: a "+" form opens it through the bundle host instead of
+   * this view, a card its "view all" (presentation `detail`). This view stays the fallback. Absent: no bundle is tried.
+   */
+  bundle?: true;
 }
 
 /** Outcome of a card action: the capability response, what a host target returned, or form problems. */
 export type PluginActionOutcome =
   | { kind: "operation"; response: { success?: boolean; data?: unknown; error?: unknown } & Record<string, unknown> }
   | { kind: "host"; result: unknown }
-  | { kind: "formErrors"; errors: PluginFormError[] };
+  | { kind: "formErrors"; errors: PluginFormError[] }
+  /** A host capability wrote into a page input (`into`): an uploaded document's `{fileId}`, a location fix. */
+  | { kind: "input"; input: string; value: unknown }
+  /** A host capability did not run: the viewer refused consent, backed out, or the host could not. */
+  | { kind: "declined"; reason: "denied" | "cancelled" | "unavailable" };
 
 const FORM_ISSUES: ReadonlySet<string> = new Set<PluginFormIssue>([
   "required", "unknown", "invalidType", "tooLong", "outOfRange", "notAChoice", "tooFewItems", "tooManyItems", "invalidItem", "duplicateItem",
@@ -226,10 +244,11 @@ export function pluginFormErrors(value: unknown): PluginFormError[] {
 
 const UNAVAILABLE_REASONS: ReadonlySet<string> = new Set<PluginUnavailableReason>([
   "disabled", "not_installed", "no_permission", "unsupported_platform", "incompatible_version", "catalog_unreachable", "unbound_copy",
+  "upgrade_required",
 ]);
 
 /** The v2 members of a resolved view, copied only when present and well-typed. */
-export function pluginViewExtras(view: Record<string, unknown>): Pick<PluginPresentation, "presentation" | "blocks" | "inputs" | "detail" | "menuActions" | "unavailableReason"> {
+export function pluginViewExtras(view: Record<string, unknown>): Pick<PluginPresentation, "presentation" | "blocks" | "inputs" | "detail" | "menuActions" | "unavailableReason" | "minBuild"> {
   const p = view.presentation as PluginPresentation["presentation"];
   return {
     ...(view.available === true && p && typeof p.renderer === "string" && p.props && typeof p.props === "object"
@@ -240,5 +259,7 @@ export function pluginViewExtras(view: Record<string, unknown>): Pick<PluginPres
     ...(Array.isArray(view.menuActions) && view.menuActions.length ? { menuActions: view.menuActions as PluginUiAction[] } : {}),
     ...(typeof view.unavailableReason === "string" && UNAVAILABLE_REASONS.has(view.unavailableReason)
       ? { unavailableReason: view.unavailableReason as PluginUnavailableReason } : {}),
+    ...(view.unavailableReason === "upgrade_required" && typeof view.minBuild === "number"
+      && Number.isSafeInteger(view.minBuild) && view.minBuild > 0 ? { minBuild: view.minBuild } : {}),
   };
 }

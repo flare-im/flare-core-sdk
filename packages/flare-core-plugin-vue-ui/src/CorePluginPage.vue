@@ -8,6 +8,13 @@
  * view), a next page (`page` with the cursor and the shown view, Core merges them), a filter (the first page with the
  * new values), a page action (`invokePageAction` with the view's `data` and the row's `row`, no message). A page target
  * an action opens is pushed with its own plugin; back pops it, and on the root page emits `back`.
+ *
+ * Host capabilities go through the engine (`invokeCapability`): a document input's key captures and uploads into it
+ * (`documentCapture` with `into`), a location input's key writes one fix into it (`locationOnce` with `into`), a native
+ * action writing into an input fills it the same way, and a payment order an operation returns is confirmed by the
+ * host's confirmation (`paymentConfirmation`). The prompts themselves are the host's (`CorePluginCapabilityHost`).
+ * Protected media read one item at a time through its declared (owner-scoped) action; the address lives only in
+ * memory and is dropped with the page.
  */
 import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import {
@@ -22,16 +29,26 @@ import {
   type FlarePluginPageActionPayload,
   type FlarePluginResolveUser,
   type FlarePluginMember,
+  type FlarePluginQrRefresh,
+  type FlarePluginProtectedMediaRead,
+  type FlarePluginProtectedMediaState,
+  flareDocumentFileName,
+  flarePluginProtectedMediaUrl,
 } from "@flare-im/vue-ui";
 import {
   pluginManifestLocale,
+  type NativePluginBridge,
+  type PluginActionOutcome,
+  type PluginCapabilityPageContext,
   type PluginPagePresentation,
   type PluginPlatform,
   type PluginUiPort,
   type PluginUiSession,
 } from "@flare-im/sdk/plugin-ui";
-import { pluginUiDirectoryKey, pluginUiNativeKey, type CorePluginErrorText } from "./context";
+import { pluginUiDirectoryKey, pluginUiHostKey, pluginUiNativeKey, type CorePluginErrorText, type CorePluginHost } from "./context";
+import { useCorePluginUpgrade } from "./upgrade";
 import { corePluginPageSession, pluginPagePostedCard, type CorePluginPageEntry } from "./pluginPage";
+import CorePluginBundle from "./CorePluginBundle.vue";
 import type { PluginPostedCard } from "./composerMenu";
 import { PluginFileUploads, choosePluginFile, pluginFileSessionData } from "./pluginFileUploads";
 
@@ -59,12 +76,29 @@ const props = defineProps<{
   errorText?: CorePluginErrorText;
   /** The host's line for a page that failed to load for any other reason. */
   loadFailedText: string;
+  /** Upgrade notices and image blocks; defaults to the one provided above (`provideCorePluginHost`). */
+  host?: CorePluginHost;
 }>();
 const emit = defineEmits<{ surfaceHints: [hints: { secure: boolean; maxBrightness: boolean }]; back: []; posted: [card: PluginPostedCard, owner: CorePluginPageEntry] }>();
 
 const directory = inject(pluginUiDirectoryKey, {});
 const native = inject(pluginUiNativeKey, undefined);
 const { t, locale } = useFlareI18n();
+const providedHost = inject(pluginUiHostKey, undefined);
+const pluginHost = (): CorePluginHost => props.host ?? providedHost ?? {};
+/**
+ * The bridge page actions run native targets on: the one provided above (`provideCorePluginNativeBridge`) and the
+ * host's (`CorePluginHost.native`). With both, a capability runs on the bridge that lists it, the provided one first.
+ */
+function nativeBridge(): NativePluginBridge | undefined {
+  const hosted = pluginHost().native;
+  if (!native || !hosted || native === hosted) return native ?? hosted;
+  return {
+    capabilities: [...new Set([...native.capabilities, ...hosted.capabilities])],
+    invoke: (capability, payload, context) =>
+      ((native.capabilities as readonly string[]).includes(capability) ? native : hosted).invoke(capability, payload, context),
+  };
+}
 /** The pages opened from the root, the root first. Each keeps its own filters. */
 const stack = ref<Array<CorePluginPageEntry & { filters: Record<string, unknown> }>>([{ ...props.root, filters: {} }]);
 // Reopening the same entry is a new presentation even when every route field is equal.
@@ -75,12 +109,37 @@ watch([() => props.port, () => props.viewerId], ([port]) => {
   session.value?.reset();
   session.value = port
     ? corePluginPageSession(port, props.platform, () => pluginManifestLocale(locale.value), () => top.value,
-      (entry) => { stack.value = [...stack.value, { ...entry, filters: {} }]; }, native)
+      (entry) => { stack.value = [...stack.value, { ...entry, filters: {} }]; }, nativeBridge())
     : null;
 }, { immediate: true });
 watch(() => props.visible, visible => { if (visible === false) { actionTicket++; session.value?.reset(); busyActionId.value = undefined; } });
 
 const view = shallowRef<PluginPagePresentation>();
+/**
+ * The declarative page is always read first; when it says a web bundle is offered to this client (`view.bundle`), the
+ * page opens in the kit's bundle host instead, so a declarative page never shows an opening state. The entries the
+ * bundle could not show (closed by the bridge, failing) draw the view already read.
+ */
+const bundles = computed(() => pluginHost().bundles);
+const entryKey = (entry: CorePluginPageEntry) => `${entry.pluginId}\u0000${entry.page}\u0000${entry.route ?? ""}`;
+const declarative = ref<ReadonlySet<string>>(new Set());
+const bundleShown = computed(() => Boolean(bundles.value) && view.value?.bundle === true
+  && !declarative.value.has(entryKey(top.value)));
+function bundleFallback(): void {
+  declarative.value = new Set([...declarative.value, entryKey(top.value)]);
+}
+/** A bundle's `ui.navigate`: a declarative page of its plugin, or another route of the same bundle. */
+function bundleNavigate(target: { page?: string; arguments?: Record<string, unknown>; bundleRoute?: string }): void {
+  const entry = top.value;
+  if (target.page) {
+    stack.value = [...stack.value, { pluginId: entry.pluginId, page: target.page, title: entry.title, filters: {},
+      ...(entry.conversationId ? { conversationId: entry.conversationId } : {}), ...(target.arguments ? { args: target.arguments } : {}) }];
+  } else if (target.bundleRoute) {
+    stack.value = [...stack.value, { ...entry, route: target.bundleRoute, filters: {}, ...(target.arguments ? { args: target.arguments } : {}) }];
+  }
+}
+// A page this build cannot draw (D-18): the whole-page notice asks whether the build it needs is offered here.
+const upgrade = useCorePluginUpgrade(() => view.value, pluginHost);
 const loading = ref(false);
 const refreshing = ref(false);
 const loadingMore = ref(false);
@@ -120,9 +179,95 @@ function clearFiles(): void {
   fileUploads.clear();
 }
 function fileAction(event: FlarePluginFileAction): void {
-  if (!busyActionId.value) {
-    if (event.action !== "preview") filePreview.value = undefined;
-    void fileUploads.action(event);
+  if (busyActionId.value) return;
+  if (event.action !== "preview") filePreview.value = undefined;
+  // A document is captured by the host and uploaded by the engine into the input; everything else is the picker's.
+  const side = event.input.side;
+  if (event.input.kind === "document" && side && ["choose", "retry", "replace"].includes(event.action)) {
+    const active = session.value;
+    const context = capabilityContext(event.formValues);
+    if (!active || !context) return;
+    void fileUploads.captured(event, () => active.invokeCapability(context.page.pluginId,
+      { capability: "documentCapture", params: { side }, into: event.inputId },
+      { ...(top.value.conversationId ? { conversationId: top.value.conversationId } : {}), context }), flareDocumentFileName(side));
+    return;
+  }
+  void fileUploads.action(event);
+}
+
+/** The shown page as a capability writing into one of its inputs reads it: the page, its arguments, the session fence. */
+function capabilityContext(formValues?: Record<string, unknown>): PluginCapabilityPageContext | null {
+  const entry = top.value;
+  if (!entry || !view.value?.available) return null;
+  return { page: { pluginId: entry.pluginId, page: entry.page }, ...(entry.args ? { arguments: entry.args } : {}),
+    data: pluginFileSessionData(view.value.data), ...(formValues ? { formValues } : {}) };
+}
+
+/** A location fix as the kit's location input takes it. */
+type LocationFix = { latitude: number; longitude: number; accuracyM: number; precision: "coarse" | "fine" };
+type LocationState = { value?: LocationFix; locating?: boolean; error?: string };
+const locationStates = shallowRef<Record<string, LocationState>>({});
+function setLocation(inputId: string, state: LocationState | undefined): void {
+  const next = { ...locationStates.value };
+  if (state) next[inputId] = state;
+  else delete next[inputId];
+  locationStates.value = next;
+}
+function locationFix(value: unknown): LocationFix | undefined {
+  const fix = value as Partial<LocationFix> | null;
+  return fix && typeof fix.latitude === "number" && typeof fix.longitude === "number" && typeof fix.accuracyM === "number"
+    && (fix.precision === "coarse" || fix.precision === "fine") ? fix as LocationFix : undefined;
+}
+/** A location input's key: one fix through the engine (the viewer confirms each time), written into the input. */
+async function locationAction(event: { action: "locate" | "clear"; inputId: string; input: { precision?: string }; formValues: Record<string, unknown> }): Promise<void> {
+  if (event.action === "clear") { setLocation(event.inputId, undefined); return; }
+  const active = session.value;
+  const context = capabilityContext(event.formValues);
+  const precision = event.input.precision;
+  if (!active || !context || (precision !== "coarse" && precision !== "fine") || locationStates.value[event.inputId]?.locating) return;
+  const generationAtStart = generation;
+  setLocation(event.inputId, { ...locationStates.value[event.inputId], locating: true, error: undefined });
+  let outcome: PluginActionOutcome;
+  try {
+    outcome = await active.invokeCapability(context.page.pluginId, { capability: "locationOnce", params: { precision }, into: event.inputId },
+      { ...(top.value.conversationId ? { conversationId: top.value.conversationId } : {}), context });
+  } catch (cause) {
+    outcome = { kind: "declined", reason: "unavailable" };
+    console.warn("[plugin-page] location failed", cause instanceof Error ? cause.message : String(cause));
+  }
+  if (generationAtStart !== generation) return;
+  const previous = locationStates.value[event.inputId]?.value;
+  const fix = outcome.kind === "input" && outcome.input === event.inputId ? locationFix(outcome.value) : undefined;
+  if (fix) setLocation(event.inputId, { value: fix });
+  else if (outcome.kind === "declined" && outcome.reason !== "unavailable") setLocation(event.inputId, previous ? { value: previous } : undefined);
+  else setLocation(event.inputId, { ...(previous ? { value: previous } : {}), error: t("pluginRuntime.unavailable") });
+}
+
+/** Protected media read on this page, by item id: an address in memory only, never cached. */
+const protectedMedia = shallowRef<Record<string, FlarePluginProtectedMediaState>>({});
+function setProtected(itemId: string, state: FlarePluginProtectedMediaState): void {
+  protectedMedia.value = { ...protectedMedia.value, [itemId]: state };
+}
+/** One protected item: run its declared action with the item's form values, then show the address it returns. */
+async function protectedMediaRead(read: FlarePluginProtectedMediaRead): Promise<void> {
+  const active = session.value;
+  const entry = top.value;
+  if (!active || !entry || protectedMedia.value[read.item.id]?.loading) return;
+  const generationAtStart = generation;
+  setProtected(read.item.id, { loading: true });
+  try {
+    const outcome = await active.invokePageAction(entry.pluginId, entry.page, read.action.id, {
+      userGesture: true,
+      ...(entry.conversationId ? { conversationId: entry.conversationId } : {}),
+      ...(view.value?.data ? { data: view.value.data } : {}),
+      formValues: read.formValues,
+    });
+    if (generationAtStart !== generation) return;
+    const url = outcome.kind === "operation" && outcome.response.success === true
+      ? flarePluginProtectedMediaUrl(outcome.response.data, read.urlPath) : undefined;
+    setProtected(read.item.id, url ? { url } : { error: t("pluginRuntime.unavailable") });
+  } catch (cause) {
+    if (generationAtStart === generation) setProtected(read.item.id, { error: props.errorText?.(cause) ?? t("pluginRuntime.unavailable") });
   }
 }
 
@@ -131,6 +276,8 @@ onBeforeUnmount(() => {
   paginationTicket++;
   actionTicket++;
   clearFiles();
+  locationStates.value = {};
+  protectedMedia.value = {};
   session.value?.reset();
 });
 
@@ -145,7 +292,11 @@ async function load(mode: "open" | "filter" | "refresh" = "open", requestedFilte
   const mine = ++generation;
   // A normal refresh keeps this form's picker, bytes and original upload
   // intent alive. A different page/query must release them.
-  if (mode !== "refresh") clearFiles();
+  if (mode !== "refresh") {
+    clearFiles();
+    locationStates.value = {};
+    protectedMedia.value = {};
+  }
   paginationTicket++;
   pagingToken.value++;
   loadingMore.value = false;
@@ -188,7 +339,7 @@ async function load(mode: "open" | "filter" | "refresh" = "open", requestedFilte
   }
 }
 // Getters only: the stack array among the sources would make the watcher fire on every stack write (a filter, say).
-watch([() => props.root, () => session.value, () => top.value.pluginId, () => top.value.page, () => top.value.conversationId, () => JSON.stringify(top.value.args), () => stack.value.length], () => {
+watch([() => props.root, () => session.value, () => top.value.pluginId, () => top.value.page, () => top.value.conversationId, () => JSON.stringify(top.value.args), () => stack.value.length, () => top.value.route], () => {
   // Invalidate both old UI settlement and the session's automatic page navigation. The SDK command journal lives
   // in the port; resetting this presentation session does not cancel, repeat or acknowledge a financial command.
   actionTicket++;
@@ -253,9 +404,18 @@ async function action(actionId: string, payload: FlarePluginPageActionPayload): 
       ...(payload.row ? { row: payload.row as { key: string; input: Record<string, unknown> } } : {}),
       ...(payload.formValues ? { formValues: payload.formValues } : {}),
       ...(payload.selection ? { selection: payload.selection } : {}),
+      ...(entry.args ? { arguments: entry.args } : {}),
     });
     if (!current()) return;
     if (outcome.kind === "formErrors") formErrors.value = outcome.errors;
+    // A native action wrote into one of the page's inputs: a document's reference or a location fix.
+    else if (outcome.kind === "input") {
+      const fix = locationFix(outcome.value);
+      if (fix) setLocation(outcome.input, { value: fix });
+      else fileUploads.settle(outcome.input, outcome.value);
+    } else if (outcome.kind === "declined") {
+      if (outcome.reason === "unavailable") actionError.value = t("pluginRuntime.unavailable");
+    }
     else if (outcome.kind === "operation") {
       changed = true;
       if (outcome.response.success === false) actionError.value = t("pluginRuntime.rejected");
@@ -282,6 +442,15 @@ async function action(actionId: string, payload: FlarePluginPageActionPayload): 
   if (current() && changed && stack.value.length === depth) void load("refresh");
 }
 
+/** An expired QR code on the page: run the query the block declares, then read the page again in place. */
+async function refreshQr(request: FlarePluginQrRefresh): Promise<void> {
+  const active = session.value;
+  const entry = top.value;
+  if (!active || !entry || !view.value?.available) return;
+  try { await active.query(request.operation, entry.conversationId); } catch { return; }
+  if (active === session.value) void load("refresh");
+}
+
 function back(): void {
   if (stack.value.length > 1) stack.value = stack.value.slice(0, -1);
   else emit("back");
@@ -289,7 +458,25 @@ function back(): void {
 </script>
 
 <template>
+  <CorePluginBundle
+    v-if="bundleShown && bundles"
+    class="core-plugin-page"
+    :host="bundles"
+    :plugin-id="top.pluginId"
+    :contribution-id="top.page"
+    presentation="page"
+    :route="top.route"
+    :args="top.args"
+    :conversation="top.conversationId ? { id: top.conversationId, type: '' } : undefined"
+    :title="top.title"
+    back
+    @back="back"
+    @close="back"
+    @navigate="bundleNavigate"
+    @fallback="bundleFallback"
+  />
   <FlarePluginPage
+    v-else
     class="core-plugin-page"
     :page="{ pluginId: top.pluginId, page: top.page }"
     :title="top.title"
@@ -319,6 +506,12 @@ function back(): void {
     :form-errors="formErrors"
     :settle-token="settleToken"
     :file-states="fileStates"
+    :location-states="locationStates"
+    :protected-media="protectedMedia"
+    :resolve-image="pluginHost().resolveImage"
+    :upgrade-status="upgrade.status.value"
+    :on-update="upgrade.update.value"
+    :upgrade-busy="upgrade.busy.value"
     @back="back"
     @refresh="load('refresh')"
     @retry="load()"
@@ -326,6 +519,9 @@ function back(): void {
     @filter="filter"
     @action="action"
     @file-action="fileAction"
+    @location-action="locationAction"
+    @protected-media-read="protectedMediaRead"
+    @qr-refresh="refreshQr"
   />
   <FlareImagePreview
     :show="Boolean(filePreview)"

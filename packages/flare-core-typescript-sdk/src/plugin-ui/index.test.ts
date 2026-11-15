@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PluginUiSession, pluginManifestLocale, type PluginUiPort, type PluginNativeContext } from "./index";
+import { PluginUiSession, pluginManifestLocale, webClipboardBridge, type PluginUiPort, type PluginNativeContext } from "./index";
 const message = { pluginId: "example.poll", contributionId: "example.poll.card", schemaVersion: 1, summary: "Poll", payload: { packetId: "one", injected: "unused" } };
 function port(): PluginUiPort { return { catalog: async () => ({}), resolveMessage: async () => ({ available: true, title: "Poll", fields: [], actions: [{ id: "vote", label: "Vote" }] }), action: async () => ({ target: { kind: "operation", operation: "example.poll.vote" }, payload: { packetId: "one" } }),
   presentMessage: async () => ({ available: true, title: "Poll", fields: [], actions: [], data: { packetId: "one", status: "completed" }, stateVersion: 3 }),
@@ -79,13 +79,21 @@ describe("plugin UI runtime adapter", () => {
     api.presentMessage = async () => { throw new Error("offline"); };
     expect(await host.present(message, "client-1")).toEqual({ available: false, title: "Poll", fields: [], actions: [], stateVersion: 0 });
   });
+  it("keeps the engine's bundle marker on a presented form or card, and nothing else", async () => {
+    const api = port();
+    api.presentMessage = async () => ({ available: true, title: "Board", fields: [], actions: [], stateVersion: 0, bundle: true });
+    const host = new PluginUiSession(api, "web", () => "zh-CN");
+    expect((await host.present(message, undefined, "composer-action")).bundle).toBe(true);
+    api.presentMessage = async () => ({ available: true, title: "Board", fields: [], actions: [], stateVersion: 0, bundle: "yes" });
+    expect(await host.present(message)).not.toHaveProperty("bundle");
+  });
   it("invokes a card action through Core with the message and conversation", async () => {
     const api = port(); let request: unknown;
     api.invokeAction = async (value) => { request = value; return { kind: "operation", response: { success: true, data: { messageState: { version: 4, values: {} } } } }; };
     const host = new PluginUiSession(api, "tauri", () => "en-US");
     expect(await host.invokeAction(message, "vote", { messageId: "server-9", conversationId: "group-1", userGesture: true }))
       .toEqual({ kind: "operation", response: { success: true, data: { messageState: { version: 4, values: {} } } } });
-    expect(request).toEqual({ message, messageId: "server-9", conversationId: "group-1", platform: "tauri", actionId: "vote", userGesture: true, nativeAllowlist: [] });
+    expect(request).toEqual({ message, messageId: "server-9", conversationId: "group-1", platform: "tauri", actionId: "vote", userGesture: true });
     api.invokeAction = async () => ({ kind: "host", target: { kind: "page", page: "wallet" }, payload: {} });
     await expect(host.invokeAction(message, "vote", { userGesture: true })).rejects.toThrow("Plugin target unavailable");
     const pages: unknown[] = [];
@@ -206,7 +214,7 @@ describe("plugin UI card protocol v2", () => {
     api.invokePageAction = async (request) => { actions.push({ ...request }); return { kind: "host", target: { kind: "page", page: "example.poll.history" }, payload: { currency: "CNY" } }; };
     await host.invokePageAction("example.poll", "example.poll.wallet", "history", { data: view.data, userGesture: true });
     expect(actions[0]).toEqual({ pluginId: "example.poll", page: "example.poll.wallet", actionId: "history", platform: "web", userGesture: true,
-      nativeAllowlist: [], data: { currency: "CNY" } });
+      data: { currency: "CNY" } });
     expect(opened).toEqual([[{ pluginId: "example.poll", page: "example.poll.history" }, { currency: "CNY" }]]);
     const bare = new PluginUiSession(port(), "web");
     await expect(bare.page("example.poll", "example.poll.wallet")).rejects.toThrow("Plugin page unavailable");
@@ -222,7 +230,7 @@ describe("plugin UI card protocol v2", () => {
     expect(outcome).toEqual({ kind: "formErrors", errors: [{ input: "amount", issue: "required" }] });
     expect(card).toEqual([]);
     expect(pages).toEqual([{ pluginId: "flare.wallet", page: "flare.wallet.history", actionId: "open", platform: "android", userGesture: true,
-      nativeAllowlist: ["clipboardWrite"], row: { key: "e-1", input: { entryId: "e-1" } }, conversationId: "conv-1", formValues: { note: "hi" }, selection: [0] }]);
+      row: { key: "e-1", input: { entryId: "e-1" } }, conversationId: "conv-1", formValues: { note: "hi" }, selection: [0] }]);
     // An answer that arrives after the session changed (sign-out, another account) is not acted on.
     let release!: (value: unknown) => void;
     api.invokePageAction = () => new Promise((resolve) => { release = resolve; });
@@ -244,9 +252,115 @@ describe("plugin UI card protocol v2", () => {
     await session.invokePageAction("flare.checkin","flare.checkin.plans","open",{conversationId:"group-1",data:view.data,userGesture:true});
     expect(opened[1]).toEqual([{pluginId:"flare.checkin",page:"flare.checkin.plan",conversationId:"group-1"},{planId:"p1",conversationId:"injected"}]);
   });
+  it("passes the page's bundle marker through and drops anything but true", async () => {
+    const api = port();
+    let answer: Record<string, unknown> = { available: true, title: "Board", fields: [], actions: [], bundle: true };
+    api.pluginPage = async () => answer;
+    const session = new PluginUiSession(api, "web");
+    expect((await session.page("example.poll", "example.poll.board")).bundle).toBe(true);
+    answer = { available: true, title: "Board", fields: [], actions: [], bundle: "yes" };
+    expect((await session.page("example.poll", "example.poll.board")).bundle).toBeUndefined();
+  });
   it("maps the host's UI language onto the manifest locales", () => {
     for (const tag of ["en", "en-US", "en-GB", " EN-au "]) expect(pluginManifestLocale(tag)).toBe("en-US");
     for (const tag of ["zh-CN", "zh-Hant-TW", "ja-JP", "", undefined, null]) expect(pluginManifestLocale(tag)).toBe("zh-CN");
+  });
+  it("keeps an upgrade placeholder's reason and floor so the host can offer the update", async () => {
+    const api = port();
+    api.pluginPage = async () => ({ available: false, title: "看板", fields: [], actions: [], unavailableReason: "upgrade_required", minBuild: 41020 });
+    const host = new PluginUiSession(api, "web");
+    const page = await host.page("acme.board", "acme.board.home");
+    expect(page.unavailableReason).toBe("upgrade_required");
+    expect(page.minBuild).toBe(41020);
+    // A floor on another reason, or a floor that is not a build number, is not kept.
+    api.pluginPage = async () => ({ available: false, title: "", fields: [], actions: [], unavailableReason: "disabled", minBuild: 41020 });
+    expect((await host.page("acme.board", "acme.board.home")).minBuild).toBeUndefined();
+    api.pluginPage = async () => ({ available: false, title: "", fields: [], actions: [], unavailableReason: "upgrade_required", minBuild: -1 });
+    const unknownFloor = await host.page("acme.board", "acme.board.home");
+    expect(unknownFloor.unavailableReason).toBe("upgrade_required");
+    expect(unknownFloor.minBuild).toBeUndefined();
+  });
+  it("copies a clipboardWrite target's text through the web clipboard and refuses anything else", async () => {
+    const copied: string[] = [];
+    const bridge = webClipboardBridge(async (text) => { copied.push(text); });
+    expect(bridge.capabilities).toEqual(["clipboardWrite"]);
+    const api = port();
+    api.invokeAction = async () => ({ kind: "host", target: { kind: "native", capability: "clipboardWrite" }, payload: { text: "答案" } });
+    const host = new PluginUiSession(api, "web", () => "zh-CN", bridge);
+    const outcome = await host.invokeAction(message, "copy", { userGesture: true });
+    expect(outcome).toEqual({ kind: "host", result: { copied: true } });
+    expect(copied).toEqual(["答案"]);
+    for (const payload of [{}, { text: "" }, { text: 3 }, { text: "x".repeat(4097) }]) {
+      await expect(bridge.invoke("clipboardWrite", payload)).rejects.toThrow();
+    }
+    await expect(bridge.invoke("camera", { text: "x" })).rejects.toThrow();
+    expect(copied).toEqual(["答案"]);
+  });
+});
+describe("plugin host capabilities through the engine", () => {
+  const order = { orderId: "o-1", amount: "12.50", currency: "CNY", payee: "Alice", title: "Transfer", expiresAtMs: 9e12, operation: "flare.wallet.payments.confirm" };
+  it("confirms a payment order an operation returned and answers with the transient operation's response", async () => {
+    const api = port(); const asked: unknown[] = [];
+    api.invokePageAction = async () => ({ kind: "operation", response: { success: true, data: { confirmation: order } }, confirmation: order });
+    api.capabilityInvoke = async (request) => { asked.push(request); return { kind: "operation", response: { success: true, data: { paid: true } } }; };
+    const session = new PluginUiSession(api, "web", () => "zh-CN");
+    const outcome = await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { conversationId: "c-1", userGesture: true });
+    expect(outcome).toEqual({ kind: "operation", response: { success: true, data: { paid: true } } });
+    expect(asked).toEqual([{ pluginId: "flare.wallet", capability: "paymentConfirmation", orderId: "o-1", platform: "web", locale: "zh-CN", conversationId: "c-1", userGesture: true }]);
+    // Without the engine route the order is never reported as paid.
+    delete api.capabilityInvoke;
+    expect(await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { userGesture: true }))
+      .toEqual({ kind: "declined", reason: "unavailable" });
+  });
+  it("opens the pay action's continuation page once the engine confirmed the payment", async () => {
+    const api = port(); const opened: unknown[] = [];
+    api.invokePageAction = async () => ({ kind: "operation", response: { success: true, data: { confirmation: order } }, confirmation: order });
+    api.capabilityInvoke = async () => ({ kind: "host", target: { kind: "page", page: "flare.wallet.page.result" }, payload: { commandId: "cmd-1" } });
+    const session = new PluginUiSession(api, "web", () => "zh-CN", undefined, (target, args) => { opened.push([target, args]); });
+    const outcome = await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { conversationId: "c-1", userGesture: true });
+    expect(outcome.kind).toBe("host");
+    expect(opened).toEqual([[{ pluginId: "flare.wallet", page: "flare.wallet.page.result", conversationId: "c-1" }, { commandId: "cmd-1" }]]);
+    // A cancelled confirmation opens nothing.
+    api.capabilityInvoke = async () => ({ kind: "cancelled" });
+    expect(await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { userGesture: true }))
+      .toEqual({ kind: "declined", reason: "cancelled" });
+    expect(opened).toHaveLength(1);
+  });
+  it("sends a native target with its params and into, with the page context, and writes the result into the input", async () => {
+    const api = port(); const asked: Record<string, unknown>[] = [];
+    api.invokePageAction = async () => ({ kind: "host", target: { kind: "native", capability: "documentCapture", params: { side: "front" }, into: "front" }, payload: {} });
+    api.capabilityInvoke = async (request) => { asked.push({ ...request }); return { kind: "input", input: "front", value: { fileId: "file:f-1" } }; };
+    const session = new PluginUiSession(api, "web", () => "en-US");
+    const outcome = await session.invokePageAction("flare.realname", "flare.realname.page.documents", "captureFront",
+      { userGesture: true, data: { application: { applicationId: "a-1" } }, formValues: { back: null }, arguments: { applicationId: "a-1" } });
+    expect(outcome).toEqual({ kind: "input", input: "front", value: { fileId: "file:f-1" } });
+    expect(asked[0]).toEqual({ pluginId: "flare.realname", capability: "documentCapture", params: { side: "front" }, into: "front", platform: "web",
+      locale: "en-US", page: { pluginId: "flare.realname", page: "flare.realname.page.documents" }, arguments: { applicationId: "a-1" },
+      data: { application: { applicationId: "a-1" } }, formValues: { back: null }, userGesture: true });
+  });
+  it("reads a refusal, a cancel and anything unknown as declined", async () => {
+    const api = port();
+    const session = new PluginUiSession(api, "web");
+    for (const [answer, reason] of [[{ kind: "denied" }, "denied"], [{ kind: "cancelled" }, "cancelled"], [{ kind: "unavailable" }, "unavailable"],
+      [{ kind: "input" }, "unavailable"], [null, "unavailable"]] as const) {
+      api.capabilityInvoke = async () => answer;
+      expect(await session.invokeCapability("example.checkin", { capability: "locationOnce", params: { precision: "coarse" }, into: "area" }))
+        .toEqual({ kind: "declined", reason });
+    }
+  });
+  it("runs only what the engine leaves to the host on the host's bridge", async () => {
+    const copied: string[] = [];
+    const api = port(); const asked: unknown[] = [];
+    api.invokeAction = async () => ({ kind: "host", target: { kind: "native", capability: "clipboardWrite" }, payload: { text: "code" } });
+    api.capabilityInvoke = async (request) => { asked.push(request); return { kind: "host", capability: "clipboardWrite" }; };
+    const session = new PluginUiSession(api, "web", () => "zh-CN", webClipboardBridge(async (text) => { copied.push(text); }));
+    expect(await session.invokeAction(message, "copy", { userGesture: true })).toEqual({ kind: "host", result: { copied: true } });
+    expect(copied).toEqual(["code"]);
+    expect(asked).toHaveLength(1);
+    // A capability the viewer refused never reaches the bridge.
+    api.capabilityInvoke = async () => ({ kind: "denied" });
+    expect(await session.invokeAction(message, "copy", { userGesture: true })).toEqual({ kind: "declined", reason: "denied" });
+    expect(copied).toEqual(["code"]);
   });
 });
 

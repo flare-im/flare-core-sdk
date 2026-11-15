@@ -1,9 +1,9 @@
 // GENERATED. Do not edit by hand.
 import { NativeBridge, NativeCallMap } from '../../contract/bridge_contract';
 import type { CapabilitiesApi } from '../../api/modules/capabilities';
-import { PluginCommandRequest, PluginUiEvaluationRequest } from '../../model';
+import { PluginCapabilityCompletion, PluginCommandRequest, PluginHostProfile, PluginUiEvaluationRequest } from '../../model';
 import { invokeBool, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeList, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError, withoutNullFields } from '../codec/nativeInvoke';
-import { conversationFromJson, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, pluginCommandRequestToMap, pluginUiEvaluationRequestToMap, sendAckFromJson, sendMessageRequestToMap } from '../codec/wireCodec';
+import { conversationFromJson, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, pluginCapabilityCompletionToMap, pluginCommandRequestToMap, pluginHostProfileToMap, pluginUiEvaluationRequestToMap, sendAckFromJson, sendMessageRequestToMap } from '../codec/wireCodec';
 
 export class DefaultCapabilitiesApi implements CapabilitiesApi {
   constructor(private readonly bridge: NativeBridge) {}
@@ -64,6 +64,46 @@ export class DefaultCapabilitiesApi implements CapabilitiesApi {
     return await invokeMap(this.bridge, NativeCallMap.capabilityPluginFileUpload, pluginUiEvaluationRequestToMap(request));
   }
 
+  async pluginCapabilityInvoke(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginCapabilityInvoke, pluginUiEvaluationRequestToMap(request));
+  }
+
+  async pluginCapabilityConsents(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginCapabilityConsents, pluginUiEvaluationRequestToMap(request));
+  }
+
+  async revokePluginCapabilityConsent(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginCapabilityConsentRevoke, pluginUiEvaluationRequestToMap(request));
+  }
+
+  async pluginBundleOpen(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginBundleOpen, pluginUiEvaluationRequestToMap(request));
+  }
+
+  async pluginBundleBridge(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginBundleBridge, pluginUiEvaluationRequestToMap(request));
+  }
+
+  async pluginBundleHostResult(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginBundleHostResult, pluginUiEvaluationRequestToMap(request));
+  }
+
+  async pluginBundleHostEvent(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginBundleHostEvent, pluginUiEvaluationRequestToMap(request));
+  }
+
+  async pluginBundleClose(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginBundleClose, pluginUiEvaluationRequestToMap(request));
+  }
+
+  async pluginBundlePrefetch(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
+    return await invokeMap(this.bridge, NativeCallMap.capabilityPluginBundlePrefetch, pluginUiEvaluationRequestToMap(request));
+  }
+
+  async completePluginCapabilityRequest(request: PluginCapabilityCompletion): Promise<void> {
+    await invokeVoid(this.bridge, NativeCallMap.pluginCapabilityComplete, pluginCapabilityCompletionToMap(request));
+  }
+
   async pluginAccountEntries(request: PluginUiEvaluationRequest): Promise<Record<string, unknown>> {
     return await invokeMap(this.bridge, NativeCallMap.capabilityPluginAccountEntries, pluginUiEvaluationRequestToMap(request));
   }
@@ -74,6 +114,10 @@ export class DefaultCapabilitiesApi implements CapabilitiesApi {
 
   async invalidatePluginCatalog(request: Record<string, unknown>): Promise<void> {
     await invokeVoid(this.bridge, NativeCallMap.capabilityPluginCatalogInvalidate, request);
+  }
+
+  async setPluginHostProfile(request: PluginHostProfile): Promise<void> {
+    await invokeVoid(this.bridge, NativeCallMap.pluginSetHostProfile, pluginHostProfileToMap(request));
   }
 
   async listCapabilities(request: Record<string, unknown>): Promise<Record<string, unknown>> {

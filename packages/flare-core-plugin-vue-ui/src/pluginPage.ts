@@ -18,6 +18,8 @@ export interface CorePluginPageEntry {
   providerName?: string;
   args?: Record<string, unknown>;
   conversationId?: string;
+  /** A route inside the page's web bundle (a bundle's `ui.navigate` with `bundleRoute`). */
+  route?: string;
 }
 
 /**
@@ -30,10 +32,12 @@ export function corePluginPageEntry(target: PluginPageTarget, args?: Record<stri
 
 /**
  * The session a page stack runs on: a page target an action opens is pushed with its own plugin and the payload the
- * action bound as its arguments; the top page's title stands in until the new page has its own.
+ * action bound as its arguments; the top page's title stands in until the new page has its own. A native target runs
+ * through `native` when the host offers its capability.
  */
 export function corePluginPageSession(port: PluginUiPort, platform: PluginPlatform, locale: () => string,
-  top: () => CorePluginPageEntry | undefined, push: (entry: CorePluginPageEntry) => void, native?: NativePluginBridge): PluginUiSession {
+  top: () => CorePluginPageEntry | undefined, push: (entry: CorePluginPageEntry) => void,
+  native?: NativePluginBridge): PluginUiSession {
   return new PluginUiSession(port, platform, locale, native, (target, args) => {
     push(corePluginPageEntry(target, args, top()?.title ?? ""));
   });

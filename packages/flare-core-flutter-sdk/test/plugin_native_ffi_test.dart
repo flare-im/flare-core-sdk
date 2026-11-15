@@ -53,8 +53,7 @@ void main() {
           'platform': platform,
           'actionId': 'vote',
           'conversationId': 'conversation-1',
-          'userGesture': true,
-          'nativeAllowlist': <String>[]
+          'userGesture': true
         }));
         expect(result['kind'], 'operation');
       }

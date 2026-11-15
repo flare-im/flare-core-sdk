@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { AccessChangedEvent, AccessSwitchedEvent, ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
+import { AccessChangedEvent, AccessSwitchedEvent, ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
 import { EventCallback, EventSubscription, FlareImEventListener, MessageSendCallback } from '../../listener';
 
 /** Typed SDK event stream. */
@@ -49,6 +49,8 @@ export interface EventsApi {
   onDownloadProgress(listener: EventCallback<ProgressEvent>): EventSubscription;
   onPluginRealtime(listener: EventCallback<PluginRealtimeEvent>): EventSubscription;
   onPluginCatalogChanged(listener: EventCallback<PluginCatalogChangedEvent>): EventSubscription;
+  onPluginCapabilityRequest(listener: EventCallback<PluginCapabilityRequestEvent>): EventSubscription;
+  onPluginBundleEvent(listener: EventCallback<PluginBundleEvent>): EventSubscription;
   onNotificationPresent(listener: EventCallback<NotificationPresentation>): EventSubscription;
   onNotificationClear(listener: EventCallback<NotificationClearEvent>): EventSubscription;
   onNotificationBadge(listener: EventCallback<NotificationBadgeEvent>): EventSubscription;
