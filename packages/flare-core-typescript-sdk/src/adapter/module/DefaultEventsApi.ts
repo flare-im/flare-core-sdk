@@ -24,6 +24,10 @@ import {
   MessageReceivedEvent,
   MessageSendAckEvent,
   MessageSendFailedEvent,
+  NotificationBadgeEvent,
+  NotificationClearEvent,
+  NotificationEventName,
+  NotificationPresentation,
   PluginCatalogChangedEvent,
   PluginEventName,
   PluginRealtimeEvent,
@@ -78,7 +82,9 @@ const EVENT_CODE_CONVERSATION_UPDATED = 3003;
 const EVENT_CODE_CONVERSATION_UNREAD_COUNT_CHANGED = 3004;
 const EVENT_CODE_CONVERSATION_DELETED = 3005;
 const EVENT_CODE_NOTIFICATION_RECEIVED = 3501;
-const EVENT_CODE_NOTIFICATION_MESSAGE_SOUND = 3502;
+const EVENT_CODE_NOTIFICATION_PRESENT = 3503;
+const EVENT_CODE_NOTIFICATION_CLEAR = 3504;
+const EVENT_CODE_NOTIFICATION_BADGE = 3505;
 const EVENT_CODE_SYNC_STARTED = 4001;
 const EVENT_CODE_SYNC_FINISHED = 4002;
 const EVENT_CODE_SYNC_FAILED = 4003;
@@ -126,7 +132,9 @@ const WEB_EVENT_TYPE_BY_CHANNEL: Record<string, number> = {
   "im://unread_count_changed": EVENT_CODE_CONVERSATION_UNREAD_COUNT_CHANGED,
   "im://conversation_deleted": EVENT_CODE_CONVERSATION_DELETED,
   "im://notification": EVENT_CODE_NOTIFICATION_RECEIVED,
-  "im://message_sound": EVENT_CODE_NOTIFICATION_MESSAGE_SOUND,
+  "im://notification_present": EVENT_CODE_NOTIFICATION_PRESENT,
+  "im://notification_clear": EVENT_CODE_NOTIFICATION_CLEAR,
+  "im://notification_badge": EVENT_CODE_NOTIFICATION_BADGE,
   "im://sync_started": EVENT_CODE_SYNC_STARTED,
   "im://sync_finished": EVENT_CODE_SYNC_FINISHED,
   "im://sync_failed": EVENT_CODE_SYNC_FAILED,
@@ -161,6 +169,12 @@ function invalidEventField(field: string, expected: string): never {
 function requiredString(value: unknown, field: string): string {
   if (typeof value === 'string' && value.length > 0) return value;
   return invalidEventField(field, 'non-empty string');
+}
+
+// 字段必须在且是字符串，但允许为空：摘要通知没有会话与分组，补提示可能没有消息 ID。
+function presentString(value: unknown, field: string): string {
+  if (typeof value === 'string') return value;
+  return invalidEventField(field, 'string');
 }
 
 function optionalString(value: unknown, field: string): string | undefined {
@@ -475,6 +489,35 @@ function notificationReceivedEvent(payload: unknown): Record<string, unknown> {
   return { type: 'notification', event: 'received', message: messageFromJson(record) };
 }
 
+function notificationPresentEvent(payload: unknown): NotificationPresentation & Record<string, unknown> {
+  const record = eventPayloadRecord(payload);
+  return {
+    type: 'notification',
+    event: NotificationEventName.Present,
+    collapseId: requiredString(record.collapseId, 'collapseId'),
+    threadId: presentString(record.threadId, 'threadId'),
+    conversationId: presentString(record.conversationId, 'conversationId'),
+    messageId: presentString(record.messageId, 'messageId'),
+    seq: requiredNumber(record.seq, 'seq'),
+    title: requiredString(record.title, 'title'),
+    body: requiredString(record.body, 'body'),
+    count: requiredNumber(record.count, 'count'),
+    sound: requiredBoolean(record.sound, 'sound'),
+    channel: requiredString(record.channel, 'channel'),
+    surface: requiredString(record.surface, 'surface'),
+  };
+}
+
+function notificationClearEvent(payload: unknown): NotificationClearEvent & Record<string, unknown> {
+  const record = eventPayloadRecord(payload);
+  return { type: 'notification', event: NotificationEventName.Clear, collapseIds: requiredStringList(record.collapseIds, 'collapseIds'), all: requiredBoolean(record.all, 'all') };
+}
+
+function notificationBadgeEvent(payload: unknown): NotificationBadgeEvent & Record<string, unknown> {
+  const record = eventPayloadRecord(payload);
+  return { type: 'notification', event: NotificationEventName.Badge, count: requiredNumber(record.count, 'count') };
+}
+
 function contractEvent(type: string, event: string, payload: unknown): Record<string, unknown> {
   return { ...eventPayloadRecord(payload), type, event };
 }
@@ -538,7 +581,9 @@ export function nativeEventFromCode(eventType: number, payload: unknown): unknow
     case EVENT_CODE_CONVERSATION_UNREAD_COUNT_CHANGED: return conversationEvent(ConversationEventName.UnreadCountChanged, "unread_count_changed", payload);
     case EVENT_CODE_CONVERSATION_DELETED: return conversationEvent(ConversationEventName.Deleted, "deleted", payload);
     case EVENT_CODE_NOTIFICATION_RECEIVED: return notificationReceivedEvent(payload);
-    case EVENT_CODE_NOTIFICATION_MESSAGE_SOUND: return undefined;
+    case EVENT_CODE_NOTIFICATION_PRESENT: return notificationPresentEvent(payload);
+    case EVENT_CODE_NOTIFICATION_CLEAR: return notificationClearEvent(payload);
+    case EVENT_CODE_NOTIFICATION_BADGE: return notificationBadgeEvent(payload);
     case EVENT_CODE_SYNC_STARTED: return syncEvent(SyncEventName.Started, "started", payload);
     case EVENT_CODE_SYNC_FINISHED: return syncEvent(SyncEventName.Finished, "finished", payload);
     case EVENT_CODE_SYNC_FAILED: return syncEvent(SyncEventName.Failed, "failed", payload);
@@ -797,6 +842,18 @@ export class DefaultEventsApi implements EventsApi {
     return this.registerWhere(listener, (event) => eventEventIs(event, 'plugin', PluginEventName.CatalogChanged));
   }
 
+  onNotificationPresent(listener: EventCallback<NotificationPresentation>): EventSubscription {
+    return this.registerWhere(listener, (event) => eventEventIs(event, 'notification', NotificationEventName.Present));
+  }
+
+  onNotificationClear(listener: EventCallback<NotificationClearEvent>): EventSubscription {
+    return this.registerWhere(listener, (event) => eventEventIs(event, 'notification', NotificationEventName.Clear));
+  }
+
+  onNotificationBadge(listener: EventCallback<NotificationBadgeEvent>): EventSubscription {
+    return this.registerWhere(listener, (event) => eventEventIs(event, 'notification', NotificationEventName.Badge));
+  }
+
   private requestWithDefaultHandler(request: SubscribeEventsRequest): SubscribeEventsRequest {
     const record = request as Record<string, unknown>;
     if (record.handler !== undefined) {
@@ -954,6 +1011,21 @@ export class DefaultEventsApi implements EventsApi {
     if (type === 'view') {
       listener.onViewUpdated?.(event as ViewUpdate);
       return;
+    }
+    if (type === 'notification') {
+      switch (eventName) {
+        case NotificationEventName.Present:
+          listener.onNotificationPresent?.(event as NotificationPresentation);
+          return;
+        case NotificationEventName.Clear:
+          listener.onNotificationClear?.(event as NotificationClearEvent);
+          return;
+        case NotificationEventName.Badge:
+          listener.onNotificationBadge?.(event as NotificationBadgeEvent);
+          return;
+        default:
+          return;
+      }
     }
     if (type === 'plugin') {
       switch (eventName) {

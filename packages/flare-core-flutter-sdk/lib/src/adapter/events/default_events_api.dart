@@ -239,6 +239,20 @@ final class DefaultEventsApi implements EventsApi {
         _emit(PluginCatalogChangedEvent(
           version: _requiredEventString(eventPayload['version'], 'version'),
         ));
+      case EventCode.notificationPresent:
+        _emit(notificationPresentationFromJson(eventPayload));
+      case EventCode.notificationClear:
+        _emit(NotificationClearEvent(
+          collapseIds: _requiredEventStringList(
+            eventPayload['collapseIds'],
+            'collapseIds',
+          ),
+          all: _requiredEventBool(eventPayload['all'], 'all'),
+        ));
+      case EventCode.notificationBadge:
+        _emit(NotificationBadgeEvent(
+          count: _requiredEventInt(eventPayload['count'], 'count'),
+        ));
       case EventCode.viewUpdated:
         _emit(viewUpdateFromJson(eventPayload));
       default:
@@ -459,6 +473,21 @@ final class DefaultEventsApi implements EventsApi {
     EventCallback<PluginCatalogChangedEvent> listener,
   ) =>
       _addTyped(listener);
+  @override
+  EventSubscription onNotificationPresent(
+    EventCallback<NotificationPresentation> listener,
+  ) =>
+      _addTyped(listener);
+  @override
+  EventSubscription onNotificationClear(
+    EventCallback<NotificationClearEvent> listener,
+  ) =>
+      _addTyped(listener);
+  @override
+  EventSubscription onNotificationBadge(
+    EventCallback<NotificationBadgeEvent> listener,
+  ) =>
+      _addTyped(listener);
 
   EventSubscription _addTyped<T>(EventCallback<T> callback) {
     return _addWhere(callback, (_) => true);
@@ -580,6 +609,12 @@ final class _ListenerHandler {
         listener.onPluginRealtime(event);
       case PluginCatalogChangedEvent():
         listener.onPluginCatalogChanged(event);
+      case NotificationPresentation():
+        listener.onNotificationPresent(event);
+      case NotificationClearEvent():
+        listener.onNotificationClear(event);
+      case NotificationBadgeEvent():
+        listener.onNotificationBadge(event);
     }
   }
 

@@ -15,6 +15,6 @@ data class NetworkChangeRequest(
     val metered: Boolean? = null,
     /** wire: `reason`. Optional platform reason string for diagnostics. */
     val reason: String? = null,
-    /** wire: `fingerprintHint`. Coarse network identity (native: Wi-Fi gateway prefix or cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID. */
+    /** wire: `fingerprintHint`. Coarse network identity (native: a 16-hex-digit SHA-256 digest of the interface kind and the default gateway, plus the DNS servers on Android, or the cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID or a raw address. */
     val fingerprintHint: String? = null,
 )

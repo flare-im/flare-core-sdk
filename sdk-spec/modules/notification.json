@@ -1,0 +1,67 @@
+{
+  "key": "notification",
+  "facade": "client.notification",
+  "description": "Notifications while the live link is up: which conversation is on screen, the user's notification settings, and whether the platform presents alerts in the background. The engine decides and renders every alert itself and hands it over as notification.present, notification.clear and notification.badge events.",
+  "methods": [
+    {
+      "name": "setFocus",
+      "operation": "notification.set_focus",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "SetNotificationFocusRequest",
+      "response": "Unit",
+      "stability": "stable",
+      "description": "Reports the conversation on screen (absent when none is open). Messages of the focused conversation do not alert while the app is in the foreground; focusing a conversation restarts the count of its in-app banner. Works before login and never waits for the network."
+    },
+    {
+      "name": "getSettings",
+      "operation": "notification.get_settings",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "Unit",
+      "response": "UserNotificationSettings",
+      "stability": "stable",
+      "description": "The user's notification settings (quiet hours, preview, multi-device policy), shared by all of the user's devices. The engine reads them after connecting and again when another device changes them; without a copy it reads them from the server. Requires a logged-in session."
+    },
+    {
+      "name": "updateSettings",
+      "operation": "notification.update_settings",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "UpdateUserNotificationSettingsRequest",
+      "response": "UserNotificationSettings",
+      "stability": "stable",
+      "description": "Partially updates the user's notification settings and returns the complete settings as stored. Items left out keep their value; at least one item is required. With baseSettingsVersion above zero the update is rejected when the settings changed elsewhere in the meantime: read them again and retry. Other online devices of the user pick up the change at once."
+    },
+    {
+      "name": "setBackgroundPresenter",
+      "operation": "notification.set_background_presenter",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "SetBackgroundPresenterRequest",
+      "response": "Unit",
+      "stability": "stable",
+      "description": "Whether the platform push module posts local notifications for the engine while the app is in the background. Attached, a backgrounded phone keeps alerting from the live link (notification.present with surface system); detached, background alerts are left to the server's push. Desktop and web hosts alert by themselves and need not call it. Works before login."
+    },
+    {
+      "name": "setSnapshotDirectory",
+      "operation": "notification.set_snapshot_directory",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "SetNotificationSnapshotDirectoryRequest",
+      "response": "Unit",
+      "stability": "stable",
+      "description": "Directory the engine shares with an iOS notification service extension (the App Group container). While a session is attached the engine keeps snapshot.json there up to date (conversation titles, mute flags, display names, preview setting and fallback texts, at most 256 KiB, replaced atomically) and deletes it on logout; it reads the extension's receipts.log from the same directory. Absent: stop writing and delete nothing. Works before login. Not available in the browser."
+    },
+    {
+      "name": "backgroundRefresh",
+      "operation": "notification.background_refresh",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "BackgroundRefreshRequest",
+      "response": "BackgroundRefreshResult",
+      "stability": "stable",
+      "description": "Runs one background refresh the platform granted (iOS BGAppRefreshTask): connects the link, runs one incremental sync and returns the link to its previous state (iOS closes it again). The budget is clamped to 25000 ms; completed is false when it ran out or no session could connect. Not available in the browser."
+    }
+  ]
+}

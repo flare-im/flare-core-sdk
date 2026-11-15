@@ -28,4 +28,6 @@ public interface SessionApi {
     func setPushPermission(request: SetPushPermissionRequest): PushLifecycleStatus
     func reconcilePush(): PushLifecycleStatus
     func pushStatus(): PushLifecycleStatus
+    func handleRemoteMessage(request: HandleRemoteMessageRequest): RemoteMessageOutcome
+    func resolveNotificationTap(request: ResolveNotificationTapRequest): NotificationTapResult
 }

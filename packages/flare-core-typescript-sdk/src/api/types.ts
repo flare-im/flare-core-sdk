@@ -150,6 +150,7 @@ export type ResolveMediaAccessRequest = FlareJsonObject;
 export type SdkVersion = FlareJsonObject;
 export type SetConversationArchivedRequest = FlareJsonObject;
 export type SetConversationMutedRequest = FlareJsonObject;
+export type SetConversationNotifyAllRequest = FlareJsonObject;
 export type SetConversationPinnedRequest = FlareJsonObject;
 export type SetMediaCacheMaxBytesRequest = FlareJsonObject;
 export type SetMediaCacheRootRequest = FlareJsonObject;

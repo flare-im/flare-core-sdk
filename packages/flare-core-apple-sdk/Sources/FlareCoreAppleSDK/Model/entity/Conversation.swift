@@ -61,6 +61,8 @@ public struct Conversation: Codable, Sendable {
     public let mentionCount: UInt32
     /// wire: `mentionMe`. 
     public let mentionMe: Bool
+    /// wire: `notifyAll`. In a large group, whether the current user turned on notifications for every message (large groups otherwise alert only on mentions). False when never turned on.
+    public let notifyAll: Bool
     /// wire: `participantVersion`. 服务端成员读模型版本。完整成员通过独立 participants 同步拉取。
     public let participantVersion: UInt64
     /// wire: `participants`. 已按需同步到本地的完整成员快照；会话摘要同步不会填充该字段。
@@ -84,7 +86,7 @@ public struct Conversation: Codable, Sendable {
     /// wire: `visibleAfterSeq`. 当前用户的历史可见边界；seq <= visible_after_seq 的消息不可见，不参与冷启动回灌。
     public let visibleAfterSeq: UInt64
 
-    public init(avatarUrl: String = "", badge: String? = nil, businessType: String = "", channelId: String = "", conversationId: String = "", conversationType: ConversationType, createdAt: UInt64 = 0, description: String? = nil, displayName: String = "", draft: String? = nil, ext: [String: String] = [:], isArchived: Bool = false, isMentionOnly: Bool? = nil, isMuted: Bool = false, isPinned: Bool = false, lastMessage: MessagePreview? = nil, lastMessageAt: UInt64? = nil, lastMessageId: String? = nil, lastMessagePreview: String? = nil, lastReadSeq: UInt64 = 0, lastSender: DisplayName? = nil, lastSenderAvatarUrl: String = "", lastSenderId: String? = nil, lastSenderNickname: String = "", maxSeq: UInt64 = 0, memberPreview: [ConversationParticipant] = [], membersCount: UInt32 = 0, mentionCount: UInt32 = 0, mentionMe: Bool = false, participantVersion: UInt64 = 0, participants: [ConversationParticipant] = [], peerReadSeq: UInt64 = 0, remark: String? = nil, role: String? = nil, title: DisplayName, unreadCount: UInt32 = 0, updatedAt: UInt64 = 0, updatedAtTs: UInt64? = nil, version: UInt64 = 0, visibleAfterSeq: UInt64 = 0) {
+    public init(avatarUrl: String = "", badge: String? = nil, businessType: String = "", channelId: String = "", conversationId: String = "", conversationType: ConversationType, createdAt: UInt64 = 0, description: String? = nil, displayName: String = "", draft: String? = nil, ext: [String: String] = [:], isArchived: Bool = false, isMentionOnly: Bool? = nil, isMuted: Bool = false, isPinned: Bool = false, lastMessage: MessagePreview? = nil, lastMessageAt: UInt64? = nil, lastMessageId: String? = nil, lastMessagePreview: String? = nil, lastReadSeq: UInt64 = 0, lastSender: DisplayName? = nil, lastSenderAvatarUrl: String = "", lastSenderId: String? = nil, lastSenderNickname: String = "", maxSeq: UInt64 = 0, memberPreview: [ConversationParticipant] = [], membersCount: UInt32 = 0, mentionCount: UInt32 = 0, mentionMe: Bool = false, notifyAll: Bool = false, participantVersion: UInt64 = 0, participants: [ConversationParticipant] = [], peerReadSeq: UInt64 = 0, remark: String? = nil, role: String? = nil, title: DisplayName, unreadCount: UInt32 = 0, updatedAt: UInt64 = 0, updatedAtTs: UInt64? = nil, version: UInt64 = 0, visibleAfterSeq: UInt64 = 0) {
         self.avatarUrl = avatarUrl
         self.badge = badge
         self.businessType = businessType
@@ -114,6 +116,7 @@ public struct Conversation: Codable, Sendable {
         self.membersCount = membersCount
         self.mentionCount = mentionCount
         self.mentionMe = mentionMe
+        self.notifyAll = notifyAll
         self.participantVersion = participantVersion
         self.participants = participants
         self.peerReadSeq = peerReadSeq

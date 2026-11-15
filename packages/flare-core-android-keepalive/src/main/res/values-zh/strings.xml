@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="flare_keepalive_channel">后台保持连接</string>
+    <string name="flare_keepalive_channel_description">开启后台保持连接时一直显示，让应用在后台及时收到新消息</string>
+    <string name="flare_keepalive_notification_text">正在保持连接，新消息会及时送达</string>
+</resources>

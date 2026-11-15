@@ -35,4 +35,6 @@ abstract interface class FlareImClient implements SessionApi {
   EventsApi get events;
   /// SDK version and FFI contract diagnostics.
   DiagnosticsApi get diagnostics;
+  /// Notifications while the live link is up: which conversation is on screen, the user's notification settings, and whether the platform presents alerts in the background. The engine decides and renders every alert itself and hands it over as notification.present, notification.clear and notification.badge events.
+  NotificationApi get notification;
 }

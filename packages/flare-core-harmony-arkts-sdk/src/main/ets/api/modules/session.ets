@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { AccessChangedEvent, AccessSwitchedEvent, ClearPushTokenRequest, ConnectionStatus, ConversationEvent, HeartbeatEffectiveIntervalResponse, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, PushLifecycleStatus, PushTokenInput, ReactionChangedEvent, ReadReceiptEvent, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
+import { AccessChangedEvent, AccessSwitchedEvent, ClearPushTokenRequest, ConnectionStatus, ConversationEvent, HandleRemoteMessageRequest, HeartbeatEffectiveIntervalResponse, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, NotificationTapResult, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, PushLifecycleStatus, PushTokenInput, ReactionChangedEvent, ReadReceiptEvent, RemoteMessageOutcome, ResolveNotificationTapRequest, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
 import { ConnectTokenRefresher } from '../../contract/BridgeContract';
 
 /** SDK lifecycle, authenticated session and process-level utilities. */
@@ -26,4 +26,6 @@ export interface SessionApi {
   setPushPermission(request: SetPushPermissionRequest): Promise<PushLifecycleStatus>;
   reconcilePush(): Promise<PushLifecycleStatus>;
   pushStatus(): Promise<PushLifecycleStatus>;
+  handleRemoteMessage(request: HandleRemoteMessageRequest): Promise<RemoteMessageOutcome>;
+  resolveNotificationTap(request: ResolveNotificationTapRequest): Promise<NotificationTapResult>;
 }

@@ -52,6 +52,9 @@ Method return values remain the primary success/failure contract for commands su
 | `onDownloadProgress` | `media` | `download_progress` | `ProgressEvent` | Media download progress changed. |
 | `onPluginRealtime` | `plugin` | `realtime` | `PluginRealtimeEvent` | A plugin delivered a realtime packet to this user's online connections (im.realtime.deliver): online only, at most once, never stored. Expired packets and payloads that are not JSON objects never arrive. Route by pluginId and packetType. |
 | `onPluginCatalogChanged` | `plugin` | `catalog_changed` | `PluginCatalogChangedEvent` | The tenant's plugin catalog changed (a plugin enabled, disabled or reconfigured). The SDK has already invalidated its plugin catalog; read plugin entries and configuration again. Arrives a random 0-3 s after the notice, with the notices of 3 s merged into one. |
+| `onNotificationPresent` | `notification` | `present` | `NotificationPresentation` | Show a notification, or replace the one with the same collapseId: an in-app banner (surface inApp) while the app is in the foreground, a system notification (surface system) while it is in the background and the platform presents alerts itself. Title and body are rendered in the app's language; sound says whether to play one. |
+| `onNotificationClear` | `notification` | `clear` | `NotificationClearEvent` | Remove the notifications with these collapse ids (their conversations were read or deleted), or every notification of the app when all is true (the session ended). |
+| `onNotificationBadge` | `notification` | `badge` | `NotificationBadgeEvent` | Set the app badge to count, the unread total as the conversation list counts it. Reported when the total changes, after login and when the app returns to the foreground. |
 
 ## Event Domains
 
@@ -64,7 +67,7 @@ Method return values remain the primary success/failure contract for commands su
 | `lifecycle` | `initializing`, `initialized`, `init_failed`, `login_succeeded`, `login_failed`, `logged_out`, `disposed` |
 | `media` | `cache_changed`, `upload_progress`, `download_progress` |
 | `message` | `burn_scheduled`, `burned`, `hard_deleted`, `received`, `received_batch`, `send_ack`, `send_failed`, `recalled`, `typing`, `edited`, `reaction_changed`, `deleted`, `read_receipt`, `typing_aggregate`, `retention_scheduled`, `retention_expired`, `retention_purged`, `pinned`, `unpinned`, `marked`, `unmarked`, `presence_changed`, `custom`, `plugin_state_changed`, `read_summaries_changed` |
-| `notification` | `received`, `message_sound` |
+| `notification` | `received`, `present`, `clear`, `badge` |
 | `plugin` | `realtime`, `catalog_changed` |
 | `presence` | `changed` |
 | `sync` | `started`, `finished`, `failed`, `progress`, `task_completed`, `state_changed`, `resync_needed`, `readiness` |

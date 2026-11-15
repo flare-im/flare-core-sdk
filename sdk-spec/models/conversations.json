@@ -408,6 +408,13 @@
           "description": "Whether alerts are limited to mentions of the current user. Omitted by older servers."
         },
         {
+          "name": "notifyAll",
+          "wireName": "notifyAll",
+          "type": "Boolean",
+          "required": true,
+          "description": "In a large group, whether the current user turned on notifications for every message (large groups otherwise alert only on mentions). False when never turned on. Set with setConversationNotifyAll."
+        },
+        {
           "name": "isArchived",
           "wireName": "isArchived",
           "type": "Boolean",

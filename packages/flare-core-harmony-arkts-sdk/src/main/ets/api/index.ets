@@ -15,4 +15,5 @@ export type { CapabilitiesApi } from './modules/capabilities';
 export type { ViewsApi } from './modules/views';
 export type { EventsApi } from './modules/events';
 export type { DiagnosticsApi } from './modules/diagnostics';
+export type { NotificationApi } from './modules/notification';
 export type { FlareImClient } from './client';

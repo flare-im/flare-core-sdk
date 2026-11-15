@@ -8,15 +8,18 @@ import android.net.NetworkCapabilities
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import java.net.Inet4Address
-import java.net.Inet6Address
 import java.net.InetAddress
+import java.security.MessageDigest
 
 /**
  * Follows the default network with `registerDefaultNetworkCallback` and hands every reading to
  * [emit]: `{available, interface, metered, fingerprintHint}`, the current network first.
  *
  * Duplicates are fine: the Dart side reports only changes. Needs `ACCESS_NETWORK_STATE` and
- * nothing else; the fingerprint hint is never an SSID or BSSID.
+ * nothing else. The fingerprint hint is the one the native Android lifecycle module
+ * (`flare-core-android-lifecycle`) reports, by the same algorithm: a digest of the link for Wi-Fi,
+ * Ethernet and other links ([linkHint]), the operator's MCC-MNC for cellular ([operatorHint]).
+ * Never an SSID, a BSSID or a raw address.
  */
 internal class NetworkMonitor(
     context: Context,
@@ -96,9 +99,8 @@ internal class NetworkMonitor(
             else -> "other"
         }
         val hint = when (kind) {
-            "wifi", "ethernet" -> gatewayPrefix(givenLink ?: manager.getLinkProperties(network))
             "cellular" -> mccMnc()
-            else -> null
+            else -> linkHintOf(kind, givenLink ?: manager.getLinkProperties(network))
         }
         return buildMap {
             put("available", capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
@@ -110,7 +112,7 @@ internal class NetworkMonitor(
 
     private fun unavailable(): Map<String, Any?> = mapOf("available" to false)
 
-    /** MCC-MNC of the data subscription (`460-01`); no permission is needed to read it. */
+    /** MCC-MNC of the data subscription (`46001`); no permission is needed to read it. */
     private fun mccMnc(): String? {
         val manager = telephony ?: return null
         val subscription = SubscriptionManager.getDefaultDataSubscriptionId()
@@ -124,43 +126,56 @@ internal class NetworkMonitor(
         } catch (_: SecurityException) {
             null
         }
-        return formatMccMnc(operator)
+        return operatorHint(operator)
     }
 
     internal companion object {
-        /** `46001` → `460-01`; anything that is not 5 or 6 digits → null. */
-        fun formatMccMnc(operator: String?): String? {
-            val digits = operator?.trim() ?: return null
-            if (digits.length !in 5..6 || !digits.all { it in '0'..'9' }) return null
-            return "${digits.substring(0, 3)}-${digits.substring(3)}"
-        }
+        /**
+         * MCC-MNC is five or six digits (`46001`); anything else (empty when there is no SIM) is no hint.
+         * The same as the native module's `PlatformLifecycle.operatorHint`.
+         */
+        fun operatorHint(networkOperator: String?): String? =
+            networkOperator?.trim()?.takeIf { it.length in 5..6 && it.all(Char::isDigit) }
+
+        /** The hint of a non-cellular link from its default routes and DNS servers ([linkHint]). */
+        fun linkHintOf(kind: String, link: LinkProperties?): String? = linkHint(
+            kind = kind,
+            gateways = link?.routes.orEmpty().filter { it.isDefaultRoute }.mapNotNull { it.gateway },
+            dnsServers = link?.dnsServers.orEmpty(),
+        )
 
         /**
-         * The default gateway's IPv4 /24 (`192.168.1`), else a routable IPv6 gateway's /64
-         * (`2001:db8:1:2`); link-local IPv6 gateways say nothing about the network and give none.
+         * The identity of a Wi-Fi, Ethernet or other link as 16 hex digits: a SHA-256 over the kind, the
+         * default gateways and the DNS servers, each set sorted so their order does not matter. The exact
+         * algorithm of the native module's `PlatformLifecycle.linkHint`, so a Flutter app and a native app
+         * on the same network report the same hint.
+         *
+         * Only one address family counts: IPv4 when the link has an IPv4 default gateway, IPv6 otherwise.
+         * DHCP hands out the IPv4 gateway and DNS servers together, while IPv6 routes and RDNSS servers
+         * often arrive seconds later; mixing the two would report a second, different network a moment
+         * after joining. On an IPv6-only link the gateway is usually the router's link-local address,
+         * which differs between routers. The device's own addresses and the routed prefixes are left out:
+         * they change with DHCP leases and privacy addresses on the same network. Null when the link names
+         * neither a gateway nor a DNS server. Only the digest leaves this function, never an address.
          */
-        fun gatewayPrefix(link: LinkProperties?): String? {
-            val gateways = link?.routes
-                ?.filter { it.isDefaultRoute && it.hasGateway() }
-                ?.mapNotNull { it.gateway }
-                ?: return null
-            return prefixOf(gateways)
-        }
-
-        fun prefixOf(gateways: List<InetAddress>): String? {
-            gateways.firstOrNull { it is Inet4Address }?.let { v4 ->
-                val bytes = v4.address
-                return (0 until 3).joinToString(".") { (bytes[it].toInt() and 0xff).toString() }
-            }
-            gateways.firstOrNull { it is Inet6Address && !it.isLinkLocalAddress }?.let { v6 ->
-                val bytes = v6.address
-                return (0 until 4).joinToString(":") { group ->
-                    val high = bytes[group * 2].toInt() and 0xff
-                    val low = bytes[group * 2 + 1].toInt() and 0xff
-                    Integer.toHexString((high shl 8) or low)
-                }
-            }
-            return null
+        fun linkHint(kind: String, gateways: List<InetAddress>, dnsServers: List<InetAddress>): String? {
+            val ipv4 = gateways.any { it is Inet4Address }
+            fun hex(addresses: List<InetAddress>): List<String> = addresses
+                .filter { (it is Inet4Address) == ipv4 && !it.isAnyLocalAddress && !it.isLoopbackAddress }
+                .map { address -> address.address.joinToString("") { "%02x".format(it.toInt() and 0xff) } }
+                .distinct()
+                .sorted()
+            val gatewayPart = hex(gateways)
+            val dnsPart = hex(dnsServers)
+            if (gatewayPart.isEmpty() && dnsPart.isEmpty()) return null
+            val identity = listOf(
+                "v1",
+                kind,
+                "gw=" + gatewayPart.joinToString(","),
+                "dns=" + dnsPart.joinToString(","),
+            ).joinToString("|")
+            val digest = MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8))
+            return digest.take(8).joinToString("") { "%02x".format(it.toInt() and 0xff) }
         }
     }
 }

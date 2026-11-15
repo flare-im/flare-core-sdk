@@ -70,4 +70,8 @@ interface SessionApi {
     suspend fun reconcilePush(): PushLifecycleStatus
     /** pushStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.push_status`. */
     suspend fun pushStatus(): PushLifecycleStatus
+    /** handleRemoteMessage maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.handle_remote_message`. */
+    suspend fun handleRemoteMessage(request: HandleRemoteMessageRequest): RemoteMessageOutcome
+    /** resolveNotificationTap maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `sdk.resolve_notification_tap`. */
+    suspend fun resolveNotificationTap(request: ResolveNotificationTapRequest): NotificationTapResult
 }

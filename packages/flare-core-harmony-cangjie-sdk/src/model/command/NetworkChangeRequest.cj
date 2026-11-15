@@ -14,7 +14,7 @@ public class NetworkChangeRequest {
     public let metered: ?Bool
     // wire: `reason`. Optional. Optional platform reason string for diagnostics.
     public let reason: ?String
-    // wire: `fingerprintHint`. Optional. Coarse network identity (native: Wi-Fi gateway prefix or cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID.
+    // wire: `fingerprintHint`. Optional. Coarse network identity (native: a 16-hex-digit SHA-256 digest of the interface kind and the default gateway, plus the DNS servers on Android, or the cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID or a raw address.
     public let fingerprintHint: ?String
 
     public init(available!: ?Bool, interfaceValue!: ?NetworkInterfaceKind, expensive!: ?Bool, metered!: ?Bool, reason!: ?String, fingerprintHint!: ?String) {

@@ -49,6 +49,8 @@ dependencies {
     api(project(":flare-core-android-lifecycle"))
     // ClientUpdateEngine adapts a client to the update controller; the same goes for `:flare-core-android-update`.
     api(project(":flare-core-android-update"))
+    // CorePushHost adapts a client to the platform push module; the same goes for `:flare-core-android-push`.
+    api(project(":flare-core-android-push"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 
     testImplementation("junit:junit:4.13.2")

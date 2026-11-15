@@ -68,6 +68,10 @@ export class DefaultConversationsApi implements ConversationsApi {
     await invokeVoid(this.bridge, NativeCallMap.conversationSetMuted, request);
   }
 
+  async setConversationNotifyAll(request: Record<string, unknown>): Promise<void> {
+    await invokeVoid(this.bridge, NativeCallMap.conversationSetNotifyAll, request);
+  }
+
   async setConversationArchived(request: Record<string, unknown>): Promise<void> {
     await invokeVoid(this.bridge, NativeCallMap.conversationSetArchived, request);
   }

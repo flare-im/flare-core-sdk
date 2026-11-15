@@ -24,10 +24,14 @@ The SDK operations are `connection.notify_network_change` and
 - `interface` is a typed `NetworkInterfaceKind` value: `unknown`, `wifi`,
   `cellular`, `ethernet`, or `other`. Platform-specific raw interface names stay
   out of the SDK protocol; put diagnostics in `reason` if needed.
-- `fingerprintHint` is a coarse network identity (native: Wi-Fi gateway prefix or
-  cellular MCC-MNC; web: `navigator.connection.type`). The core hashes it locally
-  with `interface` into the network fingerprint that keys access point health; it is
-  never sent anywhere. Never pass an SSID.
+- `fingerprintHint` is a coarse network identity. Native: for Wi-Fi, Ethernet and
+  other links a 16-hex-digit SHA-256 digest, of the interface kind and the default
+  gateway on iOS and macOS, of the interface kind, the default gateways and the DNS
+  servers on Android (the Flutter lifecycle plugin reports the same digests); for
+  cellular the operator's MCC-MNC where the platform exposes it (Android). Web:
+  `navigator.connection.type`. The core hashes it locally with `interface` into the
+  network fingerprint that keys access point health; it is never sent anywhere.
+  Never pass an SSID or a raw address.
 - Without a session the report only updates the fingerprint. With one, the link
   supervisor probes the current connection or switches as its state machine says;
   there is no reconnect loop outside it.

@@ -20,6 +20,7 @@ public interface ConversationsApi {
     func markConversationRead(requestJson: String): Unit
     func setConversationPinned(requestJson: String): Unit
     func setConversationMuted(requestJson: String): Unit
+    func setConversationNotifyAll(requestJson: String): Unit
     func setConversationArchived(requestJson: String): Unit
     func markConversationUnread(requestJson: String): Unit
     func deleteConversation(requestJson: String): Unit

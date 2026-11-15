@@ -26,7 +26,13 @@ export 'src/adapter/codec/wire_codec.dart'
         networkChangeRequestToMap,
         setAppStateRequestToMap,
         accessImportRecoveryRequestToMap,
-        accessPinRequestToMap;
-export 'src/lifecycle/native_push_lifecycle_bridge.dart';
+        accessPinRequestToMap,
+        notificationPresentationFromJson,
+        userNotificationSettingsFromJson,
+        setNotificationFocusRequestToMap,
+        updateUserNotificationSettingsRequestToMap,
+        setBackgroundPresenterRequestToMap;
 export 'src/lifecycle/platform_lifecycle.dart';
+export 'src/push/core_push_host.dart';
+export 'src/push/platform_push.dart';
 export 'src/update/update.dart';

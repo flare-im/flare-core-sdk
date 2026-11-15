@@ -19,6 +19,8 @@ import {
   AccessSwitchedEvent,
   AppState,
   AudioContentPayload,
+  BackgroundRefreshRequest,
+  BackgroundRefreshResult,
   BootstrapHomeTimelineRequest,
   BuildAnnouncementMessageRequest,
   BuildAudioMessageRequest,
@@ -73,6 +75,7 @@ import {
   FileContentPayload,
   ForwardContentPayload,
   ForwardSourceMessage,
+  HandleRemoteMessageRequest,
   HeartbeatEffectiveIntervalResponse,
   HomeTimelineSnapshot,
   ImageContentPayload,
@@ -108,6 +111,7 @@ import {
   MessageSearchQuery,
   MessageSendAckEvent,
   MessageSendFailedEvent,
+  MultiDeviceAlertPolicy,
   NameEntity,
   NameSource,
   NetworkChangeRequest,
@@ -115,6 +119,12 @@ import {
   NormalizeRichDocFromDocJsonRequest,
   NormalizeRichDocFromHtmlRequest,
   NormalizeRichDocFromMarkdownRequest,
+  NotificationBadgeEvent,
+  NotificationClearEvent,
+  NotificationEventName,
+  NotificationPresentation,
+  NotificationPreview,
+  NotificationTapResult,
   OpenConversationListViewRequest,
   OpenConversationTimelineRequest,
   OpenTimelineViewRequest,
@@ -128,9 +138,12 @@ import {
   ProgressEventName,
   PushLifecycleStatus,
   PushTokenInput,
+  QuietHours,
   ReactionChangedEvent,
   ReactionEntry,
   ReadReceiptEvent,
+  RemoteMessageOutcome,
+  ResolveNotificationTapRequest,
   RichDocV2Normalized,
   RuntimeHealthResponse,
   SdkErrorPayload,
@@ -140,8 +153,11 @@ import {
   SendMessageResponse,
   ServerClockResponse,
   SetAppStateRequest,
+  SetBackgroundPresenterRequest,
   SetConnectTokenRefresherRequest,
   SetHeartbeatNatTimeoutRequest,
+  SetNotificationFocusRequest,
+  SetNotificationSnapshotDirectoryRequest,
   SetPushPermissionRequest,
   StartupHomeSyncRequest,
   StartupHomeSyncResponse,
@@ -176,6 +192,8 @@ import {
   UpdateSetLocaleRequest,
   UpdateSkipRequest,
   UpdateStatus,
+  UpdateUserNotificationSettingsRequest,
+  UserNotificationSettings,
   VideoContentPayload,
   ViewDelta,
   ViewDeltaOp,
@@ -256,6 +274,7 @@ export function conversationToMap(request: Conversation): Record<string, unknown
   membersCount: request.membersCount,
   mentionCount: request.mentionCount,
   mentionMe: request.mentionMe,
+  notifyAll: request.notifyAll,
   participantVersion: request.participantVersion,
   participants: request.participants.map((item) => conversationParticipantToMap(item)),
   peerReadSeq: request.peerReadSeq,
@@ -347,10 +366,87 @@ export function messageSearchQueryToMap(request: MessageSearchQuery): Record<str
   };
 }
 
+export function notificationClearEventToMap(request: NotificationClearEvent): Record<string, unknown> {
+  return {
+  all: request.all,
+  collapseIds: request.collapseIds,
+  };
+}
+
+export function notificationBadgeEventToMap(request: NotificationBadgeEvent): Record<string, unknown> {
+  return {
+  count: request.count,
+  };
+}
+
+export function quietHoursToMap(request: QuietHours): Record<string, unknown> {
+  return {
+  allowMentions: request.allowMentions,
+  endMinute: request.endMinute,
+  startMinute: request.startMinute,
+  weekdays: request.weekdays,
+  };
+}
+
+export function userNotificationSettingsToMap(request: UserNotificationSettings): Record<string, unknown> {
+  return {
+  multiDevice: request.multiDevice,
+  preview: request.preview,
+  ...(request.quietHours !== undefined ? { quietHours: quietHoursToMap(request.quietHours) } : {}),
+  settingsVersion: request.settingsVersion,
+  };
+}
+
+export function updateUserNotificationSettingsRequestToMap(request: UpdateUserNotificationSettingsRequest): Record<string, unknown> {
+  return {
+  baseSettingsVersion: request.baseSettingsVersion,
+  clearQuietHours: request.clearQuietHours,
+  ...(request.multiDevice !== undefined ? { multiDevice: request.multiDevice } : {}),
+  ...(request.preview !== undefined ? { preview: request.preview } : {}),
+  ...(request.quietHours !== undefined ? { quietHours: quietHoursToMap(request.quietHours) } : {}),
+  };
+}
+
+export function setNotificationFocusRequestToMap(request: SetNotificationFocusRequest): Record<string, unknown> {
+  return {
+  ...(request.conversationId !== undefined ? { conversationId: request.conversationId } : {}),
+  };
+}
+
+export function setBackgroundPresenterRequestToMap(request: SetBackgroundPresenterRequest): Record<string, unknown> {
+  return {
+  attached: request.attached,
+  };
+}
+
+export function setNotificationSnapshotDirectoryRequestToMap(request: SetNotificationSnapshotDirectoryRequest): Record<string, unknown> {
+  return {
+  ...(request.directory !== undefined ? { directory: request.directory } : {}),
+  };
+}
+
+export function backgroundRefreshRequestToMap(request: BackgroundRefreshRequest): Record<string, unknown> {
+  return {
+  budgetMs: request.budgetMs,
+  };
+}
+
+export function backgroundRefreshResultToMap(request: BackgroundRefreshResult): Record<string, unknown> {
+  return {
+  completed: request.completed,
+  };
+}
+
 export function pushTokenInputToMap(request: PushTokenInput): Record<string, unknown> {
   return {
+  ...(request.appBundle !== undefined ? { appBundle: request.appBundle } : {}),
+  ...(request.appVersion !== undefined ? { appVersion: request.appVersion } : {}),
+  ...(request.capabilities !== undefined ? { capabilities: request.capabilities } : {}),
+  ...(request.environment !== undefined ? { environment: request.environment } : {}),
+  ...(request.locale !== undefined ? { locale: request.locale } : {}),
   platform: request.platform,
   provider: request.provider,
+  ...(request.timeZone !== undefined ? { timeZone: request.timeZone } : {}),
   token: request.token,
   };
 }
@@ -374,6 +470,54 @@ export function pushLifecycleStatusToMap(request: PushLifecycleStatus): Record<s
   pendingRevocations: request.pendingRevocations,
   registeredProviders: request.registeredProviders,
   state: request.state,
+  };
+}
+
+export function handleRemoteMessageRequestToMap(request: HandleRemoteMessageRequest): Record<string, unknown> {
+  return {
+  ...(request.budgetMs !== undefined ? { budgetMs: request.budgetMs } : {}),
+  payload: request.payload,
+  provider: request.provider,
+  };
+}
+
+export function remoteMessageOutcomeToMap(request: RemoteMessageOutcome): Record<string, unknown> {
+  return {
+  action: request.action,
+  ...(request.badge !== undefined ? { badge: request.badge } : {}),
+  clearCollapseIds: request.clearCollapseIds,
+  ...(request.presentation !== undefined ? { presentation: notificationPresentationToMap(request.presentation) } : {}),
+  ...(request.reason !== undefined ? { reason: request.reason } : {}),
+  };
+}
+
+export function notificationPresentationToMap(request: NotificationPresentation): Record<string, unknown> {
+  return {
+  body: request.body,
+  channel: request.channel,
+  collapseId: request.collapseId,
+  conversationId: request.conversationId,
+  count: request.count,
+  messageId: request.messageId,
+  seq: request.seq,
+  sound: request.sound,
+  surface: request.surface,
+  threadId: request.threadId,
+  title: request.title,
+  };
+}
+
+export function resolveNotificationTapRequestToMap(request: ResolveNotificationTapRequest): Record<string, unknown> {
+  return {
+  payload: request.payload,
+  };
+}
+
+export function notificationTapResultToMap(request: NotificationTapResult): Record<string, unknown> {
+  return {
+  ...(request.conversationId !== undefined ? { conversationId: request.conversationId } : {}),
+  ...(request.messageId !== undefined ? { messageId: request.messageId } : {}),
+  ...(request.seq !== undefined ? { seq: request.seq } : {}),
   };
 }
 
@@ -2049,6 +2193,8 @@ export function conversationFromJson(json: Record<string, unknown>): Conversatio
     visibleAfterSeq: requiredIntField(json, 'visibleAfterSeq', 'Conversation'),
     isPinned: boolValue(field(json, 'isPinned')),
     isMuted: boolValue(field(json, 'isMuted')),
+    ...(typeof field(json, 'isMentionOnly') === 'boolean' ? { isMentionOnly: field(json, 'isMentionOnly') as boolean } : {}),
+    notifyAll: field(json, 'notifyAll') === true,
     isArchived: boolValue(field(json, 'isArchived')),
     version: intValue(field(json, 'version')),
     updatedAt: requiredIntField(json, 'updatedAt', 'Conversation'),

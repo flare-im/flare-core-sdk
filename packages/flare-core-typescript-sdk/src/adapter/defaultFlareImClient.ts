@@ -16,11 +16,12 @@ import type { CapabilitiesApi } from '../api/modules/capabilities';
 import type { ViewsApi } from '../api/modules/views';
 import type { EventsApi } from '../api/modules/events';
 import type { DiagnosticsApi } from '../api/modules/diagnostics';
+import type { NotificationApi } from '../api/modules/notification';
 import type { CreateClientRequest, CreateClientResponse, CurrentUserIdResponse, LoginRequest, SdkConfig, UpdateAccessTokenRequest } from '../api/types';
-import type { ClearPushTokenRequest, HeartbeatEffectiveIntervalResponse, PushLifecycleStatus, PushTokenInput, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest } from '../model';
+import type { ClearPushTokenRequest, HandleRemoteMessageRequest, HeartbeatEffectiveIntervalResponse, NotificationTapResult, PushLifecycleStatus, PushTokenInput, RemoteMessageOutcome, ResolveNotificationTapRequest, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest } from '../model';
 import { LifecycleEventName } from '../model';
 import { emitLifecycleEvent, invokeBool, invokeMap, invokeVoid, sdkErrorPayloadFromError, userIdFromRequest } from './codec/nativeInvoke';
-import { clearPushTokenRequestToMap, pushTokenInputToMap, setHeartbeatNatTimeoutRequestToMap, setPushPermissionRequestToMap } from './codec/wireCodec';
+import { clearPushTokenRequestToMap, handleRemoteMessageRequestToMap, pushTokenInputToMap, resolveNotificationTapRequestToMap, setHeartbeatNatTimeoutRequestToMap, setPushPermissionRequestToMap } from './codec/wireCodec';
 import type { ConnectTokenRefresher } from '../contract/bridge_contract';
 import { FlareSdkException } from '../bridge/flareSdkException';
 import { PlatformLifecycle } from '../lifecycle/platformLifecycle';
@@ -38,6 +39,7 @@ import { DefaultMediaApi } from './module/DefaultMediaApi';
 import { DefaultCapabilitiesApi } from './module/DefaultCapabilitiesApi';
 import { DefaultViewsApi } from './module/DefaultViewsApi';
 import { DefaultDiagnosticsApi } from './module/DefaultDiagnosticsApi';
+import { DefaultNotificationApi } from './module/DefaultNotificationApi';
 import { DefaultMessageBuilderApi } from './module/DefaultMessageBuilderApi';
 
 export class DefaultFlareImClient implements FlareImClient {
@@ -56,6 +58,7 @@ export class DefaultFlareImClient implements FlareImClient {
   readonly views: ViewsApi;
   readonly events: EventsApi;
   readonly diagnostics: DiagnosticsApi;
+  readonly notification: NotificationApi;
   private readonly bridge: NativeBridge;
   private platformLifecycle: PlatformLifecycle | null = null;
 
@@ -76,6 +79,7 @@ export class DefaultFlareImClient implements FlareImClient {
     this.views = new DefaultViewsApi(bridge);
     this.events = new DefaultEventsApi(bridge);
     this.diagnostics = new DefaultDiagnosticsApi(bridge);
+    this.notification = new DefaultNotificationApi(bridge);
   }
 
   async create(request: CreateClientRequest): Promise<CreateClientResponse> {
@@ -177,6 +181,12 @@ export class DefaultFlareImClient implements FlareImClient {
   }
   async pushStatus(): Promise<PushLifecycleStatus> {
     return await invokeMap(this.bridge, NativeCallMap.sdkPushStatus) as unknown as PushLifecycleStatus;
+  }
+  async handleRemoteMessage(request: HandleRemoteMessageRequest): Promise<RemoteMessageOutcome> {
+    return await invokeMap(this.bridge, NativeCallMap.sdkHandleRemoteMessage, handleRemoteMessageRequestToMap(request)) as unknown as RemoteMessageOutcome;
+  }
+  async resolveNotificationTap(request: ResolveNotificationTapRequest): Promise<NotificationTapResult> {
+    return await invokeMap(this.bridge, NativeCallMap.sdkResolveNotificationTap, resolveNotificationTapRequestToMap(request)) as unknown as NotificationTapResult;
   }
 
   /**

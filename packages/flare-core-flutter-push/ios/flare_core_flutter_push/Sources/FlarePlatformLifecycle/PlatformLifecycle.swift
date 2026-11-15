@@ -1,0 +1,1 @@
+../../../../../flare-core-apple-sdk/Sources/FlarePlatformLifecycle/PlatformLifecycle.swift

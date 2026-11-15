@@ -36,6 +36,7 @@
     "./adapter/*": "./src/adapter/*.ts",
     "./bridge/*": "./src/bridge/*.ts",
     "./lifecycle": "./src/lifecycle/index.ts",
+    "./notifications": "./src/notifications/index.ts",
     "./update": "./src/update/index.ts",
     "./update/service-worker": "./src/update/service-worker.ts",
     "./web": "./src/adapters/web/index.ts",

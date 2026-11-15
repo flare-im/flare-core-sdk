@@ -15,8 +15,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import java.net.Inet4Address
-import java.net.Inet6Address
 import java.net.InetAddress
+import java.security.MessageDigest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,8 +47,10 @@ data class PlatformNetworkState(
     val expensive: Boolean? = null,
     val metered: Boolean? = null,
     /**
-     * Coarse network identity, hashed locally into the network fingerprint: the Wi-Fi or Ethernet
-     * default gateway's IPv4 /24 (or global IPv6 /64) prefix, the cellular MCC-MNC. Never an SSID.
+     * Coarse network identity, hashed locally into the network fingerprint. Wi-Fi, Ethernet and other
+     * links: a digest of the kind with the link's default gateways and DNS servers
+     * ([PlatformLifecycle.linkHint]), which tells two networks apart without location permission and
+     * carries no address. Cellular: the operator's MCC-MNC. Never an SSID, never a raw address.
      */
     val fingerprintHint: String? = null,
 )
@@ -156,20 +158,40 @@ class PlatformLifecycle(
     }
 
     companion object {
-        /** The default gateway's IPv4 /24 first, else a global IPv6 /64; link-local says nothing. */
-        internal fun gatewayPrefix(gateways: List<InetAddress>): String? {
-            gateways.firstOrNull { it is Inet4Address }?.let { gateway ->
-                val bytes = gateway.address
-                return "${bytes[0].toInt() and 0xff}.${bytes[1].toInt() and 0xff}.${bytes[2].toInt() and 0xff}.0/24"
-            }
-            val ipv6 = gateways.firstOrNull {
-                it is Inet6Address && !it.isLinkLocalAddress && !it.isLoopbackAddress && !it.isAnyLocalAddress
-            } ?: return null
-            val bytes = ipv6.address
-            val groups = (0 until 8 step 2).map { index ->
-                Integer.toHexString(((bytes[index].toInt() and 0xff) shl 8) or (bytes[index + 1].toInt() and 0xff))
-            }
-            return groups.joinToString(":") + "::/64"
+        /**
+         * The identity of a Wi-Fi, Ethernet or other link as 16 hex digits: a SHA-256 over the kind, the
+         * default gateways and the DNS servers, each set sorted so their order does not matter.
+         *
+         * Only one address family counts: IPv4 when the link has an IPv4 default gateway, IPv6 otherwise.
+         * DHCP hands out the IPv4 gateway and DNS servers together, while IPv6 routes and RDNSS servers
+         * often arrive seconds later; mixing the two would report a second, different network a moment
+         * after joining. On an IPv6-only link the gateway is usually the router's link-local address,
+         * which differs between routers. The device's own addresses and the routed prefixes are left out:
+         * they change with DHCP leases and privacy addresses on the same network. Null when the link names
+         * neither a gateway nor a DNS server. Only the digest leaves this function, never an address.
+         */
+        internal fun linkHint(
+            kind: PlatformNetworkInterface,
+            gateways: List<InetAddress>,
+            dnsServers: List<InetAddress>,
+        ): String? {
+            val ipv4 = gateways.any { it is Inet4Address }
+            fun hex(addresses: List<InetAddress>): List<String> = addresses
+                .filter { (it is Inet4Address) == ipv4 && !it.isAnyLocalAddress && !it.isLoopbackAddress }
+                .map { address -> address.address.joinToString("") { "%02x".format(it.toInt() and 0xff) } }
+                .distinct()
+                .sorted()
+            val gatewayPart = hex(gateways)
+            val dnsPart = hex(dnsServers)
+            if (gatewayPart.isEmpty() && dnsPart.isEmpty()) return null
+            val identity = listOf(
+                "v1",
+                kind.wireValue,
+                "gw=" + gatewayPart.joinToString(","),
+                "dns=" + dnsPart.joinToString(","),
+            ).joinToString("|")
+            val digest = MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8))
+            return digest.take(8).joinToString("") { "%02x".format(it.toInt() and 0xff) }
         }
 
         /** MCC-MNC is five or six digits; anything else (empty when there is no SIM) is no hint. */
@@ -179,8 +201,9 @@ class PlatformLifecycle(
 }
 
 /**
- * The default network from `ConnectivityManager`. Needs `ACCESS_NETWORK_STATE` only: the Wi-Fi
- * hint is the gateway from the link's routes, the cellular hint the operator's MCC-MNC.
+ * The default network from `ConnectivityManager`. Needs `ACCESS_NETWORK_STATE` only (no location
+ * permission): the Wi-Fi and Ethernet hint is a digest of the link's default gateways and DNS servers
+ * ([PlatformLifecycle.linkHint]), the cellular hint the operator's MCC-MNC.
  */
 class ConnectivityNetworkSource(context: Context) : PlatformNetworkSource {
     private val context = context.applicationContext ?: context
@@ -241,8 +264,10 @@ class ConnectivityNetworkSource(context: Context) : PlatformNetworkSource {
         }
         val hint = when (kind) {
             PlatformNetworkInterface.CELLULAR -> PlatformLifecycle.operatorHint(networkOperator())
-            else -> PlatformLifecycle.gatewayPrefix(
-                properties?.routes.orEmpty().filter { it.isDefaultRoute }.mapNotNull { it.gateway },
+            else -> PlatformLifecycle.linkHint(
+                kind = kind,
+                gateways = properties?.routes.orEmpty().filter { it.isDefaultRoute }.mapNotNull { it.gateway },
+                dnsServers = properties?.dnsServers.orEmpty(),
             )
         }
         return PlatformNetworkState(

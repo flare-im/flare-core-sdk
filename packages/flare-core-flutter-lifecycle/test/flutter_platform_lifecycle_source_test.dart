@@ -134,7 +134,7 @@ void main() {
       'available': true,
       'interface': 'wifi',
       'metered': false,
-      'fingerprintHint': '192.168.1',
+      'fingerprintHint': '6dd19d25fa21927d',
     };
     final sdk = await create(bridge, {'tenantId': '0'});
     await _settle();
@@ -145,7 +145,7 @@ void main() {
         'interface': 'wifi',
         'metered': false,
         'reason': 'initial',
-        'fingerprintHint': '192.168.1',
+        'fingerprintHint': '6dd19d25fa21927d',
       },
     ]);
 
@@ -159,7 +159,7 @@ void main() {
       'available': true,
       'interface': 'cellular',
       'metered': true,
-      'fingerprintHint': '460-01',
+      'fingerprintHint': '46001',
     });
     await native.emit({'available': false});
     await native.emit({'available': false});
@@ -169,7 +169,7 @@ void main() {
         'interface': 'cellular',
         'metered': true,
         'reason': 'changed',
-        'fingerprintHint': '460-01',
+        'fingerprintHint': '46001',
       },
       {'available': false, 'reason': 'changed'},
     ]);

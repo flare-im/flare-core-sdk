@@ -7423,6 +7423,7 @@
               "ext": {},
               "isArchived": false,
               "isMuted": false,
+              "notifyAll": false,
               "isPinned": false,
               "lastReadSeq": 0,
               "lastSenderAvatarUrl": "",

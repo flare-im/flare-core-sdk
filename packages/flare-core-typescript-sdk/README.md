@@ -56,9 +56,90 @@ your code is unchanged.
 import { SdkOperations, SdkEvents } from "@flare-im/sdk/contract";
 ```
 
-`api` / `listener` / `model` / `callback` / `contract` / `media` / `lifecycle`
-export operations, event listeners, data models, callbacks, the protocol
-contract, media, and lifecycle respectively.
+`api` / `listener` / `model` / `callback` / `contract` / `media` / `lifecycle` /
+`notifications` export operations, event listeners, data models, callbacks, the
+protocol contract, media, lifecycle and system notifications respectively.
+
+## System notifications (desktop and web)
+
+The engine decides every alert itself (mute, quiet hours, the conversation on screen, one notification per
+conversation, the ring budget) and renders its text. Desktop and web alert by themselves, so they show the engine's
+`notification.present` with surface `system` as OS notifications, and take them down on `notification.clear`. One call
+does it:
+
+```ts
+import { startSystemNotifications } from "@flare-im/sdk/notifications";
+
+const notifications = startSystemNotifications(client.events, {
+  onOpen: ({ conversationId, messageId }) => openConversation(conversationId, messageId),
+});
+
+// From a user gesture (a settings switch, an onboarding step): browsers ignore it otherwise.
+await notifications.requestPermission();   // "granted" | "denied" | "prompt" | "unsupported"
+
+// On sign-out or teardown: stops listening and takes down what it showed.
+notifications.stop();
+```
+
+- The default presenter is the browser's notifications: the tag is the collapse id, so a newer notification for the
+  conversation replaces the shown one; it rings again only when the engine set `sound`; a click closes it, focuses the
+  window and calls `onOpen` (the digest notification has no conversation and only focuses).
+- While a Service Worker controls the page, the presenter shows through its registration (`showNotification`), the
+  only way Android Chrome takes, and through the `Notification` constructor otherwise; the `registration` option (or
+  `null`) overrides that. Those notifications report their clicks to the worker, so the app's `sw.ts` hands them on
+  (see below). `closeAll()` then takes down every notification of the registration, those an earlier page showed too.
+- Nothing shows before the permission is granted, and nothing fails without it. `permission()` reads it.
+- Presentations with surface `inApp` are the in-app banner's (the design kit), not the notifier's.
+- The event source is anything with `onNotificationPresent` and `onNotificationClear` returning a subscription, a
+  removal function or a promise of one: `client.events` as it is, or the social SDK's `notification` module.
+- The app still reports the conversation on screen with `client.notification.setFocus({ conversationId })`; desktop
+  and web never call `setBackgroundPresenter`.
+
+The click on a notification the worker showed arrives in the worker. One line in the app's `sw.ts` hands it to the
+page, which opens the conversation as for any other click (also for a notification an earlier page showed):
+
+```ts
+import { handleFlareNotificationClick } from "@flare-im/sdk/notifications";
+
+self.addEventListener("notificationclick", (event) => handleFlareNotificationClick(event));
+```
+
+It closes the notification, posts a `FlareNotificationClickMessage` (`type: FLARE_NOTIFICATION_CLICK`, the collapse id,
+the conversation and message ids) to the app's most recently focused window and brings it to the front. With no
+window open it opens the app at the worker's scope, or at `url`; a page that starts that way comes up without the
+conversation. It returns false, and leaves the click alone, for notifications the presenter did not show.
+
+A Tauri host passes its own presenter, built on its notification plugin:
+
+```ts
+import {
+  isPermissionGranted, requestPermission, sendNotification, removeActive,
+} from "@tauri-apps/plugin-notification";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import type { NotificationPresenter } from "@flare-im/sdk/notifications";
+
+const ids = new Map<string, number>(); // collapse id -> the plugin's numeric id
+const idOf = (collapseId: string) => {
+  let id = ids.get(collapseId);
+  if (id === undefined) ids.set(collapseId, (id = ids.size + 1));
+  return id;
+};
+
+const tauriPresenter: NotificationPresenter = {
+  permission: async () => ((await isPermissionGranted()) ? "granted" : "prompt"),
+  requestPermission: async () => ((await requestPermission()) === "granted" ? "granted" : "denied"),
+  show: (n) => sendNotification({ id: idOf(n.collapseId), title: n.title, body: n.body, group: n.threadId, silent: !n.sound }),
+  close: (collapseIds) => removeActive(collapseIds.filter((c) => ids.has(c)).map((c) => ({ id: ids.get(c)! }))),
+  closeAll: async () => removeActive([...ids.values()].map((id) => ({ id }))),
+  focus: async () => { await getCurrentWindow().show(); await getCurrentWindow().setFocus(); },
+};
+
+startSystemNotifications(client.events, { presenter: tauriPresenter, onOpen });
+```
+
+The presenter's `show` gets an `activate` callback for the click; a platform that reports no clicks never calls it. A
+presenter that hears clicks apart from `show` (the browser one, through the worker) offers `onActivate(listener)`,
+which the notifier follows the same way. The subpath pulls in neither the wasm runtime nor a bridge.
 
 ## Keeping earlier web builds
 

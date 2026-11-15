@@ -35,6 +35,7 @@
           "visibleAfterSeq": 0,
           "isPinned": false,
           "isMuted": false,
+          "notifyAll": false,
           "isArchived": false,
           "updatedAt": 1782795601000,
           "createdAt": 1782795500000,

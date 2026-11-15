@@ -8,10 +8,12 @@ import '../model/entity/network_interface_kind.dart';
 
 /// One reading of the device network, as a platform source reports it.
 ///
-/// [fingerprintHint] is a coarse network identity (Wi-Fi: the default
-/// gateway's IPv4 /24 or IPv6 /64 prefix; cellular: MCC-MNC when the platform
-/// gives it without a permission). The core hashes it locally with
-/// [interface]; it is never an SSID or BSSID.
+/// [fingerprintHint] is a coarse network identity (Wi-Fi, Ethernet and other
+/// links: a 16-hex-digit digest of the interface kind and the default gateway,
+/// plus the DNS servers on Android, the same as the native lifecycle modules
+/// report; cellular: MCC-MNC when the platform gives it without a permission).
+/// The core hashes it locally with [interface]; it is never an SSID, a BSSID or
+/// a raw address.
 final class PlatformNetworkState {
   const PlatformNetworkState({
     required this.available,

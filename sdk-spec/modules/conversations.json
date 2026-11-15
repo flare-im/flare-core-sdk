@@ -139,6 +139,16 @@
       "stability": "stable"
     },
     {
+      "name": "setConversationNotifyAll",
+      "operation": "conversation.set_notify_all",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "SetConversationNotifyAllRequest",
+      "response": "Unit",
+      "stability": "stable",
+      "description": "In a large group, turns notifications for every message on or off for the current user (large groups otherwise alert only on mentions). Request { conversationId, enabled }. The conversation shows the choice at once (notifyAll); when the server does not take it, it goes back and the call fails. Other devices of the user follow."
+    },
+    {
       "name": "setConversationArchived",
       "operation": "conversation.set_archived",
       "transport": "contract-invoke-json",

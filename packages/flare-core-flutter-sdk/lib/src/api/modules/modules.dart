@@ -15,3 +15,4 @@ export 'capabilities.dart' show CapabilitiesApi;
 export 'views.dart' show ViewsApi;
 export 'events.dart' show EventsApi;
 export 'diagnostics.dart' show DiagnosticsApi;
+export 'notification.dart' show NotificationApi;

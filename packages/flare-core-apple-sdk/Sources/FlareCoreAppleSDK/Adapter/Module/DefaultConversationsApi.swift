@@ -90,6 +90,10 @@ public final class DefaultConversationsApi: ConversationsApiProtocol {
         try await invokeVoid(bridge, descriptor: NativeCallMap.conversationSetMuted, request: AnySendable(request))
     }
 
+    public func setConversationNotifyAll(_ request: [String: AnySendable]) async throws -> Void {
+        try await invokeVoid(bridge, descriptor: NativeCallMap.conversationSetNotifyAll, request: AnySendable(request))
+    }
+
     public func setConversationArchived(_ request: [String: AnySendable]) async throws -> Void {
         try await invokeVoid(bridge, descriptor: NativeCallMap.conversationSetArchived, request: AnySendable(request))
     }

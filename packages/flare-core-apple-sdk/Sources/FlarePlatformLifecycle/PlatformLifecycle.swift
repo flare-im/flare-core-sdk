@@ -2,6 +2,9 @@ import Foundation
 #if canImport(Network)
 import Network
 #endif
+#if canImport(CryptoKit)
+import CryptoKit
+#endif
 #if canImport(UIKit) && !os(watchOS)
 import UIKit
 #elseif canImport(AppKit)
@@ -30,8 +33,9 @@ public struct PlatformNetworkState: Equatable, Sendable {
     public var expensive: Bool?
     /// Low Data Mode on Apple platforms.
     public var metered: Bool?
-    /// Coarse network identity, hashed locally into the network fingerprint: the default gateway's
-    /// IPv4 /24 (or global IPv6 /64) prefix. Never an SSID or BSSID.
+    /// Coarse network identity, hashed again by the SDK into the network fingerprint: a hash of the
+    /// interface kind and the default gateway that changes from one network to the next without
+    /// location permission. Never an address, an SSID or a BSSID.
     public var fingerprintHint: String?
 
     public init(
@@ -72,6 +76,10 @@ public protocol PlatformAppStateSource: AnyObject {
 /// (`NSApplication` activation on macOS). The current state is reported once on install, repeats
 /// are dropped, and reports are delivered in order. What to do with them is the SDK's decision;
 /// apps add no wiring of their own.
+///
+/// 进后台时，系统在通知回调返回后随时可能挂起进程，而 iOS 上 `setAppState(background)` 要等托管
+/// 交接做完才返回（约 3.5 秒以内）。所以后台执行在通知回调里同步申请，这次上报返回（或被判为重复）
+/// 后结束，系统先收回时也随之结束。
 public final class PlatformLifecycle: @unchecked Sendable {
     /// Reports a network change; `reason` is `initial` for the first report, then `path_change`.
     public typealias NotifyNetworkChange = @Sendable (_ state: PlatformNetworkState, _ reason: String) async throws -> Void
@@ -80,32 +88,37 @@ public final class PlatformLifecycle: @unchecked Sendable {
 
     private enum Signal: Sendable {
         case network(PlatformNetworkState)
-        case appState(PlatformAppState)
+        case appState(PlatformAppState, PlatformBackgroundTask?)
     }
 
     private let notifyNetworkChange: NotifyNetworkChange
     private let setAppState: SetAppState
     private let network: any PlatformNetworkSource
     private let appState: any PlatformAppStateSource
+    private let backgroundExecution: any PlatformBackgroundExecution
     private let onError: @Sendable (Error) -> Void
+    private let openTasks = OpenBackgroundTasks()
     private let lock = NSLock()
     private var continuation: AsyncStream<Signal>.Continuation?
     private var worker: Task<Void, Never>?
     private var installed = false
     private var disposed = false
 
+    /// - Parameter backgroundExecution: 进后台上报期间持有的后台执行；默认是系统的后台任务。
     /// - Parameter onError: called when a report fails; reports are best effort.
     public init(
         notifyNetworkChange: @escaping NotifyNetworkChange,
         setAppState: @escaping SetAppState,
         network: any PlatformNetworkSource = SystemNetworkSource(),
         appState: any PlatformAppStateSource = SystemAppStateSource(),
+        backgroundExecution: any PlatformBackgroundExecution = SystemBackgroundExecution(),
         onError: @escaping @Sendable (Error) -> Void = { _ in }
     ) {
         self.notifyNetworkChange = notifyNetworkChange
         self.setAppState = setAppState
         self.network = network
         self.appState = appState
+        self.backgroundExecution = backgroundExecution
         self.onError = onError
     }
 
@@ -131,7 +144,15 @@ public final class PlatformLifecycle: @unchecked Sendable {
         }
         lock.unlock()
         network.start { continuation.yield(.network($0)) }
-        appState.start { continuation.yield(.appState($0)) }
+        appState.start { [backgroundExecution, openTasks] state in
+            let task = state == .background ? backgroundExecution.begin(name: "im.flare.sdk.app-state") : nil
+            if let task {
+                openTasks.add(task)
+            }
+            if case .terminated = continuation.yield(.appState(state, task)) {
+                task?.end()
+            }
+        }
         return self
     }
 
@@ -154,6 +175,8 @@ public final class PlatformLifecycle: @unchecked Sendable {
         appState.stop()
         continuation?.finish()
         worker?.cancel()
+        // 取消后排队的信号不再处理，它们带的后台执行在这里结束，不等系统到期
+        openTasks.endAll()
     }
 
     private static func report(
@@ -175,7 +198,8 @@ public final class PlatformLifecycle: @unchecked Sendable {
                 } catch {
                     onError(error)
                 }
-            case .appState(let state):
+            case .appState(let state, let task):
+                defer { task?.end() }
                 guard state != lastAppState else { continue }
                 lastAppState = state
                 do {
@@ -185,6 +209,27 @@ public final class PlatformLifecycle: @unchecked Sendable {
                 }
             }
         }
+    }
+}
+
+/// 已申请、还没结束的后台执行。
+private final class OpenBackgroundTasks: @unchecked Sendable {
+    private let lock = NSLock()
+    private var tasks: [PlatformBackgroundTask] = []
+
+    func add(_ task: PlatformBackgroundTask) {
+        lock.lock()
+        tasks.removeAll { $0.ended }
+        tasks.append(task)
+        lock.unlock()
+    }
+
+    func endAll() {
+        lock.lock()
+        let open = tasks
+        tasks = []
+        lock.unlock()
+        open.forEach { $0.end() }
     }
 }
 
@@ -243,35 +288,61 @@ public final class SystemNetworkSource: PlatformNetworkSource, @unchecked Sendab
             interface: kind,
             expensive: path.isExpensive,
             metered: path.isConstrained,
-            fingerprintHint: kind == .cellular ? nil : gatewayPrefix(path.gateways)
+            fingerprintHint: kind == .cellular ? nil : gatewayFingerprint(kind: kind, gateways: path.gateways)
         )
     }
 
-    /// The first IPv4 gateway's /24, else the first global IPv6 gateway's /64.
-    static func gatewayPrefix(_ gateways: [NWEndpoint]) -> String? {
-        var ipv6: IPv6Address?
+    /// The network's identity as a hash: 16 hex digits of SHA-256 over the interface kind and the
+    /// gateway (see `gatewayIdentity`). Without location permission there is no SSID or BSSID to go
+    /// by; the gateway tells most networks apart and is the same every time the device joins one.
+    /// Nil without a usable gateway.
+    static func gatewayFingerprint(kind: PlatformNetworkInterface, gateways: [NWEndpoint]) -> String? {
+        guard let gateway = gatewayIdentity(gateways) else { return nil }
+        #if canImport(CryptoKit)
+        let digest = SHA256.hash(data: Data("flare.gateway.v1\u{0}\(kind.rawValue)\u{0}\(gateway)".utf8))
+        return hex(digest.prefix(8))
+        #else
+        return nil
+        #endif
+    }
+
+    /// The gateway the fingerprint is taken from: the first IPv4 gateway's address, else the /64 of
+    /// the first global IPv6 gateway, else the first link-local IPv6 gateway (the router's own
+    /// address on the link, which stays put while the advertised prefix may be renumbered).
+    /// IPv4 wins whenever there is one, so a dual-stack network keeps one identity.
+    static func gatewayIdentity(_ gateways: [NWEndpoint]) -> String? {
+        var global: IPv6Address?
+        var linkLocal: IPv6Address?
         for gateway in gateways {
             guard case let .hostPort(host, _) = gateway else { continue }
             switch host {
             case .ipv4(let address):
                 let bytes = [UInt8](address.rawValue)
                 guard bytes.count == 4 else { continue }
-                return "\(bytes[0]).\(bytes[1]).\(bytes[2]).0/24"
+                return "4:" + bytes.map { String($0) }.joined(separator: ".")
             case .ipv6(let address):
-                if ipv6 == nil, !address.isLinkLocal, !address.isLoopback {
-                    ipv6 = address
+                if address.isLoopback {
+                    continue
+                } else if address.isLinkLocal {
+                    linkLocal = linkLocal ?? address
+                } else {
+                    global = global ?? address
                 }
             default:
                 continue
             }
         }
-        guard let ipv6 else { return nil }
-        let bytes = [UInt8](ipv6.rawValue)
-        guard bytes.count == 16 else { return nil }
-        let groups = stride(from: 0, to: 8, by: 2).map { index in
-            String(UInt16(bytes[index]) << 8 | UInt16(bytes[index + 1]), radix: 16)
+        if let global {
+            return "6g:" + hex([UInt8](global.rawValue).prefix(8))
         }
-        return groups.joined(separator: ":") + "::/64"
+        if let linkLocal {
+            return "6l:" + hex([UInt8](linkLocal.rawValue))
+        }
+        return nil
+    }
+
+    private static func hex<Bytes: Sequence>(_ bytes: Bytes) -> String where Bytes.Element == UInt8 {
+        bytes.map { String(format: "%02x", $0) }.joined()
     }
     #endif
 }
@@ -329,9 +400,7 @@ public final class SystemAppStateSource: PlatformAppStateSource, @unchecked Send
         #if canImport(UIKit) && !os(watchOS)
         // `UIApplication.shared` is unavailable to app extensions; look it up at run time so the
         // package also links into them (where there is no application to ask).
-        let selector = NSSelectorFromString("sharedApplication")
-        guard UIApplication.responds(to: selector),
-              let application = UIApplication.perform(selector)?.takeUnretainedValue() as? UIApplication else {
+        guard let application = SharedApplication.current else {
             return nil
         }
         return application.applicationState == .background ? .background : .foreground
