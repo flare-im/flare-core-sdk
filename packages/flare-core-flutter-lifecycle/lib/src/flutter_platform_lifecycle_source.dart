@@ -159,7 +159,9 @@ String? desktopTarget() {
   };
   if (system == null) return null;
   final abi = Abi.current();
-  if (abi == Abi.macosArm64 || abi == Abi.windowsArm64 || abi == Abi.linuxArm64) {
+  if (abi == Abi.macosArm64 ||
+      abi == Abi.windowsArm64 ||
+      abi == Abi.linuxArm64) {
     return '$system-aarch64';
   }
   if (abi == Abi.macosX64 || abi == Abi.windowsX64 || abi == Abi.linuxX64) {
