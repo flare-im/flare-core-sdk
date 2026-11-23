@@ -1891,7 +1891,7 @@
           "hasOlder": false,
           "prepend": [],
           "remove": [
-            "m4"
+            "server:s4"
           ],
           "upsert": [],
           "viewType": "timeline"
@@ -2875,16 +2875,10 @@
         ]
       },
       "expect": "applied",
-      "name": "the ack updates the pending row under the same key",
+      "name": "the ack migrates the pending row identity",
       "update": {
         "delta": {
-          "append": [],
-          "attachedToLatest": true,
-          "hasNewer": false,
-          "hasOlder": false,
-          "prepend": [],
-          "remove": [],
-          "upsert": [
+          "append": [
             {
               "attributes": {},
               "channelId": "",
@@ -2932,6 +2926,14 @@
               "version": 0
             }
           ],
+          "attachedToLatest": true,
+          "hasNewer": false,
+          "hasOlder": false,
+          "prepend": [],
+          "remove": [
+            "client:cm-a"
+          ],
+          "upsert": [],
           "viewType": "timeline"
         },
         "kind": "delta",
@@ -4200,13 +4202,13 @@
           "prepend": [],
           "remove": [],
           "reorder": [
-            "m1",
-            "m2",
-            "m3",
-            "m5",
-            "cm-a",
-            "m8",
-            "cm-b"
+            "server:s1",
+            "server:s2",
+            "server:s3",
+            "server:s5",
+            "server:s6",
+            "server:s8",
+            "client:cm-b"
           ],
           "upsert": [],
           "viewType": "timeline"
@@ -4881,22 +4883,7 @@
       "name": "the ack moves the row before a later one with a reorder",
       "update": {
         "delta": {
-          "append": [],
-          "attachedToLatest": true,
-          "hasNewer": false,
-          "hasOlder": false,
-          "prepend": [],
-          "remove": [],
-          "reorder": [
-            "m1",
-            "m2",
-            "m3",
-            "m5",
-            "cm-a",
-            "cm-b",
-            "m8"
-          ],
-          "upsert": [
+          "append": [
             {
               "attributes": {},
               "channelId": "",
@@ -4944,6 +4931,23 @@
               "version": 0
             }
           ],
+          "attachedToLatest": true,
+          "hasNewer": false,
+          "hasOlder": false,
+          "prepend": [],
+          "remove": [
+            "client:cm-b"
+          ],
+          "reorder": [
+            "server:s1",
+            "server:s2",
+            "server:s3",
+            "server:s5",
+            "server:s6",
+            "server:s7",
+            "server:s8"
+          ],
+          "upsert": [],
           "viewType": "timeline"
         },
         "kind": "delta",
@@ -6048,12 +6052,12 @@
           "prepend": [],
           "remove": [],
           "reorder": [
-            "m3",
-            "m4",
-            "m5",
-            "m6",
-            "m7",
-            "m8"
+            "server:s3",
+            "server:s4",
+            "server:s5",
+            "server:s6",
+            "server:s7",
+            "server:s8"
           ],
           "upsert": [],
           "viewType": "timeline"
@@ -7423,7 +7427,6 @@
               "ext": {},
               "isArchived": false,
               "isMuted": false,
-              "notifyAll": false,
               "isPinned": false,
               "lastReadSeq": 0,
               "lastSenderAvatarUrl": "",
@@ -7433,6 +7436,7 @@
               "membersCount": 0,
               "mentionCount": 0,
               "mentionMe": false,
+              "notifyAll": false,
               "participantVersion": 0,
               "participants": [],
               "peerReadSeq": 0,
@@ -8046,6 +8050,6 @@
     }
   ],
   "description": "Timeline view update vectors (view.updated). Each case is the host's window before an update, one update exactly as the core published it, and the result: applied (with the window after), snapshotRequired (the revision skipped one: the host leaves its window as it is and calls view.timeline.snapshot) or stale (the host already has that revision: the update is dropped). before and after list the rows in timeline order with the three state fields and the revision; the conversation header is not part of them: a host replaces its header whenever an update carries one. core-sdk produces every case in src/client/api/view_window_tests.rs and checks this file against what it produces.",
-  "rowKey": "clientMsgId when non-empty, else serverId when non-empty, else seq:<conversationId>:<conversationSeq>",
+  "rowKey": "the core-provided timelineKey; ACK migrates the local row identity",
   "schemaVersion": 1
 }

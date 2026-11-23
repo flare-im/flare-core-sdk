@@ -159,13 +159,14 @@
       },
       {
         "name": "an event-only latest range does not hide cached visible messages on open",
-        "boundaryCase": "The sync cursor is already beyond an unproven cached message. Forward sync cannot fill that historical gap. Opening latest proves the missing range with backfill, without advancing the cursor or requiring a loadOlder gesture; reopening uses the repaired cache.",
+        "boundaryCase": "Open shows a cached segment immediately. A background backfill proves the gap without advancing the sync cursor. Reopening uses the repaired cache.",
         "pageSize": 40,
         "conversation": { "maxSeq": 17, "visibleAfterSeq": 0 },
         "server": { "visibleMessages": [[1, 4], [7, 7], [10, 10], [13, 13], [15, 15], [17, 17]] },
         "local": { "messages": [[1, 4], [7, 7], [10, 10], [13, 13], [15, 15], [17, 17]], "coverage": [[1, 16], [18, 18]] },
         "steps": [
-          { "do": "open", "expect": { "window": [[1, 4], [7, 7], [10, 10], [13, 13], [15, 15], [17, 17]], "hasOlder": false, "requests": [{ "before": 18, "limit": 40 }], "coverage": [[1, 18]] } },
+          { "do": "open" },
+          { "do": "settleForeground", "expect": { "window": [[1, 4], [7, 7], [10, 10], [13, 13], [15, 15], [17, 17]], "hasOlder": false, "coverage": [[1, 18]] } },
           { "do": "event", "kind": "syncFinished", "expect": { "window": [[1, 4], [7, 7], [10, 10], [13, 13], [15, 15], [17, 17]], "hasOlder": false, "requests": [] } },
           { "do": "open", "expect": { "window": [[1, 4], [7, 7], [10, 10], [13, 13], [15, 15], [17, 17]], "hasOlder": false, "requests": [] } }
         ]
@@ -176,10 +177,10 @@
         "pageSize": 40,
         "conversation": { "maxSeq": 17, "visibleAfterSeq": 0 },
         "server": { "visibleMessages": [[1, 17]] },
-        "local": { "messages": [[1, 17]], "coverage": [[1, 16], [18, 18]] },
+        "local": { "messages": [], "coverage": [[18, 18]] },
         "steps": [
           { "do": "offline" },
-          { "do": "open", "expect": { "error": true, "requests": [{ "before": 18, "limit": 40 }], "coverage": [[1, 16], [18, 18]] } },
+          { "do": "open", "expect": { "error": true, "requests": [{ "before": 18, "limit": 40 }], "coverage": [[18, 18]] } },
           { "do": "online" },
           { "do": "open", "expect": { "window": [[1, 17]], "hasOlder": false, "requests": [{ "before": 18, "limit": 40 }], "coverage": [[1, 18]] } }
         ]
@@ -251,7 +252,7 @@
               "hasOlder": true,
               "hasNewer": true,
               "attachedToLatest": false,
-              "anchorKey": "m100",
+              "anchorKey": "server:s100",
               "requests": []
             }
           },
@@ -282,7 +283,7 @@
           {
             "do": "openAround",
             "seq": 80,
-            "expect": { "window": [[61, 100]], "hasNewer": true, "attachedToLatest": false, "anchorKey": "m80", "requests": [] }
+            "expect": { "window": [[61, 100]], "hasNewer": true, "attachedToLatest": false, "anchorKey": "server:s80", "requests": [] }
           },
           {
             "do": "loadNewer",
@@ -308,7 +309,7 @@
         "server": { "visibleMessages": [[1, 200]] },
         "local": { "messages": [[1, 100], [151, 200]], "coverage": [[1, 100], [151, 200]] },
         "steps": [
-          { "do": "openAround", "seq": 70, "expect": { "window": [[51, 90]], "hasNewer": true, "anchorKey": "m70", "requests": [] } },
+          { "do": "openAround", "seq": 70, "expect": { "window": [[51, 90]], "hasNewer": true, "anchorKey": "server:s70", "requests": [] } },
           { "do": "offline" },
           {
             "do": "loadNewer",
@@ -355,7 +356,7 @@
               "hasOlder": true,
               "hasNewer": true,
               "attachedToLatest": false,
-              "anchorKey": "m500",
+              "anchorKey": "server:s500",
               "requests": [{ "before": 501, "limit": 20 }, { "after": 500, "limit": 20 }],
               "coverage": [[481, 520], [981, 1000]]
             }
@@ -395,7 +396,7 @@
               "hasOlder": true,
               "hasNewer": true,
               "attachedToLatest": false,
-              "anchorKey": "m50",
+              "anchorKey": "server:s50",
               "requests": []
             }
           }
@@ -417,7 +418,7 @@
               "hasOlder": true,
               "hasNewer": false,
               "attachedToLatest": true,
-              "anchorKey": "m95",
+              "anchorKey": "server:s95",
               "requests": []
             }
           },
@@ -458,7 +459,7 @@
             "clientMsgId": "cm-a",
             "expect": {
               "window": [[962, 1000]],
-              "pending": ["cm-a"],
+              "pending": ["client:cm-a"],
               "hasNewer": false,
               "attachedToLatest": true,
               "updates": ["snapshot"]
@@ -482,7 +483,7 @@
         "steps": [
           { "do": "open", "expect": { "window": [[11, 50]], "attachedToLatest": true } },
           { "do": "liveMessage", "seq": 51, "expect": { "window": [[11, 51]], "updates": ["delta"] } },
-          { "do": "send", "clientMsgId": "cm-b", "expect": { "window": [[11, 51]], "pending": ["cm-b"], "updates": ["delta"] } },
+          { "do": "send", "clientMsgId": "cm-b", "expect": { "window": [[11, 51]], "pending": ["client:cm-b"], "updates": ["delta"] } },
           { "do": "ack", "clientMsgId": "cm-b", "seq": 52, "expect": { "window": [[11, 52]], "pending": [], "updates": ["delta"] } }
         ]
       }

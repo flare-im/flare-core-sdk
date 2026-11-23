@@ -278,7 +278,7 @@
       "kind": "plugin",
       "eventName": "capability_request",
       "payload": "PluginCapabilityRequestEvent",
-      "description": "The engine asks the host to do its part of a plugin host capability (method consent, captureDocument, pickFile, confirmPayment or locateOnce). Show the kit's screen for it and answer with completePluginCapabilityRequest({requestId, result}); the engine waits up to 10 minutes."
+      "description": "The engine asks the host to do its part of a plugin host capability (method consent, captureDocument, pickFile, confirmPayment, locateOnce or the paymentSettled notice). Show the kit's screen for it and answer with completePluginCapabilityRequest({requestId, result}); the engine waits up to 10 minutes."
     },
     {
       "name": "onPluginBundleEvent",

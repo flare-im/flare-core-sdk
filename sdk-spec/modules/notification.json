@@ -21,7 +21,7 @@
       "request": "Unit",
       "response": "UserNotificationSettings",
       "stability": "stable",
-      "description": "The user's notification settings (quiet hours, preview, multi-device policy), shared by all of the user's devices. The engine reads them after connecting and again when another device changes them; without a copy it reads them from the server. Requires a logged-in session."
+      "description": "The user's notification settings (quiet hours, preview, multi-device policy). Reads the last confirmed copy from memory or the local account database, including after an offline restart. The engine refreshes it after connecting and on device changes. A session without a local copy reads from the server."
     },
     {
       "name": "updateSettings",
