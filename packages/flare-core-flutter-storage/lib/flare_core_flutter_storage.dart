@@ -6,6 +6,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+const _macosUseLoginKeychain =
+    kDebugMode || bool.fromEnvironment('FLARE_MACOS_USE_LOGIN_KEYCHAIN');
+
 abstract interface class CredentialStore {
   Future<String?> read();
   Future<void> write(String value);
@@ -22,13 +25,12 @@ class MobileCredentialStore implements CredentialStore {
     FlutterSecureStorage? storage,
   }) : storage = storage ??
             FlutterSecureStorage(
-              // Ad-hoc macOS debug builds have no provisioning identity for the
-              // data-protection keychain. Keep credentials in the OS login
-              // keychain, in a service scoped to this app and installation.
+              // macOS builds signed ad hoc use the login keychain because the
+              // data-protection keychain requires a provisioned app identity.
               mOptions: MacOsOptions(
-                usesDataProtectionKeychain: !kDebugMode,
-                accountName: kDebugMode
-                    ? 'flare.debug.$key.$binding'
+                usesDataProtectionKeychain: !_macosUseLoginKeychain,
+                accountName: _macosUseLoginKeychain
+                    ? '${kDebugMode ? 'flare.debug' : 'flare.direct'}.$key.$binding'
                     : AppleOptions.defaultAccountName,
               ),
               iOptions: const IOSOptions(

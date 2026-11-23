@@ -7,14 +7,16 @@ CORE_DIR ?= $(CURDIR)/../flare-core-sdk-engine
 CORE_DIST ?= $(CORE_DIR)/dist
 EXAMPLES_DIR ?= ../flare-core-examples/apps
 PACKAGES_DIR ?= packages
+NATIVE_ARTIFACTS_DIR ?= native/artifacts
 
 FFI_A := libflare_im_core_sdk_ffi.a
 FFI_SO := libflare_im_core_sdk_ffi.so
 FFI_DYLIB := libflare_im_core_sdk_ffi.dylib
 ANDROID_ABIS ?= arm64-v8a armeabi-v7a x86_64
 IOS_TRIPLES ?= aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
-# Every jniLibs root that consumes the Android FFI .so (app + SDK package + flutter app).
+# Every SDK link path / jniLibs root that consumes the Android FFI .so.
 ANDROID_JNI_ROOTS := \
+	$(NATIVE_ARTIFACTS_DIR)/android \
 	$(EXAMPLES_DIR)/flare-core-android-app/app/src/main/jniLibs \
 	$(PACKAGES_DIR)/flare-core-android-sdk/src/main/jniLibs \
 	$(EXAMPLES_DIR)/flare-core-flutter-app/android/app/src/main/jniLibs
@@ -25,14 +27,24 @@ ANDROID_JNI_ROOTS := \
 help:
 	@printf '%s\n' 'Sync core-sdk artifacts (from $(CORE_DIST)) into each platform location:'
 	@printf '  %-20s %s\n' 'make sync' 'android + ios + flutter (one command)'
+	@printf '  %-20s %s\n' 'make sync-host' 'dist/host -> SDK native/artifacts/host'
 	@printf '  %-20s %s\n' 'make sync-android' 'dist/android/<abi>/*.so -> app + SDK + flutter jniLibs'
 	@printf '  %-20s %s\n' 'make sync-ios' 'dist/{host,ios} -> ../flare-core-examples/apps/flare-core-ios-app/FFI'
 	@printf '  %-20s %s\n' 'make sync-flutter' 'dist/{host,ios} -> flutter macOS dylib + iOS universal .a'
 	@printf '%s\n' '(tauri/web wasm: the bundler resolves it from flare-core-sdk-engine/bindings/wasm/pkg; no copy needed)'
 
 .PHONY: sync
-sync: sync-android sync-ios sync-flutter ## Distribute core dist/ into all native platform locations
+sync: sync-host sync-android sync-ios sync-flutter ## Distribute core dist/ into all native platform locations
 	@echo "synced $(CORE_DIST) -> android + ios + flutter"
+
+.PHONY: sync-host
+sync-host:
+	@src="$(CORE_DIST)/host/$(FFI_DYLIB)"; \
+	if [ -f "$$src" ]; then \
+		mkdir -p "$(NATIVE_ARTIFACTS_DIR)/host"; \
+		cp -f "$$src" "$(NATIVE_ARTIFACTS_DIR)/host/$(FFI_DYLIB)"; \
+		echo "host -> SDK native artifacts"; \
+	fi
 
 .PHONY: sync-android
 sync-android:
@@ -46,7 +58,7 @@ sync-android:
 	done
 
 .PHONY: sync-ios
-sync-ios:
+sync-ios: sync-host
 	@dest="$(EXAMPLES_DIR)/flare-core-ios-app/FFI"; mkdir -p "$$dest"; \
 	if [ -f "$(CORE_DIST)/host/$(FFI_DYLIB)" ]; then cp -f "$(CORE_DIST)/host/$(FFI_DYLIB)" "$$dest/"; echo "ios host dylib"; fi; \
 	for t in $(IOS_TRIPLES); do \
@@ -56,7 +68,7 @@ sync-ios:
 	if [ -f "$(CORE_DIST)/include/flare_im_core_sdk_ffi.h" ]; then cp -f "$(CORE_DIST)/include/flare_im_core_sdk_ffi.h" "$$dest/"; fi
 
 .PHONY: sync-flutter
-sync-flutter:
+sync-flutter: sync-host
 	@if [ -f "$(CORE_DIST)/host/$(FFI_DYLIB)" ]; then \
 		mkdir -p "$(EXAMPLES_DIR)/flare-core-flutter-app/macos/Runner"; \
 		cp -f "$(CORE_DIST)/host/$(FFI_DYLIB)" "$(EXAMPLES_DIR)/flare-core-flutter-app/macos/Runner/"; \

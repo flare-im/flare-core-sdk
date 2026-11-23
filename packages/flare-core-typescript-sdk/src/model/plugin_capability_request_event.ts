@@ -4,8 +4,8 @@
 export interface PluginCapabilityRequestEvent {
   /** wire: `requestId`. Pass it back with the result. */
   requestId: number;
-  /** wire: `method`. consent, captureDocument, pickFile, confirmPayment, locateOnce or the paymentSettled notice. */
+  /** wire: `method`. consent, captureDocument, pickFile, scanCode, confirmPayment, locateOnce or the paymentSettled notice. */
   method: string;
-  /** wire: `request`. consent: {pluginId, pluginVersion, capability, params?}; captureDocument: {pluginId, side, accept, maxBytes}; pickFile: {pluginId, capability, accept, maxBytes}; confirmPayment: {pluginId, order: {orderId, amount, currency, payee, title, expiresAtMs, operation, shortfall?, topUp?}, error?: {key, code?}, reportsOutcome?}; locateOnce: {pluginId, precision}; paymentSettled (never answered): {pluginId, orderId}. */
+  /** wire: `request`. consent: {pluginId, pluginVersion, capability, params?}; captureDocument: {pluginId, side, accept, maxBytes}; pickFile: {pluginId, capability, accept, maxBytes}; scanCode: {pluginId}; confirmPayment: {pluginId, order: {orderId, amount, currency, payee, title, expiresAtMs, operation, shortfall?, topUp?}, error?: {key, code?}, reportsOutcome?}; locateOnce: {pluginId, precision}; paymentSettled (never answered): {pluginId, orderId}. */
   request: Record<string, unknown>;
 }

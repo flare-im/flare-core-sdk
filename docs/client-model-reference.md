@@ -1158,7 +1158,7 @@ One operation in a conversation-list view delta.
 
 ### ViewDelta
 
-Typed delta emitted by core observable views. A timeline delta works by row key (clientMsgId, else serverId, else seq:<conversationId>:<conversationSeq>): remove the keys in remove, replace the rows in upsert in place, put prepend first and append last, reorder by every key when reorder is present, then take the three state fields and conversation. A conversation-list delta is the indexed ops list.
+Typed delta emitted by core observable views. A timeline delta works by the message timelineKey (canonical server identity for confirmed rows; ACK migrates the local row identity): remove the keys in remove, replace the rows in upsert in place, put prepend first and append last, reorder by every key when reorder is present, then take the three state fields and conversation. A conversation-list delta is the indexed ops list.
 
 | Field | Wire name | Type | Required | Description |
 |-------|-----------|------|----------|-------------|
@@ -2066,8 +2066,8 @@ The engine asks the host to do its part of a plugin host capability; answer with
 | Field | Wire name | Type | Required | Description |
 |-------|-----------|------|----------|-------------|
 | `requestId` | `requestId` | `UInt64` | yes | Pass it back with the result. |
-| `method` | `method` | `String` | yes | consent, captureDocument, pickFile, confirmPayment or locateOnce. |
-| `request` | `request` | `JsonObject` | yes | consent: {pluginId, pluginVersion, capability, params?}; captureDocument: {pluginId, side, accept, maxBytes}; pickFile: {pluginId, capability, accept, maxBytes}; confirmPayment: {pluginId, order: {orderId, amount, currency, payee, title, expiresAtMs, operation}}; locateOnce: {pluginId, precision}. |
+| `method` | `method` | `String` | yes | consent, captureDocument, pickFile, scanCode, confirmPayment, locateOnce or the paymentSettled notice. |
+| `request` | `request` | `JsonObject` | yes | consent: {pluginId, pluginVersion, capability, params?}; captureDocument: {pluginId, side, accept, maxBytes}; pickFile: {pluginId, capability, accept, maxBytes}; scanCode: {pluginId}; confirmPayment: {pluginId, order: {orderId, amount, currency, payee, title, expiresAtMs, operation, shortfall?, topUp?}, error?: {key, code?}, reportsOutcome?}; locateOnce: {pluginId, precision}; paymentSettled (never answered): {pluginId, orderId}. |
 
 ### PluginBundleEvent
 

@@ -286,6 +286,7 @@ Capability discovery and optional plugin dispatch through capability dispatch op
 | `setPluginHostProfile` | `PluginHostProfile` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `listCapabilities` | `ListCapabilitiesRequest` | `ListCapabilitiesResponse` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 | `dispatchCapability` | `DispatchCapabilityRequest` | `DispatchCapabilityResponse` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
+| `pluginNativeInvoke` | `PluginUiEvaluationRequest` | `JsonObject` | `capability-dispatch-json` | `flare_capability_dispatch_json` |
 
 ## client.views
 

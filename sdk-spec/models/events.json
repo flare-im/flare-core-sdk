@@ -807,14 +807,14 @@
           "wireName": "method",
           "type": "String",
           "required": true,
-          "description": "consent, captureDocument, pickFile, confirmPayment, locateOnce or the paymentSettled notice."
+          "description": "consent, captureDocument, pickFile, scanCode, confirmPayment, locateOnce or the paymentSettled notice."
         },
         {
           "name": "request",
           "wireName": "request",
           "type": "JsonObject",
           "required": true,
-          "description": "consent: {pluginId, pluginVersion, capability, params?}; captureDocument: {pluginId, side, accept, maxBytes}; pickFile: {pluginId, capability, accept, maxBytes}; confirmPayment: {pluginId, order: {orderId, amount, currency, payee, title, expiresAtMs, operation, shortfall?, topUp?}, error?: {key, code?}, reportsOutcome?}; locateOnce: {pluginId, precision}; paymentSettled (never answered): {pluginId, orderId}."
+          "description": "consent: {pluginId, pluginVersion, capability, params?}; captureDocument: {pluginId, side, accept, maxBytes}; pickFile: {pluginId, capability, accept, maxBytes}; scanCode: {pluginId}; confirmPayment: {pluginId, order: {orderId, amount, currency, payee, title, expiresAtMs, operation, shortfall?, topUp?}, error?: {key, code?}, reportsOutcome?}; locateOnce: {pluginId, precision}; paymentSettled (never answered): {pluginId, orderId}."
         }
       ]
     },
