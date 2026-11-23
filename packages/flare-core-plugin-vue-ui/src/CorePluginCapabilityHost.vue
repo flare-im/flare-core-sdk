@@ -16,6 +16,7 @@
  * Anything else, or a host that cannot, answers `{unavailable: true}`.
  */
 import { computed, onBeforeUnmount, ref, shallowRef, useSlots, watch } from "vue";
+import CorePluginAudioCapture from "./CorePluginAudioCapture.vue";
 import {
   FlareCapabilityConsent,
   FlareBottomSheet,
@@ -100,6 +101,10 @@ watch(current, async (head) => {
   }).catch(() => undefined);
   if (!corePluginCapabilityMethodKnown(head.method)) { await answer({ unavailable: true }); return; }
   if (head.method === "scanCode" && !slots.scan) await answer({ unavailable: true });
+  else if (head.method === "pickFile" && head.request.capability === "microphone" &&
+      (!list(head.request.accept).some((type) => type.startsWith("audio/")) || !bytesLimit(head.request.maxBytes))) {
+    await answer({ unavailable: true });
+  }
   else if (head.method === "locateOnce") await runLocate(head);
   else if (head.method === "captureDocument" || (head.method === "pickFile" && head.request.capability === "camera")) void startCamera();
 }, { flush: "post" });
@@ -116,6 +121,7 @@ function decide(decision: FlareCapabilityConsentDecision): void {
 
 // ---- pickFile, locateOnce ----
 const picking = computed(() => current.value?.method === "pickFile" ? current.value : undefined);
+const audioPick = computed(() => picking.value?.request.capability === "microphone");
 const scanning = computed(() => current.value?.method === "scanCode" ? current.value : undefined);
 const cameraPick = computed(() => picking.value?.request.capability === "camera");
 const pickLabel = computed(() => cameraPick.value
@@ -136,7 +142,7 @@ async function runPick(): Promise<void> {
   if (disposed || current.value !== head) return;
   await answer(value ? { file: value } : { unavailable: true });
 }
-function scanAnswer(head: Pending) {
+function deviceAnswer(head: Pending) {
   return (result: CorePluginCapabilityResult): void => {
     if (current.value === head) void answer(result);
   };
@@ -254,7 +260,11 @@ function paymentCancelled(): void {
       <video v-if="stream" ref="video" class="core-plugin-capability-camera" autoplay playsinline muted />
     </template>
   </FlareDocumentCapture>
-  <FlareBottomSheet v-if="picking" :open="true" :title="name || pickLabel" @close="answer({ cancelled: true })">
+  <FlareBottomSheet v-if="picking && audioPick" :key="picking.requestId" :open="true" :title="name" @close="answer({ cancelled: true })">
+    <CorePluginAudioCapture :accept="list(picking.request.accept)" :max-bytes="bytesLimit(picking.request.maxBytes)"
+      :onAnswer="deviceAnswer(picking)" />
+  </FlareBottomSheet>
+  <FlareBottomSheet v-else-if="picking" :open="true" :title="name || pickLabel" @close="answer({ cancelled: true })">
     <video
       v-if="cameraPick && stream"
       ref="video"
@@ -266,7 +276,7 @@ function paymentCancelled(): void {
     <FlareButton :label="pickLabel" :disabled="busy || (cameraPick && !cameraReady)" @click="runPick" />
   </FlareBottomSheet>
   <FlareBottomSheet v-if="scanning && slots.scan" :key="scanning.requestId" :open="true" :title="name" @close="answer({ cancelled: true })">
-    <slot name="scan" :answer="scanAnswer(scanning)" />
+    <slot name="scan" :answer="deviceAnswer(scanning)" />
   </FlareBottomSheet>
   <FlarePaymentConfirmation
     v-if="payment"

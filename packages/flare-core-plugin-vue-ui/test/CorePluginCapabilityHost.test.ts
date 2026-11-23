@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, type Component } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { FlareButton, FlareCapabilityConsent, FlarePaymentConfirmation } from "@flare-im/vue-ui";
+import { provideFlareVoiceRecorder, type FlareVoiceCaptureSession, type FlareVoiceRecorderAdapter } from "@flare-im/vue-ui/composables";
 import { useFlareI18nProvider } from "@flare-im/vue-ui/i18n";
 import {
   CorePluginCapabilityHost, CORE_PLUGIN_CAPABILITY_REQUEST_CHANNEL, corePluginCapabilityFile, createCorePluginCapabilityRequestFeed,
@@ -15,11 +16,12 @@ import {
 const mounted: Array<{ unmount(): void }> = [];
 afterEach(() => { mounted.splice(0).forEach((wrapper) => wrapper.unmount()); });
 
-function render(props: Record<string, unknown> = {}) {
+function render(props: Record<string, unknown> = {}, recorder?: FlareVoiceRecorderAdapter) {
   const hub = createCorePluginCapabilityRequestFeed();
   const complete = vi.fn(async (_id: number, _result: Record<string, unknown>) => undefined);
   const wrapper = mount(defineComponent({ setup() {
     useFlareI18nProvider("en-US");
+    if (recorder) provideFlareVoiceRecorder(recorder);
     return () => h(CorePluginCapabilityHost as Component, { requests: hub.requests, complete, paymentPasswordLabel: "Payment PIN",
       pluginName: (id: string) => (id === "flare.wallet" ? "Wallet" : undefined), ...props });
   } }), { attachTo: document.body });
@@ -137,5 +139,44 @@ describe("CorePluginCapabilityHost", () => {
     mounted.splice(0);
     await flushPromises();
     expect(complete).toHaveBeenCalledWith(31, { unavailable: true });
+  });
+
+  it("opens the microphone only on click and sends audio only after review", async () => {
+    let data: (chunk: BlobPart) => void = () => {};
+    let stopped: () => void = () => {};
+    let state: FlareVoiceCaptureSession["state"] = "inactive";
+    const release = vi.fn();
+    const session: FlareVoiceCaptureSession = {
+      mimeType: "audio/webm;codecs=opus",
+      get state() { return state; },
+      start() { state = "recording"; },
+      stop() { state = "inactive"; data(new Uint8Array([1, 2, 3])); stopped(); },
+      pause() {}, resume() {}, requestData() {},
+      onData(callback) { data = callback; },
+      onStop(callback) { stopped = callback; },
+      onError() {}, onEnded() {}, release,
+    };
+    const open = vi.fn(async () => session);
+    const { wrapper, hub, complete } = render({}, { isSupported: () => true, open });
+    hub.announce({ requestId: 41, method: "pickFile", request: {
+      pluginId: "p", capability: "microphone", accept: ["audio/webm"], maxBytes: 10,
+    } });
+    await flushPromises();
+    expect(open).not.toHaveBeenCalled();
+    const click = async (label: string) => {
+      const button = wrapper.findAllComponents(FlareButton).find((candidate) => candidate.props("label") === label);
+      expect(button).toBeDefined();
+      await button!.trigger("click");
+      await flushPromises();
+    };
+    await click("Start recording");
+    expect(open).toHaveBeenCalledOnce();
+    await click("Stop recording");
+    expect(release).toHaveBeenCalledOnce();
+    expect(complete).not.toHaveBeenCalled();
+    await click("Use recording");
+    expect(complete).toHaveBeenCalledWith(41, { file: {
+      fileName: expect.stringMatching(/\.webm$/), contentType: "audio/webm", bytes: [1, 2, 3],
+    } });
   });
 });

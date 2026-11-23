@@ -14,6 +14,7 @@ export default defineConfig({
       { find: "@lucide/vue", replacement: fileURLToPath(new URL("../../../flare-im-design/node_modules/@lucide/vue/dist/esm/lucide-vue.mjs", import.meta.url)) },
       { find: "@flare-im/sdk/plugin-ui", replacement: fileURLToPath(new URL("../flare-core-typescript-sdk/src/plugin-ui/index.ts", import.meta.url)) },
       { find: "@flare-im/vue-ui/i18n", replacement: kit("shared/i18n/index.ts") },
+      { find: "@flare-im/vue-ui/composables", replacement: kit("composables/index.ts") },
       { find: /^@flare-im\/vue-ui$/, replacement: kit("index.ts") },
     ],
   },
