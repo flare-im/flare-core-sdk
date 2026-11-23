@@ -20,6 +20,10 @@
       "@vue/*": ["./node_modules/@vue/*"],
       "naive-ui": ["./node_modules/naive-ui"],
       "@flare-im/sdk/plugin-ui": ["../flare-core-typescript-sdk/src/plugin-ui/index.ts"],
+      "@flare-im/sdk/lifecycle": ["../flare-core-typescript-sdk/src/lifecycle/index.ts"],
+      "@flare-im/sdk/model": ["../flare-core-typescript-sdk/src/model/index.ts"],
+      "@flare-im/scan-kit": ["../../../flare-scan-kit/packages/vue-scan-kit/src/index.ts"],
+      "@flare-im/scan-kit/composables": ["../../../flare-scan-kit/packages/vue-scan-kit/src/composables/index.ts"],
       "@flare-im/vue-ui": ["../../../flare-im-design/packages/vue-im-ui/src/index.ts"],
       "@flare-im/vue-ui/i18n": ["../../../flare-im-design/packages/vue-im-ui/src/shared/i18n/index.ts"],
       "@flare-im/vue-ui/*": ["../../../flare-im-design/packages/vue-im-ui/src/*"]

@@ -15,9 +15,11 @@
  * - locateOnce: one fix from `navigator.geolocation` (the consent prompt came first; the browser asks its own).
  * Anything else, or a host that cannot, answers `{unavailable: true}`.
  */
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
+import { computed, onBeforeUnmount, ref, shallowRef, useSlots, watch } from "vue";
 import {
   FlareCapabilityConsent,
+  FlareBottomSheet,
+  FlareButton,
   FlareDocumentCapture,
   FlareInput,
   FlarePaymentConfirmation,
@@ -49,7 +51,9 @@ const props = defineProps<{
   locate?: (precision: "coarse" | "fine") => Promise<{ latitude: number; longitude: number; accuracyM?: number } | null>;
   /** The file picker; defaults to the browser's. */
   pickFile?: (accept: readonly string[], capability: string) => Promise<Blob | null>;
+  deviceLabels?: { camera: string; image: string; file: string; unavailable: string };
 }>();
+const slots = useSlots();
 
 type Pending = { requestId: number; method: string; request: Record<string, unknown> };
 const queue = shallowRef<Pending[]>([]);
@@ -95,9 +99,9 @@ watch(current, async (head) => {
     if (current.value === head && resolved) name.value = resolved;
   }).catch(() => undefined);
   if (!corePluginCapabilityMethodKnown(head.method)) { await answer({ unavailable: true }); return; }
-  if (head.method === "pickFile") await runPick(head);
+  if (head.method === "scanCode" && !slots.scan) await answer({ unavailable: true });
   else if (head.method === "locateOnce") await runLocate(head);
-  else if (head.method === "captureDocument") void startCamera();
+  else if (head.method === "captureDocument" || (head.method === "pickFile" && head.request.capability === "camera")) void startCamera();
 }, { flush: "post" });
 
 // ---- consent ----
@@ -111,13 +115,31 @@ function decide(decision: FlareCapabilityConsentDecision): void {
 }
 
 // ---- pickFile, locateOnce ----
-async function runPick(head: Pending): Promise<void> {
+const picking = computed(() => current.value?.method === "pickFile" ? current.value : undefined);
+const scanning = computed(() => current.value?.method === "scanCode" ? current.value : undefined);
+const cameraPick = computed(() => picking.value?.request.capability === "camera");
+const pickLabel = computed(() => cameraPick.value
+  ? props.deviceLabels?.camera ?? "Take photo"
+  : picking.value?.request.capability === "selectImage"
+    ? props.deviceLabels?.image ?? "Choose image"
+    : props.deviceLabels?.file ?? "Choose file");
+const cameraReady = ref(false);
+async function runPick(): Promise<void> {
+  const head = picking.value;
+  if (!head || busy.value) return;
+  busy.value = true;
   const accept = list(head.request.accept);
-  const file = await (props.pickFile ?? browserPickFile)(accept, text(head.request.capability)).catch(() => null);
+  const file = await (cameraPick.value ? shoot() : (props.pickFile ?? browserPickFile)(accept, text(head.request.capability))).catch(() => null);
   if (disposed || current.value !== head) return;
   if (!file) { await answer({ cancelled: true }); return; }
-  const value = await corePluginCapabilityFile(file, accept, bytesLimit(head.request.maxBytes));
+  const value = await corePluginCapabilityFile(file, accept, bytesLimit(head.request.maxBytes)).catch(() => null);
+  if (disposed || current.value !== head) return;
   await answer(value ? { file: value } : { unavailable: true });
+}
+function scanAnswer(head: Pending) {
+  return (result: CorePluginCapabilityResult): void => {
+    if (current.value === head) void answer(result);
+  };
 }
 async function runLocate(head: Pending): Promise<void> {
   const precision = head.request.precision === "fine" ? "fine" : "coarse";
@@ -148,6 +170,7 @@ async function startCamera(): Promise<void> {
   }
 }
 function stopCamera(): void {
+  cameraReady.value = false;
   stream.value?.getTracks().forEach((track) => track.stop());
   stream.value = null;
 }
@@ -155,14 +178,15 @@ watch([video, stream], ([element, opened]) => {
   if (element && element.srcObject !== opened) element.srcObject = opened;
 });
 /** A still from the live camera, as a JPEG blob the kit then processes. */
-async function shoot(): Promise<Blob | null> {
+async function shoot(): Promise<File | null> {
   const element = video.value;
   if (!element || !element.videoWidth || !element.videoHeight) return null;
   const canvas = document.createElement("canvas");
   canvas.width = element.videoWidth;
   canvas.height = element.videoHeight;
   canvas.getContext("2d")?.drawImage(element, 0, 0);
-  return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.95));
+  return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob
+    ? new File([blob], "photo.jpg", { type: "image/jpeg" }) : null), "image/jpeg", 0.95));
 }
 function pickPhoto(): Promise<Blob | null> {
   return (props.pickFile ?? browserPickFile)(["image/jpeg", "image/png", "image/webp", "image/heic"], "selectImage").catch(() => null);
@@ -230,6 +254,20 @@ function paymentCancelled(): void {
       <video v-if="stream" ref="video" class="core-plugin-capability-camera" autoplay playsinline muted />
     </template>
   </FlareDocumentCapture>
+  <FlareBottomSheet v-if="picking" :open="true" :title="name || pickLabel" @close="answer({ cancelled: true })">
+    <video
+      v-if="cameraPick && stream"
+      ref="video"
+      class="core-plugin-capability-camera"
+      autoplay playsinline muted
+      @canplay="cameraReady = true"
+    />
+    <p v-if="cameraPick && cameraUnavailable" role="status">{{ deviceLabels?.unavailable ?? "Camera unavailable" }}</p>
+    <FlareButton :label="pickLabel" :disabled="busy || (cameraPick && !cameraReady)" @click="runPick" />
+  </FlareBottomSheet>
+  <FlareBottomSheet v-if="scanning && slots.scan" :key="scanning.requestId" :open="true" :title="name" @close="answer({ cancelled: true })">
+    <slot name="scan" :answer="scanAnswer(scanning)" />
+  </FlareBottomSheet>
   <FlarePaymentConfirmation
     v-if="payment"
     :open="true"

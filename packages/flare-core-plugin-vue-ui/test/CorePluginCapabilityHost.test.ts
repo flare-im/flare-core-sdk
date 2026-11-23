@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, type Component } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
-import { FlareCapabilityConsent, FlarePaymentConfirmation } from "@flare-im/vue-ui";
+import { FlareButton, FlareCapabilityConsent, FlarePaymentConfirmation } from "@flare-im/vue-ui";
 import { useFlareI18nProvider } from "@flare-im/vue-ui/i18n";
 import {
   CorePluginCapabilityHost, CORE_PLUGIN_CAPABILITY_REQUEST_CHANNEL, corePluginCapabilityFile, createCorePluginCapabilityRequestFeed,
@@ -109,10 +109,15 @@ describe("CorePluginCapabilityHost", () => {
     const file = new File([new Uint8Array([1, 2, 3])], "a.png", { type: "image/png" });
     Object.defineProperty(file, "arrayBuffer", { value: async () => new Uint8Array([1, 2, 3]).buffer });
     const pickFile = vi.fn(async () => file);
-    const { hub, complete } = render({ pickFile });
+    const { wrapper, hub, complete } = render({ pickFile });
     hub.announce({ requestId: 21, method: "pickFile", request: { pluginId: "p", capability: "selectImage", accept: ["image/png"], maxBytes: 10 } });
     await flushPromises();
+    expect(pickFile).not.toHaveBeenCalled();
+    await wrapper.getComponent(FlareButton).trigger("click");
+    await flushPromises();
     hub.announce({ requestId: 22, method: "pickFile", request: { pluginId: "p", capability: "selectImage", accept: ["image/jpeg"], maxBytes: 10 } });
+    await flushPromises();
+    await wrapper.getComponent(FlareButton).trigger("click");
     await flushPromises();
     hub.announce({ requestId: 23, method: "rtcSession", request: { pluginId: "p" } });
     await flushPromises();

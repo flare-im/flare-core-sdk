@@ -2,7 +2,7 @@
 export const CORE_PLUGIN_CAPABILITY_REQUEST_CHANNEL = "im://plugin_capability_request";
 
 /** What the engine asks the host to do. */
-export type CorePluginCapabilityMethod = "consent" | "captureDocument" | "pickFile" | "confirmPayment" | "locateOnce";
+export type CorePluginCapabilityMethod = "consent" | "captureDocument" | "pickFile" | "scanCode" | "confirmPayment" | "locateOnce";
 
 /**
  * One request of the engine (`plugin.capability_request`): answer it once with `plugin.capability_complete`
@@ -18,13 +18,14 @@ export interface CorePluginCapabilityRequest {
  * The host's answer, the `result` of `plugin.capability_complete`:
  * - consent: `{decision: "once" | "always" | "deny"}` (only "always" is kept by the engine);
  * - captureDocument, pickFile: `{file: {fileName, contentType, bytes: [0..255]}}`;
+ * - scanCode: `{text}`;
  * - confirmPayment: `{confirmation: {method: "paymentPassword", password}}`, the proof the plugin's server verifies;
  * - locateOnce: `{location: {latitude, longitude, accuracyM?}}`;
  * - any of them: `{cancelled: true}` or `{unavailable: true}`.
  */
 export type CorePluginCapabilityResult = Record<string, unknown>;
 
-const METHODS: ReadonlySet<string> = new Set<CorePluginCapabilityMethod>(["consent", "captureDocument", "pickFile", "confirmPayment", "locateOnce"]);
+const METHODS: ReadonlySet<string> = new Set<CorePluginCapabilityMethod>(["consent", "captureDocument", "pickFile", "scanCode", "confirmPayment", "locateOnce"]);
 
 /**
  * An `im://plugin_capability_request` payload as a request, or null when it is not one. A request of a method this
