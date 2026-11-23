@@ -294,7 +294,12 @@ export async function fetchBlob(
   const lengthHeader = Number(response.headers.get('content-length'));
   const total = Number.isFinite(lengthHeader) && lengthHeader > 0 ? lengthHeader : undefined;
   const type = response.headers.get('content-type') ?? '';
-  if (!response.body || !onProgress) {
+  const limit = 128 * 1024 ** 2;
+  if (total !== undefined && total > limit) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new RangeError('attachment exceeds the browser buffer limit');
+  }
+  if (!response.body) {
     const blob = await response.blob();
     onProgress?.(blob.size, total ?? blob.size);
     return blob;
@@ -302,13 +307,21 @@ export async function fetchBlob(
   const reader = response.body.getReader();
   const chunks: BlobPart[] = [];
   let downloaded = 0;
-  onProgress(0, total);
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    downloaded += value.byteLength;
-    onProgress(downloaded, total);
+  try {
+    onProgress?.(0, total);
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      downloaded += value.byteLength;
+      if (downloaded > limit) throw new RangeError('attachment exceeds the browser buffer limit');
+      chunks.push(value);
+      onProgress?.(downloaded, total);
+    }
+    return new Blob(chunks, { type });
+  } catch (error) {
+    await reader.cancel().catch(() => undefined);
+    throw error;
+  } finally {
+    reader.releaseLock();
   }
-  return new Blob(chunks, { type });
 }

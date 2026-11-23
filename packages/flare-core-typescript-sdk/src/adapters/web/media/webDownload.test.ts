@@ -174,6 +174,26 @@ describe("WebMediaApi downloads", () => {
     expect(anchors[0]?.href).toBe("https://media.example/attach/f3?sig=1");
   });
 
+  it("hands a 10 GiB attachment URL to the browser without buffering the response", async () => {
+    const cancel = vi.fn();
+    const read = vi.fn();
+    const size = 10 * 1024 ** 3;
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      headers: new Headers({ "content-length": String(size) }),
+      body: { cancel: async () => cancel(), getReader: read },
+    })));
+
+    const saved = await WebMediaApi.fromInner(innerApi()).downloadToUserDirectory({
+      fileId: "large", fileName: "large.bin", messageId: "received",
+    });
+
+    expect(saved).toMatchObject({ savedVia: "browser", fileName: "large.bin" });
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(read).not.toHaveBeenCalled();
+    expect(anchors[0]).toMatchObject({ href: "https://media.example/attach/large?sig=1", clicked: true });
+  });
+
   it("can be cancelled by download key", async () => {
     let release: () => void = () => undefined;
     vi.stubGlobal(

@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { h, nextTick } from "vue";
 import { flushPromises } from "@vue/test-utils";
-import { FlareDangerConfirm, FlarePluginForm, FlarePluginView } from "@flare-im/vue-ui";
+import { FlareButton, FlareDangerConfirm, FlareEmptyState, FlarePluginForm, FlarePluginView } from "@flare-im/vue-ui";
 import {
-  CLOSED_COMPOSER_MENU, PluginComposerSheet, composerPanelActions, parseComposerMenu, pluginPostedCard,
+  CLOSED_COMPOSER_MENU, PluginComposerSheet, composerDirectPage, composerPanelActions, parseComposerMenu, pluginPostedCard,
   routeComposerAction, useComposerMenu, type ComposerPluginItem,
 } from "../src/index";
 import { deferred, fakePort, mountWithSession, unmountAll } from "./support";
@@ -25,14 +25,49 @@ const formView = (extra: Record<string, unknown> = {}) => ({
 
 afterEach(unmountAll);
 
-function render(port = fakePort(), props: Record<string, unknown> = {}, directory?: Parameters<typeof mountWithSession>[2]) {
+function render(port = fakePort(), props: Record<string, unknown> = {}, directory?: Parameters<typeof mountWithSession>[2], host?: Parameters<typeof mountWithSession>[3]) {
   const onPosted = vi.fn();
   const close = vi.fn();
-  const { wrapper } = mountWithSession(port, () => h(PluginComposerSheet, { item, conversationId: "group-1", onPosted, onClose: close, ...props }), directory);
+  const { wrapper } = mountWithSession(port, () => h(PluginComposerSheet, { item, conversationId: "group-1", onPosted, onClose: close, ...props }), directory, host);
   return { port, wrapper, onPosted, close };
 }
 
 describe("PluginComposerSheet", () => {
+  it("opens an entry that is only one page action at once, with no one-key sheet (no plugin id involved)", async () => {
+    const entry = { available: true, title: "Packet", fields: [], stateVersion: 0,
+      actions: [{ id: "compose", label: "Send", target: { kind: "page", page: "acme.task.page.compose" } }] };
+    // Core answers a page target as a host target; the chat session's navigator opens it.
+    const port = fakePort({ presentMessage: vi.fn(async () => entry), invokeAction: vi.fn(async () => ({ kind: "host", target: entry.actions[0]!.target, payload: {} })) });
+    const navigate = vi.fn();
+    const { wrapper, close } = render(port, {}, undefined, { navigate });
+    await flushPromises();
+    expect(port.invokeAction).toHaveBeenCalledWith(expect.objectContaining({ message: synthesized, actionId: "compose", conversationId: "group-1" }));
+    expect(navigate).toHaveBeenCalledWith(expect.objectContaining({ pluginId: "acme.task", page: "acme.task.page.compose", conversationId: "group-1" }), {});
+    expect(close).toHaveBeenCalledOnce();
+    expect(wrapper.findComponent(FlarePluginView).exists()).toBe(false);
+    for (const extra of [{ fields: [{ label: "Note", value: "x" }] }, { blocks: [{ kind: "text", text: "x" }] }, { inputs }, { menuActions: [{ id: "m", label: "M" }] }, { bundle: true }])
+      expect(composerDirectPage({ ...entry, ...extra } as never)).toBeUndefined();
+    for (const action of [{ confirm: "Sure?" }, { form: ["title"] }, { disabledReason: "Later" }, { target: { kind: "operation", operation: "acme.task.create" } }])
+      expect(composerDirectPage({ ...entry, actions: [{ ...entry.actions[0], ...action }] } as never)).toBeUndefined();
+    expect(composerDirectPage({ ...entry, actions: [...entry.actions, { id: "help", label: "Help" }] } as never)).toBeUndefined();
+  });
+  it.each([undefined, "catalog_unreachable"])("shows loading and a useful retry state for an unreachable plugin (%s)", async (unavailableReason) => {
+    const pending = deferred<unknown>();
+    const port = fakePort({ presentMessage: vi.fn(() => pending.promise) });
+    const { wrapper, close } = render(port, { presentation: "page" });
+    expect(wrapper.findComponent(FlareEmptyState).props("loading")).toBe(true);
+    expect(wrapper.findComponent(FlarePluginForm).exists()).toBe(false);
+    pending.resolve({ available: false, title: "Task", fields: [], actions: [], unavailableReason, stateVersion: 0 });
+    await flushPromises();
+    expect(wrapper.findComponent(FlareEmptyState).props("title")).toBe("Can't load this right now");
+    port.presentMessage.mockResolvedValueOnce(formView());
+    const retry = wrapper.findAllComponents(FlareButton).find(button => button.props("label") === "Retry")!;
+    expect(retry).toBeDefined();
+    retry.vm.$emit("click");
+    await flushPromises();
+    expect(wrapper.findComponent(FlarePluginForm).exists()).toBe(true);
+    expect(close).not.toHaveBeenCalled();
+  });
   it("closes a definitely successful non-card action without manufacturing a posted event", async () => {
     const port = fakePort({ presentMessage: vi.fn(async () => formView()), invokeAction: vi.fn(async () => ({ kind: "operation", response: { success: true, data: { ok: true } } })) });
     const { wrapper, onPosted, close } = render(port); await flushPromises();
@@ -123,6 +158,23 @@ describe("PluginComposerSheet", () => {
     expect(form().props("error")).toBeUndefined();
     expect(form().props("busy")).toBe(true);
     expect(onPosted).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
+  });
+
+  it("shows the plugin's own words for a refused form, else the generic refusal (R8, as cards and pages)", async () => {
+    const port = fakePort({ presentMessage: vi.fn(async () => formView()) });
+    port.invokeAction
+      .mockResolvedValueOnce({ kind: "operation", response: { success: false, data: { errorCode: "TASK_LIMIT" } }, message: "The group has too many open tasks" })
+      .mockResolvedValueOnce({ kind: "operation", response: { success: false } });
+    const { wrapper, close } = render(port);
+    await flushPromises();
+    const form = () => wrapper.getComponent(FlarePluginForm);
+    form().vm.$emit("submit", { title: "Ship it" });
+    await flushPromises();
+    expect(form().props("error")).toBe("The group has too many open tasks");
+    form().vm.$emit("submit", { title: "Ship it" });
+    await flushPromises();
+    expect(form().props("error")).toBe("Plugin command rejected. Check permission and business state.");
     expect(close).not.toHaveBeenCalled();
   });
 

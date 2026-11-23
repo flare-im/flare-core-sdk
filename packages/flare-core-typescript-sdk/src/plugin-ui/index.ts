@@ -45,6 +45,8 @@ export interface PluginUiPort {
  */
 export type PluginPageActionRequest = {
   pluginId: string; page: string; actionId: string; platform: PluginPlatform; userGesture: boolean;
+  /** The tag `plugin_page` takes; without it the engine answers in the page's base words. */
+  locale?: string;
   data?: Record<string, unknown>; row?: { key: string; input: Record<string, unknown> }; conversationId?: string;
   formValues?: Record<string, unknown>; selection?: readonly number[];
 };
@@ -103,14 +105,15 @@ export interface PluginCapabilityPageContext {
 }
 /** The engine's answer to `capabilityInvoke` as an action outcome; `{kind: "host"}` carries the capability to run. */
 export function pluginCapabilityOutcome(value: unknown): PluginActionOutcome {
-  const result = value as { kind?: unknown; input?: unknown; value?: unknown; response?: unknown; capability?: unknown } | null;
+  const result = value as { kind?: unknown; input?: unknown; value?: unknown; response?: unknown; message?: unknown; capability?: unknown } | null;
   switch (result?.kind) {
     case "input":
       if (typeof result.input === "string" && result.input) return { kind: "input", input: result.input, value: result.value };
       break;
     case "operation":
       if (result.response && typeof result.response === "object")
-        return { kind: "operation", response: result.response as Extract<PluginActionOutcome, { kind: "operation" }>["response"] };
+        return { kind: "operation", response: result.response as Extract<PluginActionOutcome, { kind: "operation" }>["response"],
+          ...(typeof result.message === "string" && result.message ? { message: result.message } : {}) };
       break;
     case "host":
       if (typeof result.capability === "string") return { kind: "host", result: { capability: result.capability } };
@@ -138,7 +141,9 @@ export function pluginManifestLocale(tag: string | null | undefined): PluginMani
   return String(tag ?? "").trim().toLowerCase().startsWith("en") ? "en-US" : "zh-CN";
 }
 /** A page target: the plugin page an action opens, always of the plugin that declared the action. */
-export interface PluginPageTarget { pluginId: string; page: string; /** Host route context; never read from business payload. */ conversationId?: string }
+export interface PluginPageTarget { pluginId: string; page: string; /** Host route context; never read from business payload. */ conversationId?: string;
+  /** The opened page's action to run once, as if tapped, after its first load (an operation without form, confirm or disabledReason). */
+  run?: string }
 /** Core's rule for a card's `messageId`: non-empty, at most 256 bytes, no whitespace or control characters. */
 export function validPluginMessageId(id: string): boolean {
   return id.length > 0 && new TextEncoder().encode(id).length <= 256 && !/[\s\p{Cc}]/u.test(id);
@@ -336,7 +341,8 @@ export class PluginUiSession {
     const data = view.available && view.data && typeof view.data === "object" && !Array.isArray(view.data) ? view.data : undefined;
     const refreshMs = view.available && Number.isInteger(view.refreshMs) && view.refreshMs! >= 3000 && view.refreshMs! <= 60000 ? view.refreshMs : undefined;
     return { available: view.available, title: view.title, fields: view.fields, actions: view.actions,
-      ...pluginViewExtras(view as unknown as Record<string, unknown>), ...(refreshMs !== undefined ? { refreshMs } : {}), ...(nextCursor ? { nextCursor } : {}), ...(typeof view.conversationId === "string" ? { conversationId: view.conversationId } : conversationId ? { conversationId } : {}), ...(data ? { data } : {}), ...(view.bundle === true ? { bundle: true as const } : {}) };
+      ...pluginViewExtras(view as unknown as Record<string, unknown>), ...(refreshMs !== undefined ? { refreshMs } : {}), ...(nextCursor ? { nextCursor } : {}), ...(typeof view.conversationId === "string" ? { conversationId: view.conversationId } : conversationId ? { conversationId } : {}), ...(data ? { data } : {}), ...(view.bundle === true ? { bundle: true as const } : {}),
+      ...(view.available && Array.isArray(view.tabs) && view.tabs.length ? { tabs: view.tabs } : {}) };
   }
   /**
    * Run a page action through Core: a document action binds over the page's `data`, a row action
@@ -351,7 +357,7 @@ export class PluginUiSession {
     const generation = this.generation;
     const { data, row, conversationId, userGesture, formValues, selection } = options;
     const transientInputs = formValues ? JSON.parse(JSON.stringify(formValues)) as Record<string, unknown> : undefined;
-    const value = await this.port.invokePageAction({ pluginId, page, actionId, platform: this.platform, userGesture,
+    const value = await this.port.invokePageAction({ pluginId, page, actionId, platform: this.platform, locale: this.locale(), userGesture,
       ...(data ? { data } : {}), ...(row ? { row } : {}),
       ...(conversationId ? { conversationId } : {}), ...(transientInputs ? { formValues: transientInputs } : {}), ...(selection ? { selection } : {}) });
     if (generation !== this.generation) throw new Error("Plugin session changed");
@@ -390,7 +396,7 @@ export class PluginUiSession {
     context?: PluginCapabilityPageContext): Promise<PluginActionOutcome> {
     const { pluginId, conversationId } = lease;
     try {
-    const result = value as { kind?: unknown; response?: unknown; errors?: unknown; conversationId?: unknown; confirmation?: unknown; target?: { kind: string; page?: string; pluginId?: string; capability?: string; params?: unknown; into?: unknown }; payload?: Record<string, unknown> } | null;
+    const result = value as { kind?: unknown; response?: unknown; errors?: unknown; conversationId?: unknown; confirmation?: unknown; run?: unknown; target?: { kind: string; page?: string; pluginId?: string; capability?: string; params?: unknown; into?: unknown }; payload?: Record<string, unknown> } | null;
     if (result?.kind === "operation" && result.response && typeof result.response === "object") {
       const order = result.confirmation as { orderId?: unknown } | null | undefined;
       if (order && typeof order === "object" && !Array.isArray(order) && typeof order.orderId === "string") {
@@ -402,14 +408,15 @@ export class PluginUiSession {
         if (next?.kind === "host" && next.target?.kind === "page") return this.actionOutcome(confirmed, lease, context);
         return pluginCapabilityOutcome(confirmed);
       }
-      return { kind: "operation", response: result.response as Extract<PluginActionOutcome, { kind: "operation" }>["response"] };
+      return pluginCapabilityOutcome(result);
     }
     if (result?.kind === "formErrors") return { kind: "formErrors", errors: pluginFormErrors(result.errors) };
     const target = result?.kind === "host" ? result.target : undefined;
     if (target?.kind === "page" && typeof target.page === "string" && this.navigate) {
       const context = conversationId ?? (typeof result?.conversationId === "string" ? result.conversationId : undefined);
       if (conversationId && typeof result?.conversationId === "string" && conversationId !== result.conversationId) throw new Error("Plugin page conversation changed");
-      return { kind: "host", result: this.navigate({ pluginId: typeof target.pluginId === "string" ? target.pluginId : pluginId, page: target.page, ...(context ? { conversationId: context } : {}) }, result?.payload ?? {}) };
+      const run = typeof result?.run === "string" && result.run ? result.run : undefined;
+      return { kind: "host", result: this.navigate({ pluginId: typeof target.pluginId === "string" ? target.pluginId : pluginId, page: target.page, ...(context ? { conversationId: context } : {}), ...(run ? { run } : {}) }, result?.payload ?? {}) };
     }
     if (target?.kind === "native" && typeof target.capability === "string") {
       const params = target.params && typeof target.params === "object" && !Array.isArray(target.params) ? target.params as Record<string, unknown> : undefined;

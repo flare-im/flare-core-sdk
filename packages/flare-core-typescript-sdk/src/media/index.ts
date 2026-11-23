@@ -112,6 +112,37 @@ export async function uploadMediaInput(
 /** The media message a local file goes out as. */
 export type LocalMediaKind = "image" | "video" | "audio" | "file";
 
+export const MAX_BROWSER_FILE_BYTES = 10 * 1024 ** 3;
+export const BROWSER_FILE_MULTIPART_BYTES = 8 * 1024 ** 2;
+
+const browserFileUrls = new Set<string>();
+
+/** Keep the selected file on disk and give the Web core a local range-readable source. */
+export function browserFileMessageContent(file: File, description?: string) {
+  if (file.size <= 0 || !Number.isSafeInteger(file.size) || file.size > MAX_BROWSER_FILE_BYTES) {
+    throw new RangeError("File size must be between 1 byte and 10 GiB");
+  }
+  const url = URL.createObjectURL(file);
+  browserFileUrls.add(url);
+  return {
+    contentType: "file" as const,
+    fileId: url,
+    url,
+    fileName: file.name,
+    fileSize: file.size,
+    mimeType: mimeTypeOrDefault(file.type),
+    description: description?.trim() ?? "",
+  };
+}
+
+/** Release a selected file when the message no longer needs the local source. */
+export function releaseBrowserFileMessageContent(content: unknown): void {
+  const fileId = (content as { fileId?: unknown } | undefined)?.fileId;
+  if (typeof fileId === "string" && browserFileUrls.delete(fileId)) {
+    URL.revokeObjectURL(fileId);
+  }
+}
+
 /** By MIME type: pictures, videos and sound as themselves, anything else as a file. */
 export function mediaKindForMime(mimeType: string | undefined): LocalMediaKind {
   const type = String(mimeType ?? "").trim().toLowerCase();

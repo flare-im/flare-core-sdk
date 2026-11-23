@@ -9,22 +9,26 @@
  * - captureDocument: `FlareDocumentCapture` over the camera (`getUserMedia`, the back camera when there is one) and the
  *   file picker; the kit frames, compresses and strips the photo, the engine uploads it.
  * - pickFile: the file picker, checked against the request's `accept` and `maxBytes`.
- * - confirmPayment: `FlarePaymentConfirmation` with the payment password in its credential slot; the answer is
- *   `{confirmation: {method: "paymentPassword", password}}`, which the plugin's server verifies against its own
- *   credential store (the wallet's payment password). The password lives only in this sheet.
+ * - confirmPayment: `FlarePaymentConfirmation` with the kit's six-cell `FlarePinInput` in its credential slot; the
+ *   answer is `{confirmation: {method: "paymentPassword", password}}`, which the payment provider verifies. The password
+ *   lives only in this sheet. When the request `reportsOutcome`, the sheet stays up, busy (every key locked, no way
+ *   out), after the answer: the engine either asks again for the same order with `error` (the provider refused that
+ *   password: shown in the sheet, unlocked for another try) or sends the `paymentSettled` notice, which closes it.
  * - locateOnce: one fix from `navigator.geolocation` (the consent prompt came first; the browser asks its own).
  * Anything else, or a host that cannot, answers `{unavailable: true}`.
  */
-import { computed, onBeforeUnmount, ref, shallowRef, useSlots, watch } from "vue";
+import { computed, inject, onBeforeUnmount, ref, shallowRef, useSlots, watch } from "vue";
 import CorePluginAudioCapture from "./CorePluginAudioCapture.vue";
 import {
   FlareCapabilityConsent,
   FlareBottomSheet,
   FlareButton,
   FlareDocumentCapture,
-  FlareInput,
   FlarePaymentConfirmation,
+  FlarePinInput,
   flareCapabilityConsentAnswer,
+  flarePaymentAmountText,
+  useFlareI18n,
   type FlareCapabilityConsentDecision,
   type FlareCapturedDocument,
   type FlareDocumentSide,
@@ -38,13 +42,18 @@ import {
   type CorePluginCapabilityRequestFeed,
   type CorePluginCapabilityResult,
 } from "./capabilityRequests";
+import { offerCapturedPhoto } from "./capturedPhotos";
+import { pluginUiErrorTextKey, type CorePluginErrorText } from "./context";
 
 const props = defineProps<{
   /** The requests the host forwards (`createCorePluginCapabilityRequestFeed().requests`). */
   requests: CorePluginCapabilityRequestFeed;
   /** `plugin.capability_complete` (the core SDK's `completePluginCapabilityRequest`). */
   complete: (requestId: number, result: CorePluginCapabilityResult) => Promise<void>;
-  /** The plugin's name as the catalog gives it; the plugin id while unknown. */
+  /**
+   * The plugin's name as the catalog gives it; the plugin id while unknown. A payment names the order's `requestedBy`
+   * plugin when this knows it, else the requesting plugin.
+   */
   pluginName?: (pluginId: string) => string | undefined | Promise<string | undefined>;
   /** The label and placeholder of the payment password in the confirmation sheet (the host's copy). */
   paymentPasswordLabel: string;
@@ -53,6 +62,18 @@ const props = defineProps<{
   /** The file picker; defaults to the browser's. */
   pickFile?: (accept: readonly string[], capability: string) => Promise<Blob | null>;
   deviceLabels?: { camera: string; image: string; file: string; unavailable: string };
+  /**
+   * The host's words for why the payment provider refused a password (`{reason, machineReason}`: the `sdk.plugin.*` key
+   * and the provider's code); defaults to the one given to `provideCorePluginUi`, then the kit's generic line.
+   */
+  errorText?: CorePluginErrorText;
+}>();
+
+/** A page the viewer asked to open from a capability screen (the payment's top up). */
+type CorePluginCapabilityPageTarget = { pluginId: string; page: string };
+const emit = defineEmits<{
+  /** Top up from an insufficient payment: the request is answered cancelled first; the host opens this page. */
+  openPage: [target: CorePluginCapabilityPageTarget];
 }>();
 const slots = useSlots();
 
@@ -63,7 +84,33 @@ const name = ref("");
 const busy = ref(false);
 let disposed = false;
 
+const { t } = useFlareI18n();
+const providedErrorText = inject(pluginUiErrorTextKey, () => undefined);
+/** The payment answered with a password whose outcome the engine reports: its sheet stays, busy, until then. */
+let settling: Pending | undefined;
+const orderIdOf = (request: Record<string, unknown>) => text((request.order as Record<string, unknown> | undefined)?.orderId);
+function settled(): void {
+  settling = undefined;
+  queue.value = queue.value.slice(1);
+  busy.value = false;
+}
+
 const stop = props.requests((request) => {
+  const waiting = settling;
+  const sameOrder = (pluginId: unknown, orderId: string) =>
+    !!waiting && text(pluginId) === text(waiting.request.pluginId) && !!orderId && orderId === orderIdOf(waiting.request);
+  // A notice, never queued nor answered: the engine is done with the confirmation the sheet may be waiting on.
+  if (request.method === "paymentSettled") {
+    if (sameOrder(request.request.pluginId, text(request.request.orderId))) settled();
+    return;
+  }
+  // The engine asks again for that order (the provider refused the password): the same sheet, with why.
+  if (request.method === "confirmPayment" && sameOrder(request.request.pluginId, orderIdOf(request.request))) {
+    settling = undefined;
+    queue.value = [request, ...queue.value.slice(1)];
+    busy.value = false;
+    return;
+  }
   queue.value = [...queue.value, request];
 });
 onBeforeUnmount(() => {
@@ -95,10 +142,12 @@ watch(current, async (head) => {
   password.value = "";
   if (!head) return;
   const pluginId = text(head.request.pluginId);
+  const requestedBy = head.method === "confirmPayment" ? text((head.request.order as Record<string, unknown> | undefined)?.requestedBy) : "";
   name.value = pluginId;
-  void Promise.resolve(props.pluginName?.(pluginId)).then((resolved) => {
+  const nameOf = (id: string) => Promise.resolve(id ? props.pluginName?.(id) : undefined).catch(() => undefined);
+  void nameOf(requestedBy).then((by) => by || nameOf(pluginId)).then((resolved) => {
     if (current.value === head && resolved) name.value = resolved;
-  }).catch(() => undefined);
+  });
   if (!corePluginCapabilityMethodKnown(head.method)) { await answer({ unavailable: true }); return; }
   if (head.method === "scanCode" && !slots.scan) await answer({ unavailable: true });
   else if (head.method === "pickFile" && head.request.capability === "microphone" &&
@@ -199,6 +248,8 @@ function pickPhoto(): Promise<Blob | null> {
 }
 function captured(file: FlareCapturedDocument): void {
   stopCamera();
+  // The page takes this once to preview the slot; it stays in memory only.
+  offerCapturedPhoto(text(current.value?.request.pluginId), side.value, new Blob([new Uint8Array(file.bytes)], { type: file.contentType }));
   void answer({ file: { fileName: file.fileName, contentType: file.contentType, bytes: Array.from(file.bytes) } });
 }
 function captureCancelled(): void {
@@ -216,22 +267,66 @@ const payment = computed<FlarePaymentOrder | undefined>(() => {
       expiresAtMs: order.expiresAtMs }
     : undefined;
 });
+// The engine adds both only when the viewer's balance is short: a positive decimal in the order's currency, and the
+// page that tops it up ({kind: "page", page, pluginId?}; the requesting plugin when pluginId is absent).
+const paymentOrder = computed(() => (payment.value ? current.value?.request.order as Record<string, unknown> : undefined));
+const paymentShortfall = computed(() => {
+  const value = paymentOrder.value?.shortfall;
+  if (typeof value !== "string" || !/^\d+(\.\d+)?$/.test(value) || !/[1-9]/.test(value)) return undefined;
+  return flarePaymentAmountText(value, payment.value!.currency) ?? value;
+});
+const paymentTopUp = computed<CorePluginCapabilityPageTarget | undefined>(() => {
+  const target = paymentOrder.value?.topUp as Record<string, unknown> | undefined;
+  if (!target || target.kind !== "page" || !text(target.page)) return undefined;
+  return { pluginId: text(target.pluginId) || text(current.value?.request.pluginId), page: text(target.page) };
+});
 watch([current, payment], ([head, order]) => {
   // A malformed order cannot be shown, so it cannot be confirmed.
   if (head?.method === "confirmPayment" && !order) void answer({ unavailable: true });
 });
 const password = ref("");
 const passwordReady = computed(() => /^\d{6}$/.test(password.value));
+// Why the provider refused the last password for this order (a re-asked request's `error`), in the host's words.
+const paymentError = computed(() => {
+  const error = payment.value ? current.value?.request.error : undefined;
+  if (!error || typeof error !== "object" || busy.value) return undefined;
+  const { key, code, message } = error as { key?: unknown; code?: unknown; message?: unknown };
+  if (text(message)) return text(message);
+  const cause = { reason: text(key), machineReason: text(code) || undefined };
+  return (props.errorText ?? providedErrorText)(cause) ?? t("pluginRuntime.rejected");
+});
 function confirmPayment(): void {
-  if (!passwordReady.value || busy.value) return;
+  const head = current.value;
+  if (!passwordReady.value || busy.value || head?.method !== "confirmPayment") return;
   busy.value = true;
   const proof = { method: "paymentPassword", password: password.value };
   password.value = "";
-  void answer({ confirmation: proof });
+  // An engine that reports no outcome: answered and closed, as before.
+  if (head.request.reportsOutcome !== true) { void answer({ confirmation: proof }); return; }
+  // §4.3 busy until the engine settles this order or asks again with why.
+  settling = head;
+  void props.complete(head.requestId, { confirmation: proof }).catch(() => {
+    // The engine no longer waits for it: nothing follows.
+    if (settling === head) settled();
+  });
 }
-function paymentCancelled(): void {
+// The request the sheet shows now: a second event in the same tick (start again, then the sheet's close) must not
+// answer the next queued payment, which the sheet has not drawn yet.
+let paymentShownId: number | undefined;
+watch(payment, (order) => { paymentShownId = order ? current.value?.requestId : undefined; }, { immediate: true });
+/** Cancel, close, or start again after expiry (§4.3): answered cancelled once; the page that asked can send again. */
+function paymentCancelled(): boolean {
+  const head = current.value;
+  if (head?.method !== "confirmPayment" || head.requestId !== paymentShownId || settling === head) return false;
+  paymentShownId = undefined;
   password.value = "";
   void answer({ cancelled: true });
+  return true;
+}
+function topUp(): void {
+  const target = paymentTopUp.value;
+  if (!target || busy.value) return;
+  if (paymentCancelled()) emit("openPage", target);
 }
 </script>
 
@@ -284,24 +379,17 @@ function paymentCancelled(): void {
     :order="payment"
     :plugin-name="name"
     :busy="busy"
+    :error="paymentError"
     :confirm-disabled="!passwordReady"
+    :shortfall="paymentShortfall"
     @confirm="confirmPayment"
     @cancel="paymentCancelled"
-    @expire="paymentCancelled"
+    @expire="password = ''"
+    @start-again="paymentCancelled"
+    @top-up="topUp"
   >
     <template #credential>
-      <FlareInput
-        v-model="password"
-        secure
-        inputmode="numeric"
-        autocomplete="off"
-        :max-length="6"
-        :show-count="false"
-        :aria-label="paymentPasswordLabel"
-        :placeholder="paymentPasswordLabel"
-        :disabled="busy"
-        @submit="confirmPayment"
-      />
+      <FlarePinInput v-model="password" :label="paymentPasswordLabel" :disabled="busy" :error="!!paymentError" />
     </template>
   </FlarePaymentConfirmation>
 </template>

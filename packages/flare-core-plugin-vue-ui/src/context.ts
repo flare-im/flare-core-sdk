@@ -3,10 +3,21 @@ import type {
   FlarePluginImageSource, FlarePluginMember, FlarePluginResolveUser, FlarePluginUpgradeStatus,
 } from "@flare-im/vue-ui";
 import type { NativePluginBridge, PluginBundleEventHub, PluginBundleOpened, PluginBundlePort, PluginUiSession } from "@flare-im/sdk/plugin-ui";
+import type { CorePluginPageEntry } from "./pluginPage";
 export const pluginUiSessionKey: InjectionKey<Ref<PluginUiSession | null>> = Symbol("core-plugin-ui-session");
 export const pluginUiNativeKey: InjectionKey<NativePluginBridge> = Symbol("core-plugin-ui-native");
 /** The conversation the timeline shows; card actions are dispatched bound to it. */
 export const pluginUiConversationKey: InjectionKey<() => string | undefined> = Symbol("core-plugin-ui-conversation");
+/** The kind of the conversation the timeline shows, as a plugin web bundle's hello names it. */
+export type CorePluginConversationType = "single" | "group";
+/** The open conversation's type, read when a card opens its detail bundle. */
+export const pluginUiConversationTypeKey: InjectionKey<() => CorePluginConversationType | undefined> = Symbol("core-plugin-ui-conversation-type");
+/**
+ * A page a plugin surface asks the host to open beside the chat: a card's detail bundle that navigates (`ui.navigate`
+ * to a page of its plugin). The host shows it its own way, usually as a `CorePluginPage` with this entry as the root.
+ */
+export type CorePluginOpenPage = (entry: CorePluginPageEntry) => void;
+export const pluginUiOpenPageKey: InjectionKey<CorePluginOpenPage> = Symbol("core-plugin-ui-open-page");
 
 /** Who the people in plugin cards are, as the host knows them. Both members are optional. */
 export interface CorePluginDirectory {
@@ -47,6 +58,8 @@ export const pluginUiErrorTextKey: InjectionKey<CorePluginErrorText> = Symbol("c
  * without one the kit keeps its fallback (the notice's description without a key, the "image unavailable" frame).
  */
 export interface CorePluginHost {
+  /** Browsing long card records can use a full-height page on Web hosts. */
+  detailPresentation?: "sheet" | "page";
   /** `update.plugin_upgrade_status` for an upgrade placeholder's `minBuild` (the social SDK's `plugins.upgradeStatus`). */
   upgradeStatus?: (minBuild?: number) => Promise<FlarePluginUpgradeStatus>;
   /** `update.open_flow`: the "Update" key of an upgrade notice; the app's update prompt draws the flow. */

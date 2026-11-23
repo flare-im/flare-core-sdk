@@ -6,7 +6,7 @@
 // 随会话推送进时间线,这里从不发消息。
 import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import {
-  FlareBottomSheet, FlareDangerConfirm, FlarePluginForm, FlarePluginView, useFlareI18n,
+  FlareBottomSheet, FlareButton, FlareDangerConfirm, FlareDrawer, FlareEmptyState, FlareScreen, FlarePluginForm, FlarePluginView, useFlareI18n,
   type FlarePluginAction, type FlarePluginActionPayload, type FlarePluginFormError, type FlarePluginInput,
   type FlarePluginMember, type FlarePluginResolveUser, type FlarePluginViewModel,
 } from "@flare-im/vue-ui";
@@ -14,7 +14,7 @@ import type { PluginMessageEnvelope } from "@flare-im/sdk/plugin-ui";
 import { pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiHostKey, pluginUiSessionKey } from "./context";
 import CorePluginBundle from "./CorePluginBundle.vue";
 import { corePluginBundleResultData } from "./pluginBundle";
-import { type ComposerPluginItem, type PluginPostedCard } from "./composerMenu";
+import { composerDirectPage, type ComposerPluginItem, type PluginPostedCard } from "./composerMenu";
 import { pluginPagePostedCard } from "./pluginPage";
 
 const props = defineProps<{
@@ -27,6 +27,8 @@ const props = defineProps<{
   resolveUser?: FlarePluginResolveUser;
   /** The conversation's type for a web bundle form's hello (`single`, `group`, ...). */
   conversationType?: string;
+  /** Web task editors can opt into a full page; compact sheet remains the default. */
+  presentation?: "sheet" | "page";
 }>();
 const emit = defineEmits<{
   close: [];
@@ -68,6 +70,12 @@ const formErrors = shallowRef<FlarePluginFormError[]>([]);
 /** Moved once per finished action, after its error and formErrors are set (kit settleToken). */
 const settleToken = ref(0);
 const confirming = shallowRef<{ action: FlarePluginAction; payload: FlarePluginActionPayload } | null>(null);
+const loading = ref(false);
+/** Opening the page an entry is only a way into: the sheet keeps its loading state, never the one key. */
+const directing = ref(false);
+const pageMode = computed(() => props.presentation === "page");
+const title = computed(() => (bundleShown.value ? bundleTitle.value : view.value.title) || props.item?.label || "");
+const retryable = computed(() => !view.value.available && (!view.value.unavailableReason || view.value.unavailableReason === "catalog_unreachable"));
 let generation = 0;
 onBeforeUnmount(() => { generation++; });
 
@@ -97,31 +105,39 @@ async function load(): Promise<void> {
   const mine = ++generation, host = session.value, item = props.item;
   busyActionId.value = undefined; error.value = ""; formErrors.value = []; confirming.value = null;
   view.value = { available: false, title: item?.label ?? "", fields: [], actions: [] };
-  bundleTitle.value = ""; bundleOffered.value = false;
+  bundleTitle.value = ""; bundleOffered.value = false; directing.value = false;
+  loading.value = Boolean(host && item);
   if (!host || !item) return;
   const result = await host.present(message(item), undefined, "composer-action");
   if (mine !== generation) return;
+  loading.value = false;
   view.value = result;
   bundleOffered.value = result.bundle === true;
+  // Only a way into one page: open it now, no sheet with one key. A failure leaves the entry drawn, with its error.
+  const direct = composerDirectPage(result);
+  if (!direct) return;
+  directing.value = true;
+  if (!(await invoke(direct.id, {})) && mine === generation) directing.value = false;
 }
 
-async function invoke(id: string, payload: FlarePluginActionPayload): Promise<void> {
+/** Runs a key of the drawn view; true when the action finished and the sheet asked to close. */
+async function invoke(id: string, payload: FlarePluginActionPayload): Promise<boolean> {
   const host = session.value, item = props.item, mine = generation;
-  if (!host || !item || busyActionId.value || !view.value.available) return;
+  if (!host || !item || busyActionId.value || !view.value.available) return false;
   busyActionId.value = id; error.value = ""; formErrors.value = [];
   let done = false;
   try {
     const outcome = await host.invokeAction(message(item), id, { conversationId: props.conversationId, userGesture: true,
       ...(payload.formValues ? { formValues: payload.formValues } : {}), ...(payload.selection ? { selection: payload.selection } : {}) });
-    if (mine !== generation) return;
-    if (outcome.kind === "formErrors") { formErrors.value = outcome.errors; return; }
+    if (mine !== generation) return false;
+    if (outcome.kind === "formErrors") { formErrors.value = outcome.errors; return false; }
     // A payment the viewer did not confirm keeps the sheet; one the host could not run says so.
-    if (outcome.kind === "declined") { if (outcome.reason === "unavailable") error.value = t("pluginRuntime.unavailable"); return; }
+    if (outcome.kind === "declined") { if (outcome.reason === "unavailable") error.value = t("pluginRuntime.unavailable"); return false; }
     if (outcome.kind === "operation") {
-      if (outcome.response.success === false) { error.value = t("pluginRuntime.rejected"); return; }
-      if (outcome.response.success !== true) return;
+      if (outcome.response.success === false) { error.value = outcome.message || t("pluginRuntime.rejected"); return false; }
+      if (outcome.response.success !== true) return false;
       const posted = pluginPagePostedCard(outcome.response.data, props.conversationId);
-      if (!posted && outcome.response.data && typeof outcome.response.data === "object" && Object.prototype.hasOwnProperty.call(outcome.response.data, "posted")) return;
+      if (!posted && outcome.response.data && typeof outcome.response.data === "object" && Object.prototype.hasOwnProperty.call(outcome.response.data, "posted")) return false;
       if (posted) emit("posted", posted);
     }
     done = mine === generation;
@@ -132,6 +148,7 @@ async function invoke(id: string, payload: FlarePluginActionPayload): Promise<vo
     if (mine === generation) { settleToken.value++; busyActionId.value = undefined; }
   }
   if (done) emit("close");
+  return done;
 }
 
 /** A key of the drawn view; the kit has already asked its confirmation and collected its form. */
@@ -159,9 +176,13 @@ watch(() => [props.item, props.conversationId, session.value], () => { void load
 </script>
 
 <template>
-  <FlareBottomSheet :open="Boolean(item)" :title="(bundleShown ? bundleTitle : view.title) || item?.label || ''" :dismissible="!busyActionId" @close="close">
+  <component :is="pageMode ? FlareDrawer : FlareBottomSheet" :open="Boolean(item)" :title="title" :dismissible="!busyActionId"
+    v-bind="pageMode ? { titleHidden: true, showClose: false, contentPadding: 'none' } : {}" @close="close">
+    <component :is="pageMode ? FlareScreen : 'div'" v-bind="pageMode ? { title, back: true, scroll: false, surface: 'surface' } : {}" @back="close">
+    <div :class="{ 'core-plugin-entry__page': pageMode }">
+    <FlareEmptyState v-if="loading || directing" loading :title="t('common.loading')" />
     <CorePluginBundle
-      v-if="bundleShown && item && pluginHost.bundles"
+      v-else-if="bundleShown && item && pluginHost.bundles"
       :host="pluginHost.bundles"
       :plugin-id="item.pluginId"
       :contribution-id="item.contributionId"
@@ -172,6 +193,9 @@ watch(() => [props.item, props.conversationId, session.value], () => { void load
       @close="bundleClosed"
       @fallback="bundleFallback"
     />
+    <FlareEmptyState v-else-if="retryable" icon="info" :title="t('pluginView.unavailable.catalogUnreachable')">
+      <template #actions><FlareButton :label="t('common.retry')" variant="secondary" @click="load" /></template>
+    </FlareEmptyState>
     <template v-else-if="formAction">
       <FlarePluginView v-if="preface" :view="preface" embedded inset="sheetTop" :resolve-user="resolver" />
       <FlarePluginForm
@@ -181,6 +205,9 @@ watch(() => [props.item, props.conversationId, session.value], () => { void load
         :busy="Boolean(busyActionId)"
         :error="error || undefined"
         :members="members"
+        :layout="pageMode ? 'page' : 'content'"
+        :autofocus="pageMode"
+        :select-presentation="pageMode ? 'dropdown' : 'radio'"
         @submit="submitForm"
         @cancel="close"
       />
@@ -208,5 +235,16 @@ watch(() => [props.item, props.conversationId, session.value], () => { void load
       :members="members"
       @action="action"
     />
-  </FlareBottomSheet>
+    </div>
+    </component>
+  </component>
 </template>
+
+<style scoped>
+.core-plugin-entry__page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+</style>

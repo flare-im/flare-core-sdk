@@ -28,14 +28,31 @@ Map<String, Object?> flutterAppConfig({
   String version = const String.fromEnvironment('FLARE_APP_VERSION'),
   String build = const String.fromEnvironment('FLARE_APP_BUILD'),
   TargetPlatform? platform,
+  bool separateReleasePlatform = false,
 }) {
-  final android =
-      !kIsWeb && (platform ?? defaultTargetPlatform) == TargetPlatform.android;
-  final chosen = distribution.trim().isNotEmpty
-      ? distribution.trim()
-      : android
+  final os = kIsWeb ? null : platform ?? defaultTargetPlatform;
+  final custom = distribution.trim();
+  String? chosen = custom.isNotEmpty
+      ? custom
+      : os == TargetPlatform.android
           ? 'direct'
           : null;
+  if (separateReleasePlatform) {
+    final prefix = switch (os) {
+      TargetPlatform.android || TargetPlatform.iOS => 'flutter',
+      TargetPlatform.macOS => 'flutter-macos',
+      TargetPlatform.windows => 'flutter-windows',
+      _ => null,
+    };
+    if (prefix != null) {
+      final name = chosen ?? (os == TargetPlatform.iOS ? 'appstore' : '');
+      chosen = switch (name) {
+        _ when name.isEmpty => prefix,
+        _ when name == prefix || name.startsWith('$prefix-') => name,
+        _ => '$prefix-$name',
+      };
+    }
+  }
   final language = locale?.trim() ?? '';
   final number = int.tryParse(build.trim());
   return {

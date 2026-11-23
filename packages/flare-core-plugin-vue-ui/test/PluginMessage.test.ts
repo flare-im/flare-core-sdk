@@ -86,6 +86,22 @@ describe("CorePluginMessage", () => {
     expect(view().props("busyActionId")).toBe("vote");
   });
 
+  it("shows a refused card action in the plugin's words, the generic line without them", async () => {
+    const port = fakePort({ presentMessage: vi.fn(async () => card()) });
+    port.invokeAction
+      .mockResolvedValueOnce({ kind: "operation", response: { success: false, data: { errorCode: "POLL_CLOSED" } }, message: "投票已结束" })
+      .mockResolvedValueOnce({ kind: "operation", response: { success: false } });
+    const { view } = renderCard(port);
+    await flushPromises();
+    view().vm.$emit("action", "vote", { selection: [0] });
+    await flushPromises();
+    expect(view().props("error")).toBe("投票已结束");
+    view().vm.$emit("action", "vote", { selection: [0] });
+    await flushPromises();
+    expect(view().props("error")).toBeTruthy();
+    expect(view().props("error")).not.toBe("投票已结束");
+  });
+
   it("says a failed call and settles busyActionId", async () => {
     const port = fakePort({ presentMessage: vi.fn(async () => card()), invokeAction: vi.fn(async () => { throw new Error("offline"); }) });
     const { view } = renderCard(port);
@@ -254,6 +270,7 @@ describe("CorePluginMessage", () => {
     sheet().vm.$emit("action", "note", { formValues: { text: "x" } });
     await flushPromises();
     expect(sheet().props("actionError")).toBeTruthy();
+    expect(sheet().props("paginationError")).toBeUndefined();
     expect(sheet().props("error")).toBeUndefined();
     expect(sheet().props("settleToken")).toBe(2);
     expect(view().props("error")).toBeUndefined();
@@ -316,15 +333,41 @@ describe("CorePluginMessage", () => {
     sheet().vm.$emit("loadMore", "50");
     await flushPromises();
     expect(sheet().props()).toMatchObject({ loadingMore: false, error: undefined, view: { title: "Voters", nextCursor: "50" } });
-    expect(sheet().props("actionError")).toBeTruthy();
+    expect(sheet().props("paginationError")).toBeTruthy();
+    expect(sheet().props("actionError")).toBeUndefined();
     expect(view().props("error")).toBeUndefined();
     // The retry starts clean.
     port.pluginDetail.mockResolvedValueOnce({ ...first, nextCursor: undefined });
     sheet().vm.$emit("loadMore", "50");
     await nextTick();
-    expect(sheet().props("actionError")).toBeUndefined();
+    expect(sheet().props("paginationError")).toBeUndefined();
     await flushPromises();
     expect(sheet().props("view")).not.toHaveProperty("nextCursor");
+  });
+
+  it("keeps loaded detail pages and exposes a failed background refresh for retry", async () => {
+    const first = { available: true, title: "Voters", fields: [], actions: [], nextCursor: "50" };
+    const port = fakePort({ presentMessage: vi.fn(async () => card({ detail: true })), pluginDetail: vi.fn(async () => first) });
+    const { view, wrapper, feed } = renderCard(port, {}, undefined, { plugin: { detailPresentation: "page" } });
+    await flushPromises();
+    view().vm.$emit("openDetail"); await flushPromises();
+    const sheet = () => wrapper.getComponent(FlarePluginDetailSheet);
+    const loaded = sheet().props("view");
+    expect(sheet().props("presentation")).toBe("page");
+    let failRefresh!: (error: Error) => void;
+    port.pluginDetail.mockImplementationOnce(() => new Promise((_, reject) => { failRefresh = reject; }));
+    feed.announce("srv-1"); await flushPromises();
+    expect(sheet().props("loading")).toBe(true);
+    expect(sheet().props("view")).toBe(loaded);
+    const reads = port.pluginDetail.mock.calls.length;
+    sheet().vm.$emit("loadMore", "50"); await flushPromises();
+    expect(port.pluginDetail).toHaveBeenCalledTimes(reads);
+    failRefresh(new Error("refresh failed")); await flushPromises();
+    expect(sheet().props("view")).toBe(loaded);
+    expect(sheet().props("error")).toBeTruthy();
+    sheet().vm.$emit("retry"); await flushPromises();
+    expect(port.pluginDetail).toHaveBeenLastCalledWith(expect.objectContaining({ refresh: true, previous: loaded }));
+    expect(sheet().props("error")).toBeUndefined();
   });
 
   it("does not open a detail the contribution does not declare", async () => {

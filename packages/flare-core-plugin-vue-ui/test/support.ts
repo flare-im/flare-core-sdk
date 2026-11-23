@@ -5,7 +5,7 @@ import { useFlareI18nProvider } from "@flare-im/vue-ui/i18n";
 import { PluginUiSession, type PluginMessageEnvelope, type PluginUiPort } from "@flare-im/sdk/plugin-ui";
 import {
   provideCorePluginDirectory, provideCorePluginUi, type CorePluginDirectory, type CorePluginErrorText, type CorePluginHost,
-  type CorePluginStateChange,
+  type CorePluginStateChange, type CorePluginUiOptions,
 } from "../src/index";
 
 type Call = (request: Record<string, unknown>) => Promise<unknown>;
@@ -52,12 +52,14 @@ export function stateFeed() {
 
 /** Mounts `child` under the kit i18n provider and the Core plugin UI over `port`. */
 export function mountWithSession(port: PluginUiPort, child: () => ReturnType<typeof h>, directory?: CorePluginDirectory,
-  host: { feed?: ReturnType<typeof stateFeed>; errorText?: CorePluginErrorText; plugin?: CorePluginHost } = {}) {
-  const session = shallowRef<PluginUiSession | null>(new PluginUiSession(port, "web", () => "en-US"));
+  host: { feed?: ReturnType<typeof stateFeed>; errorText?: CorePluginErrorText; plugin?: CorePluginHost; options?: CorePluginUiOptions;
+    /** The chat session's page opener, as a host app gives it (a page target throws without one). */
+    navigate?: ConstructorParameters<typeof PluginUiSession>[4] } = {}) {
+  const session = shallowRef<PluginUiSession | null>(new PluginUiSession(port, "web", () => "en-US", undefined, host.navigate));
   const feed = host.feed ?? stateFeed();
   const Host = defineComponent({ setup() {
     provideCorePluginUi(session, { conversationId: () => "conv-1", stateChanges: feed.subscribe, errorText: host.errorText,
-      ...(host.plugin ? { host: host.plugin } : {}) });
+      ...(host.plugin ? { host: host.plugin } : {}), ...host.options });
     if (directory) provideCorePluginDirectory(directory);
     return child;
   } });

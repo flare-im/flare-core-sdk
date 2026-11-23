@@ -1,11 +1,7 @@
 import { onBeforeUnmount, shallowRef, watch } from "vue";
+import { FLARE_STANDARD_COMPOSER_TOOL_IDS, type FlarePluginAction, type FlarePluginViewModel } from "@flare-im/vue-ui";
 
-/**
- * The composer's toolbar and "+" panel as the social SDK's `composerMenu` describes them: built-in
- * items behind the tenant's feature switches, then the composer actions authorized plugins declare.
- * Hosts hand the result to the kit unchanged; which items exist, their order and their icons are
- * never written in an app. Display only: the server still authorizes every send and every action.
- */
+/** The optional tools and entries from the Social SDK menu; the server authorizes every action. */
 export type ComposerToolId = "emoji" | "mention" | "voice" | "image" | "richText" | "attachments";
 
 export interface ComposerFeatureItem {
@@ -38,7 +34,7 @@ export interface ComposerMenu {
   actions: ComposerMenuItem[];
 }
 
-/** What a composer shows when the menu cannot be read: every feature off, no plugin listed. */
+/** The optional menu before the first successful read. */
 export const CLOSED_COMPOSER_MENU: ComposerMenu = Object.freeze({ tools: [], actions: [] }) as ComposerMenu;
 
 const text = (value: unknown): value is string => typeof value === "string" && value.length > 0;
@@ -71,6 +67,26 @@ export function parseComposerMenu(value: unknown): ComposerMenu {
     }
   }
   return { tools, actions };
+}
+
+/** A chat keeps its primary toolbar and shows file picking when there are no optional panel entries. */
+export function resolveChatComposerMenu(menu: ComposerMenu, availableCalls: readonly string[]): ComposerMenu {
+  const seen = new Set<string>();
+  const actions = menu.actions.filter(item => {
+    if (item.kind === "feature" && (item.id === "image" || item.id === "voice")) return false;
+    if (item.kind === "plugin" && item.pluginId === "flare.call" && !item.upgrade) {
+      const call = item.contributionId === "flare.call.audio" ? "audioCall"
+        : item.contributionId === "flare.call.video" ? "videoCall" : undefined;
+      if (call && !availableCalls.includes(call)) return false;
+    }
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+  return {
+    tools: [...new Set([...FLARE_STANDARD_COMPOSER_TOOL_IDS, ...menu.tools])],
+    actions: actions.length ? actions : [{ id: "file", kind: "feature", icon: "file", order: 30 }],
+  };
 }
 
 /**
@@ -122,24 +138,35 @@ export function routeComposerAction(menu: ComposerMenu, id: string, routes: Comp
 }
 
 /**
- * The menu for the open conversation: read on entering and switching conversations and when the
- * page comes back to the foreground, never polled. A failed read closes everything (design §3).
- * The previous conversation's menu stays up until the next one arrives, so the toolbar does not
- * blink on every switch.
+ * A "+" item that is only a way into one page: its contribution shows nothing (no field, block or input) and has
+ * exactly one action, a page target with no confirm, form or disabled reason. The host opens that page at once instead
+ * of a sheet with one key; any plugin can be such an entry, so no host names one.
  */
+export function composerDirectPage(view: FlarePluginViewModel & { bundle?: boolean }): FlarePluginAction | undefined {
+  if (!view.available || view.bundle || view.fields.length || view.blocks?.length || view.inputs?.length
+    || view.menuActions?.length || view.actions.length !== 1) return;
+  const action = view.actions[0]!;
+  return action.target?.kind === "page" && !action.confirm && !action.form?.length && !action.disabledReason ? action : undefined;
+}
+
+/** Reloads the current conversation's optional menu and keeps the last successful read on failure. */
 export function useComposerMenu(load: (conversationId: string) => Promise<unknown>, conversationId: () => string,
   onRefresh?: () => void) {
   const menu = shallowRef<ComposerMenu>(CLOSED_COMPOSER_MENU);
+  const status = shallowRef<"loading" | "ready" | "failed">("loading");
   let generation = 0;
+  const cache = new Map<string, ComposerMenu>();
   async function refresh(): Promise<void> {
     const mine = ++generation, id = conversationId();
+    status.value = "loading";
+    menu.value = cache.get(id) ?? CLOSED_COMPOSER_MENU;
     onRefresh?.();
-    if (!id) { menu.value = CLOSED_COMPOSER_MENU; return; }
+    if (!id) { menu.value = CLOSED_COMPOSER_MENU; status.value = "ready"; return; }
     try {
       const value = parseComposerMenu(await load(id));
-      if (mine === generation) menu.value = value;
+      if (mine === generation) { cache.set(id, value); menu.value = value; status.value = "ready"; }
     } catch {
-      if (mine === generation) menu.value = CLOSED_COMPOSER_MENU;
+      if (mine === generation) status.value = "failed";
     }
   }
   watch(conversationId, () => { void refresh(); }, { immediate: true });
@@ -149,7 +176,7 @@ export function useComposerMenu(load: (conversationId: string) => Promise<unknow
     generation++;
     if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onVisible);
   });
-  return { menu, refresh };
+  return { menu, status, refresh };
 }
 
 /** The card Core posted for a create result, in the user's name: where it went and its ids. */

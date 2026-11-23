@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { FlarePluginFileAction, FlarePluginFileState, FlarePluginInput } from "@flare-im/vue-ui";
 import { PluginFileUploads, pluginFileSessionData } from "../src/pluginFileUploads";
 import { deferred, fakePort } from "./support";
+import { offerCapturedPhoto, takeCapturedPhoto, watchCapturedPhoto } from "../src/capturedPhotos";
 
 const input: FlarePluginInput = { id: "qr", kind: "file", label: "Code", file: {
   accept: ["image/png"], maxBytes: 5,
@@ -34,7 +35,7 @@ describe("host file uploads", () => {
     await h.uploads.action(event());
     expect(h.port.uploadFile).toHaveBeenCalledExactlyOnceWith({ page: { pluginId: "test", page: "payout" }, platform: "web",
       inputId: "qr", formValues: { kind: "wechat" }, fileName: "code.png", contentType: "image/png", bytes: [1, 2], commandId: "one" });
-    expect(h.state()).toEqual({ scope: "s", generation: 1, phase: "uploaded", fileName: "code.png", preview: true, value: { fileId: "test-file" } });
+    expect(h.state()).toEqual({ scope: "s", generation: 1, phase: "uploaded", fileName: "code.png", preview: true, previewUrl: "blob:local", value: { fileId: "test-file" } });
     await h.uploads.action(event("preview"));
     expect(h.preview).toHaveBeenCalledExactlyOnceWith("blob:local", "code.png");
     h.uploads.clear();
@@ -107,5 +108,67 @@ describe("host file uploads", () => {
     await h.uploads.action(event("replace", 2));
     expect(h.state()).toMatchObject({ generation: 2, phase: "uploaded", value: { fileId: "test-file" } });
     expect(h.port.uploadFile).toHaveBeenCalledOnce();
+  });
+  it("shows a captured photo by an object URL and revokes it on replace, remove and close (§6.3)", async () => {
+    const h = harness();
+    const doc: FlarePluginInput = { id: "qr", kind: "document", side: "front", label: "Front" };
+    const capture = (action: FlarePluginFileAction["action"], generation: number): FlarePluginFileAction =>
+      ({ action, input: doc, inputId: doc.id, scope: "s", generation, formValues: {} });
+    const photo = vi.fn(() => new Blob([new Uint8Array([1])], { type: "image/jpeg" }));
+    await h.uploads.captured(capture("choose", 1), async () => ({ kind: "input", input: "qr", value: { fileId: "doc-1" } }) as never, "front.jpg", photo);
+    expect(photo).toHaveBeenCalledOnce();
+    expect(h.state()).toMatchObject({ phase: "uploaded", value: { fileId: "doc-1" }, previewUrl: "blob:local" });
+    // Replace: the earlier URL is revoked before the new capture.
+    await h.uploads.captured(capture("replace", 2), async () => ({ kind: "input", input: "qr", value: { fileId: "doc-2" } }) as never, "front.jpg", photo);
+    expect(h.revoke).toHaveBeenCalledTimes(1);
+    await h.uploads.action(capture("remove", 2));
+    expect(h.revoke).toHaveBeenCalledTimes(2);
+    expect(h.state()).toEqual({ scope: "s", generation: 2, phase: "empty" });
+    // Close: clear() releases whatever is still held; a failed capture takes and drops its photo without a URL.
+    await h.uploads.captured(capture("choose", 3), async () => ({ kind: "input", input: "qr", value: { fileId: "doc-3" } }) as never, "front.jpg", photo);
+    h.uploads.clear();
+    expect(h.revoke).toHaveBeenCalledTimes(3);
+    await h.uploads.captured(capture("choose", 4), async () => { throw new Error("down"); }, "front.jpg", photo);
+    expect(h.state()).toMatchObject({ phase: "failed" });
+    expect(h.state().previewUrl).toBeUndefined();
+    expect(photo).toHaveBeenCalledTimes(4);
+  });
+  it("tells a watcher when the capture panel hands over a photo, and keeps the photo for the page", () => {
+    const seen = vi.fn();
+    const stop = watchCapturedPhoto("test", "back", seen);
+    offerCapturedPhoto("test", "front", new Blob([new Uint8Array([1])]));
+    expect(seen).not.toHaveBeenCalled();
+    const photo = new Blob([new Uint8Array([2])]);
+    offerCapturedPhoto("test", "back", photo);
+    expect(seen).toHaveBeenCalledOnce();
+    expect(takeCapturedPhoto("test", "back")).toBe(photo);
+    stop();
+    offerCapturedPhoto("test", "back", photo);
+    expect(seen).toHaveBeenCalledOnce();
+    takeCapturedPhoto("test", "back");
+    takeCapturedPhoto("test", "front");
+  });
+  it("shows a captured document uploading only once the capture panel handed its photo over", async () => {
+    const h = harness();
+    const doc: FlarePluginInput = { id: "qr", kind: "document", side: "front", label: "Front" };
+    const capture: FlarePluginFileAction = { action: "choose", input: doc, inputId: doc.id, scope: "s", generation: 1, formValues: {} };
+    let handOver: (() => void) | undefined;
+    const stop = vi.fn();
+    const answer = deferred<never>();
+    const done = h.uploads.captured(capture, () => answer.promise, "front.jpg", undefined,
+      (listener) => { handOver = listener; return stop; });
+    // The consent and capture panels are up: the slot is as it was, not "uploading 0%".
+    expect(h.state()).toBeUndefined();
+    handOver?.();
+    expect(h.state()).toMatchObject({ phase: "uploading", fileName: "front.jpg" });
+    answer.resolve({ kind: "input", input: "qr", value: { fileId: "doc-1" } } as never);
+    await done;
+    expect(h.state()).toMatchObject({ phase: "uploaded", value: { fileId: "doc-1" } });
+    expect(stop).toHaveBeenCalledOnce();
+    // Declined before any photo: nothing was ever shown uploading.
+    const declined = h.uploads.captured({ ...capture, generation: 2 }, async () => ({ kind: "declined", reason: "cancelled" }) as never,
+      "front.jpg", undefined, () => () => {});
+    await declined;
+    expect(h.state()).toMatchObject({ phase: "uploaded", value: { fileId: "doc-1" } });
   });
 });

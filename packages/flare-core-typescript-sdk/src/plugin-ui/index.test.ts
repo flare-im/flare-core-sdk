@@ -213,7 +213,7 @@ describe("plugin UI card protocol v2", () => {
     const actions: Record<string, unknown>[] = [];
     api.invokePageAction = async (request) => { actions.push({ ...request }); return { kind: "host", target: { kind: "page", page: "example.poll.history" }, payload: { currency: "CNY" } }; };
     await host.invokePageAction("example.poll", "example.poll.wallet", "history", { data: view.data, userGesture: true });
-    expect(actions[0]).toEqual({ pluginId: "example.poll", page: "example.poll.wallet", actionId: "history", platform: "web", userGesture: true,
+    expect(actions[0]).toEqual({ pluginId: "example.poll", page: "example.poll.wallet", actionId: "history", platform: "web", locale: "zh-CN", userGesture: true,
       data: { currency: "CNY" } });
     expect(opened).toEqual([[{ pluginId: "example.poll", page: "example.poll.history" }, { currency: "CNY" }]]);
     const bare = new PluginUiSession(port(), "web");
@@ -229,7 +229,7 @@ describe("plugin UI card protocol v2", () => {
       conversationId: "conv-1", userGesture: true, formValues: { note: "hi" }, selection: [0] });
     expect(outcome).toEqual({ kind: "formErrors", errors: [{ input: "amount", issue: "required" }] });
     expect(card).toEqual([]);
-    expect(pages).toEqual([{ pluginId: "flare.wallet", page: "flare.wallet.history", actionId: "open", platform: "android", userGesture: true,
+    expect(pages).toEqual([{ pluginId: "flare.wallet", page: "flare.wallet.history", actionId: "open", platform: "android", locale: "en-US", userGesture: true,
       row: { key: "e-1", input: { entryId: "e-1" } }, conversationId: "conv-1", formValues: { note: "hi" }, selection: [0] }]);
     // An answer that arrives after the session changed (sign-out, another account) is not acted on.
     let release!: (value: unknown) => void;
@@ -237,6 +237,24 @@ describe("plugin UI card protocol v2", () => {
     const pending = host.invokePageAction("flare.wallet", "flare.wallet.home", "refresh", { userGesture: false });
     host.reset(); release({ kind: "operation", response: { success: true } });
     await expect(pending).rejects.toThrow("Plugin session changed");
+  });
+  it("keeps a refusal's words on the outcome, and the action a navigation names to run on the page it opens", async () => {
+    const api = port(); const opened: unknown[] = [];
+    const session = new PluginUiSession(api, "web", () => "zh-CN", undefined, (target, args) => { opened.push([target, args]); });
+    const refused = { success: false, data: { errorCode: "ID_TAKEN" } };
+    api.invokePageAction = async () => ({ kind: "operation", response: refused, message: "该证件号已被其他账号使用" });
+    expect(await session.invokePageAction("acme.id", "acme.id.page.form", "submit", { userGesture: true }))
+      .toEqual({ kind: "operation", response: refused, message: "该证件号已被其他账号使用" });
+    for (const message of ["", 3, undefined]) {
+      api.invokePageAction = async () => ({ kind: "operation", response: refused, message });
+      expect(await session.invokePageAction("acme.id", "acme.id.page.form", "submit", { userGesture: true })).toEqual({ kind: "operation", response: refused });
+    }
+    api.invokePageAction = async () => ({ kind: "host", target: { kind: "page", page: "acme.pay.page.checkout" }, payload: { intentId: "i-1" }, run: "authorize" });
+    await session.invokePageAction("acme.pay", "acme.pay.page.home", "pay", { userGesture: true });
+    api.invokePageAction = async () => ({ kind: "host", target: { kind: "page", page: "acme.pay.page.checkout" }, payload: {}, run: "" });
+    await session.invokePageAction("acme.pay", "acme.pay.page.home", "pay", { userGesture: true });
+    expect(opened).toEqual([[{ pluginId: "acme.pay", page: "acme.pay.page.checkout", run: "authorize" }, { intentId: "i-1" }],
+      [{ pluginId: "acme.pay", page: "acme.pay.page.checkout" }, {}]]);
   });
   it("carries the host conversation through page reads and navigation outside business arguments", async () => {
     const api=port(); const reads:Record<string,unknown>[]=[]; const opened:unknown[]=[];
@@ -260,6 +278,16 @@ describe("plugin UI card protocol v2", () => {
     expect((await session.page("example.poll", "example.poll.board")).bundle).toBe(true);
     answer = { available: true, title: "Board", fields: [], actions: [], bundle: "yes" };
     expect((await session.page("example.poll", "example.poll.board")).bundle).toBeUndefined();
+  });
+  it("keeps a page's tabs, and none on an inert page", async () => {
+    const api = port();
+    const tabs = [{ page: "flare.redpacket.page.received", label: "收到的", selected: true }, { page: "flare.redpacket.page.sent", label: "发出的", selected: false }];
+    let answer: Record<string, unknown> = { available: true, title: "红包记录", fields: [], actions: [], tabs };
+    api.pluginPage = async () => answer;
+    const session = new PluginUiSession(api, "web");
+    expect((await session.page("flare.redpacket", "flare.redpacket.page.received")).tabs).toEqual(tabs);
+    answer = { available: false, title: "", fields: [], actions: [], tabs };
+    expect((await session.page("flare.redpacket", "flare.redpacket.page.received")).tabs).toBeUndefined();
   });
   it("maps the host's UI language onto the manifest locales", () => {
     for (const tag of ["en", "en-US", "en-GB", " EN-au "]) expect(pluginManifestLocale(tag)).toBe("en-US");
@@ -307,6 +335,10 @@ describe("plugin host capabilities through the engine", () => {
     const outcome = await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { conversationId: "c-1", userGesture: true });
     expect(outcome).toEqual({ kind: "operation", response: { success: true, data: { paid: true } } });
     expect(asked).toEqual([{ pluginId: "flare.wallet", capability: "paymentConfirmation", orderId: "o-1", platform: "web", locale: "zh-CN", conversationId: "c-1", userGesture: true }]);
+    // The confirmation's last answer keeps the plugin's words for a refusal.
+    api.capabilityInvoke = async () => ({ kind: "operation", response: { success: false, data: { errorCode: "LIMIT" } }, message: "超出单日限额" });
+    expect(await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { userGesture: true }))
+      .toEqual({ kind: "operation", response: { success: false, data: { errorCode: "LIMIT" } }, message: "超出单日限额" });
     // Without the engine route the order is never reported as paid.
     delete api.capabilityInvoke;
     expect(await session.invokePageAction("flare.wallet", "flare.wallet.page.confirm", "pay", { userGesture: true }))

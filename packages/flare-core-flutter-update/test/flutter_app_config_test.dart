@@ -3,6 +3,30 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('a host can use a separate Flutter release platform on each OS', () {
+    const options = {
+      TargetPlatform.android: 'flutter-direct',
+      TargetPlatform.iOS: 'flutter-appstore',
+      TargetPlatform.windows: 'flutter-windows',
+      TargetPlatform.macOS: 'flutter-macos',
+    };
+    for (final entry in options.entries) {
+      final app = flutterAppConfig(
+        platform: entry.key,
+        separateReleasePlatform: true,
+      );
+      expect(app['distribution'], entry.value);
+    }
+    expect(
+      flutterAppConfig(
+        platform: TargetPlatform.android,
+        distribution: 'flutter-play',
+        separateReleasePlatform: true,
+      )['distribution'],
+      'flutter-play',
+    );
+  });
+
   test('an Android host is a direct install unless the build says otherwise',
       () {
     expect(

@@ -20,9 +20,19 @@ export interface PluginUiAction {
   style?: "primary" | "danger";
   /** `menu`: listed in the view's `menuActions` (the card's overflow menu); absent: the button row. */
   placement?: "menu";
+  /** Presentation only: the page list group a destination is drawn in. */
+  group?: "common" | "records";
+  /** Presentation only: a kit icon name; an unknown name draws no icon. */
+  icon?: string;
+  /** Present while the plugin's `disabledWhen` holds: draw the action disabled with this reason under it (R2.5). */
+  disabledReason?: string;
 }
 
-export interface PluginUiField { label: string; value: string }
+/**
+ * `tone`: the value's label declares one (draw a tag). `unmapped`: the field's values are an enumeration (a toned
+ * label) and this one is not among them; `value` is then the raw value, which a kit does not show as such.
+ */
+export interface PluginUiField { label: string; value: string; tone?: PluginUiTone; unmapped?: boolean }
 
 export interface PluginUiTextBlock { kind: "text"; text: string; maxLines?: number; style: "body" | "title" | "secondary" }
 export interface PluginUiFieldsBlock { kind: "fields"; fields: PluginUiField[] }
@@ -55,7 +65,7 @@ export interface PluginUiChoicesBlock {
 /** The header of a group of entries ("Option A · 5 votes · 42%"); `percent` 0..=100 when `count` and `total` are known. */
 export interface PluginUiEntryGroup { key: string; label: string; count?: number; total?: number; percent?: number }
 /** An entry's or row's enumerated value as words and a tone (`valueLabels`), such as a ledger line's kind. */
-export interface PluginUiBadge { text: string; tone: PluginUiTone }
+export interface PluginUiBadge { text: string; tone: PluginUiTone; unmapped?: boolean }
 /** `index` is 1-based; in a grouped block it counts within the group. `group` is on the first entry of each group. */
 export interface PluginUiEntry { index: number; text: string; name?: string; userId?: string; group?: PluginUiEntryGroup; badge?: PluginUiBadge }
 /**
@@ -66,7 +76,12 @@ export interface PluginUiEntry { index: number; text: string; name?: string; use
 export interface PluginUiEntriesBlock { kind: "entries"; items: PluginUiEntry[]; numbered: boolean; total: number; more: boolean; emptyText?: string; grouped?: boolean }
 export interface PluginUiPeopleGroup { label: string; userIds: string[]; count: number; tone?: PluginUiTone }
 export interface PluginUiPeopleBlock { kind: "people"; groups: PluginUiPeopleGroup[] }
-export interface PluginUiStatusBlock { kind: "status"; label?: string; text: string; tone: PluginUiTone }
+export interface PluginUiStatusBlock { kind: "status"; label?: string; text: string; tone: PluginUiTone; unmapped?: boolean }
+/** The outcome of a flow: `title` is the state's label (the raw state when `unmapped`); `pending` keeps re-reading. */
+export interface PluginUiResultBlock {
+  kind: "result"; state: string; title: string; tone: PluginUiTone; unmapped?: boolean;
+  amount?: string; description?: string;
+}
 export interface PluginUiProgressBlock { kind: "progress"; label?: string; value: number; total: number; percent: number }
 /** Epoch milliseconds; the host formats them in the viewer's time zone and counts down when asked. */
 export interface PluginUiTimeBlock { kind: "time"; label?: string; atMs: number; endMs?: number; countdown: boolean }
@@ -76,16 +91,19 @@ export interface PluginUiRowsBlock {
   kind: "rows";
   source: string;
   columns: Array<{ label: string; format: "text" | "time" }>;
-  rows: Array<{ key: string; cells: Array<{ text: string; timeMs?: number }>; actions: Array<{ id: string; input: Record<string, unknown> }>; detailInput?: Record<string, unknown>; badge?: PluginUiBadge }>;
+  rows: Array<{ key: string; cells: Array<{ text: string; timeMs?: number; tone?: PluginUiTone; unmapped?: boolean }>; actions: Array<{ id: string; input: Record<string, unknown> }>; detailInput?: Record<string, unknown>; badge?: PluginUiBadge }>;
   /** Ids of the view's `inputs` shown as filters; absent: every input is a filter. */
   filters?: string[];
   nextCursor?: string;
   actions: PluginUiAction[];
   emptyText?: string;
+  /** A kit icon name leading every row in a 36 circle: each row is a record (first column the value at the end, second the title). */
+  icon?: string;
 }
 export type PluginUiBlock =
   | PluginUiTextBlock | PluginUiFieldsBlock | PluginUiChoicesBlock | PluginUiEntriesBlock | PluginUiPeopleBlock
-  | PluginUiStatusBlock | PluginUiProgressBlock | PluginUiTimeBlock | PluginUiDividerBlock | PluginUiNoteBlock | PluginUiRowsBlock;
+  | PluginUiStatusBlock | PluginUiProgressBlock | PluginUiTimeBlock | PluginUiDividerBlock | PluginUiNoteBlock | PluginUiRowsBlock
+  | PluginUiResultBlock;
 
 export type PluginUiInputKind = "text" | "textarea" | "password" | "number" | "toggle" | "select" | "datetime" | "options" | "members" | "file";
 /** Stable completed private upload reference. Never a URL, grant or local path. */
@@ -114,6 +132,8 @@ export interface PluginUiInput {
   max?: number;
   default?: unknown;
   choices?: Array<{ value: string; label: string }>;
+  /** Translated help drawn under the field. */
+  help?: string;
   file?: PluginUiFileInput;
   /** Earlier unconditional Select in this action form. Hidden values are not
    * required or submitted. Controller value changes invalidate every dependent
@@ -193,7 +213,13 @@ export interface PluginPagePresentation extends PluginDetailPresentation {
    * (`contributionId` = the page) and keep this view as its fallback. Absent: draw this view at once.
    */
   bundle?: true;
+  /**
+   * Sibling pages shown as a segmented control under the header, `selected` on this one. Choosing another replaces
+   * this page on the host's stack (no new back step) with the same arguments. Absent: no tabs.
+   */
+  tabs?: PluginUiPageTab[];
 }
+export interface PluginUiPageTab { page: string; label: string; selected: boolean }
 
 /** Paging options of `PluginUiSession.page`. */
 export interface PluginPagePage {
@@ -220,7 +246,8 @@ export interface PluginCardPresentation extends PluginPresentation {
 
 /** Outcome of a card action: the capability response, what a host target returned, or form problems. */
 export type PluginActionOutcome =
-  | { kind: "operation"; response: { success?: boolean; data?: unknown; error?: unknown } & Record<string, unknown> }
+  /** `message`: the plugin's words for a refusal's code, when the page declares them; show it as the failure text. */
+  | { kind: "operation"; response: { success?: boolean; data?: unknown; error?: unknown } & Record<string, unknown>; message?: string }
   | { kind: "host"; result: unknown }
   | { kind: "formErrors"; errors: PluginFormError[] }
   /** A host capability wrote into a page input (`into`): an uploaded document's `{fileId}`, a location fix. */

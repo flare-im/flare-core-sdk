@@ -13,7 +13,8 @@ import {
 } from "@flare-im/vue-ui";
 import type { PluginDetailPresentation } from "@flare-im/sdk/plugin-ui";
 import {
-  pluginUiConversationKey, pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiHostKey, pluginUiSessionKey, pluginUiStateFeedKey,
+  pluginUiConversationKey, pluginUiConversationTypeKey, pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiHostKey, pluginUiOpenPageKey,
+  pluginUiSessionKey, pluginUiStateFeedKey,
 } from "./context";
 import { useCorePluginUpgrade } from "./upgrade";
 import CorePluginBundle from "./CorePluginBundle.vue";
@@ -34,6 +35,8 @@ const props = defineProps<{
 }>();
 const session = inject(pluginUiSessionKey, ref(null));
 const hostConversation = inject(pluginUiConversationKey, () => undefined);
+const hostConversationType = inject(pluginUiConversationTypeKey, () => undefined);
+const openPage = inject(pluginUiOpenPageKey, undefined);
 const directory = inject(pluginUiDirectoryKey, {});
 const stateChanges = inject(pluginUiStateFeedKey, null);
 const errorText = inject(pluginUiErrorTextKey, () => undefined);
@@ -108,7 +111,7 @@ async function runAction(surface: ActionSurface, id: string, payload: FlarePlugi
     });
     if (scope !== actionScope) return;
     if (outcome.kind === "formErrors") surface.formErrors = outcome.errors;
-    else if (outcome.kind === "operation" && outcome.response.success === false) surface.error = t("pluginRuntime.rejected");
+    else if (outcome.kind === "operation" && outcome.response.success === false) surface.error = outcome.message || t("pluginRuntime.rejected");
     // A host capability that did not run (refused, backed out) changed nothing; one the host could not run says so.
     else if (outcome.kind === "declined") { if (outcome.reason === "unavailable") surface.error = t("pluginRuntime.unavailable"); }
     // Core has stored the state the plugin returned on this message: show it without waiting for the event.
@@ -134,6 +137,8 @@ const detailAction = (id: string, payload: FlarePluginActionPayload = {}) => run
 const detailUsed = ref(false), detailOpen = ref(false), detailLoading = ref(false), detailError = ref("");
 /** The next page is on its way (kit loadingMore). */
 const detailLoadingMore = ref(false);
+const detailPagingError = ref("");
+const detailPagingToken = ref(0);
 /** The sheet as Core returned it; handed back unchanged as `previous` for the next page. */
 const detailView = shallowRef<PluginDetailPresentation>();
 let detailGeneration = 0;
@@ -145,15 +150,15 @@ const detailRequest = () => ({ messageId: props.messageId, conversationId: conve
  */
 async function loadDetail(quiet = false): Promise<void> {
   const mine = ++detailGeneration, host = session.value, message = host?.envelope(props.content), shown = detailView.value;
-  if (!quiet || !shown) detailLoading.value = true;
+  detailLoading.value = true;
   // A reload starts again from the first page: a page still on its way is dropped.
-  detailError.value = ""; detailLoadingMore.value = false;
+  detailError.value = ""; detailPagingError.value = ""; detailLoadingMore.value = false; detailPagingToken.value++;
   try {
     if (!host || !message) throw new Error("Plugin detail unavailable");
     const result = await host.detail(message, { ...detailRequest(), ...(quiet && shown ? { refresh: shown } : {}) });
     if (mine === detailGeneration) detailView.value = result;
   } catch (failure) {
-    if (mine === detailGeneration && !(quiet && detailView.value)) detailError.value = errorText(failure) ?? t("pluginRuntime.unavailable");
+    if (mine === detailGeneration) detailError.value = errorText(failure) ?? t("pluginRuntime.unavailable");
   } finally {
     if (mine === detailGeneration) detailLoading.value = false;
   }
@@ -165,16 +170,16 @@ async function loadDetail(quiet = false): Promise<void> {
  */
 async function loadMoreDetail(cursor: string): Promise<void> {
   const host = session.value, message = host?.envelope(props.content), previous = detailView.value;
-  if (!host || !message || !previous || detailLoadingMore.value) return;
+  if (!host || !message || !previous || detailLoading.value || detailLoadingMore.value) return;
   const mine = ++detailGeneration;
-  detailLoadingMore.value = true; inDetail.error = "";
+  detailLoadingMore.value = true; detailPagingError.value = "";
   try {
     const merged = await host.detail(message, { ...detailRequest(), page: { cursor, previous } });
     if (mine === detailGeneration) detailView.value = merged;
   } catch (failure) {
-    if (mine === detailGeneration) inDetail.error = errorText(failure) ?? t("pluginRuntime.unavailable");
+    if (mine === detailGeneration) detailPagingError.value = errorText(failure) ?? t("pluginRuntime.unavailable");
   } finally {
-    if (mine === detailGeneration) detailLoadingMore.value = false;
+    if (mine === detailGeneration) { detailPagingToken.value++; detailLoadingMore.value = false; }
   }
 }
 /**
@@ -210,10 +215,32 @@ function openDetail(): void {
   inDetail.error = ""; inDetail.formErrors = [];
   void loadDetail();
 }
+/** What the detail bundle's hello says about the conversation: its id and, when the host provided it, its type. */
+function bundleConversation(): { id: string; type: string } | undefined {
+  const id = conversation();
+  return id ? { id, type: hostConversationType() ?? "" } : undefined;
+}
+/**
+ * The detail bundle's `ui.navigate` to a page of its plugin: the host opens it beside the chat, as an action's page
+ * target would (the sheet stays open, as on Flutter). A route inside the bundle (`bundleRoute`) has no page of its own
+ * here, and a host without `openPage` keeps the navigation unanswered, as before.
+ */
+function bundleNavigate(target: { page?: string; arguments?: Record<string, unknown>; bundleRoute?: string }): void {
+  const detail = bundleDetail.value;
+  if (!openPage || !detail || !target.page) return;
+  const conversationId = conversation();
+  openPage({
+    pluginId: detail.pluginId,
+    page: target.page,
+    title: displayName.value ?? "",
+    ...(target.arguments ? { args: target.arguments } : {}),
+    ...(conversationId ? { conversationId } : {}),
+  });
+}
 function closeDetail(): void {
   bundleDetail.value = null;
   detailGeneration++;
-  detailOpen.value = false; detailLoading.value = false; detailError.value = ""; detailLoadingMore.value = false;
+  detailOpen.value = false; detailLoading.value = false; detailError.value = ""; detailPagingError.value = ""; detailLoadingMore.value = false;
 }
 
 // ── lifecycle ────────────────────────────────────────────────────────────
@@ -243,9 +270,10 @@ onBeforeUnmount(() => { viewGeneration++; actionScope++; detailGeneration++; sto
       :contribution-id="bundleDetail.contributionId"
       presentation="detail"
       :args="bundleDetail.args"
-      :conversation="conversation() ? { id: conversation()!, type: '' } : undefined"
+      :conversation="bundleConversation()"
       @title="(value) => { bundleTitle = value; }"
       @close="bundleDetail = null"
+      @navigate="bundleNavigate"
       @fallback="bundleDetailFallback"
     />
   </FlareBottomSheet>
@@ -270,6 +298,7 @@ onBeforeUnmount(() => { viewGeneration++; actionScope++; detailGeneration++; sto
     v-if="detailUsed"
     :open="detailOpen"
     :title="view.title"
+    :presentation="pluginHost.detailPresentation"
     :view="detailView"
     :loading="detailLoading"
     :error="detailError || undefined"
@@ -280,7 +309,9 @@ onBeforeUnmount(() => { viewGeneration++; actionScope++; detailGeneration++; sto
     :form-errors="inDetail.formErrors"
     :settle-token="inDetail.settleToken"
     :loading-more="detailLoadingMore"
-    @retry="loadDetail()"
+    :pagination-error="detailPagingError || undefined"
+    :paging-token="detailPagingToken"
+    @retry="loadDetail(Boolean(detailView))"
     @close="closeDetail"
     @action="detailAction"
     @load-more="loadMoreDetail"

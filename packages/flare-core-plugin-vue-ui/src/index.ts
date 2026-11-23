@@ -2,8 +2,10 @@ import { inject, onBeforeUnmount, provide, type Ref } from "vue";
 import { provideFlareMessageRenderers, useFlareMessageRenderers } from "@flare-im/vue-ui";
 import type { NativePluginBridge, PluginUiSession } from "@flare-im/sdk/plugin-ui";
 import {
-  pluginUiConversationKey, pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiHostKey, pluginUiSessionKey, pluginUiStateFeedKey, pluginUiNativeKey,
-  type CorePluginDirectory, type CorePluginErrorText, type CorePluginHost, type CorePluginStateFeed,
+  pluginUiConversationKey, pluginUiConversationTypeKey, pluginUiDirectoryKey, pluginUiErrorTextKey, pluginUiHostKey, pluginUiOpenPageKey,
+  pluginUiSessionKey, pluginUiStateFeedKey, pluginUiNativeKey,
+  type CorePluginConversationType, type CorePluginDirectory, type CorePluginErrorText, type CorePluginHost, type CorePluginOpenPage,
+  type CorePluginStateFeed,
 } from "./context";
 import PluginMessage from "./PluginMessage.vue";
 /** The generic card, for hosts that render some plugins with their own components and the rest with this. */
@@ -15,10 +17,13 @@ export { default as PluginUpgradeSheet } from "./PluginUpgradeSheet.vue";
 export * from "./composerMenu";
 /** A plugin page (a 我 entry, a card's page target) over the core SDK's `pluginPage`, with its own page stack. */
 export { default as CorePluginPage } from "./CorePluginPage.vue";
-export { corePluginPageEntry, corePluginPageSession, type CorePluginPageEntry } from "./pluginPage";
+export { corePluginPageEntry, corePluginPageSession, type CorePluginPageEntry, type CorePluginPagePromptPolicy } from "./pluginPage";
 export { usePluginMemberSearch } from "./memberSearch";
 export { CORE_PLUGIN_STATE_CHANNEL, createCorePluginStateFeed, usePluginPostedCards, type CorePluginStateHub } from "./hostFeeds";
-export type { CorePluginBundleHost, CorePluginDirectory, CorePluginErrorText, CorePluginHost, CorePluginStateChange, CorePluginStateFeed } from "./context";
+export type {
+  CorePluginBundleHost, CorePluginConversationType, CorePluginDirectory, CorePluginErrorText, CorePluginHost, CorePluginOpenPage,
+  CorePluginStateChange, CorePluginStateFeed,
+} from "./context";
 /** A contribution's web bundle variant (a page, a card's detail, a "+" form) in the kit's bundle host, with its fallback. */
 export { default as CorePluginBundle } from "./CorePluginBundle.vue";
 export { CORE_PLUGIN_BUNDLE_MAX_FAILURES, corePluginBundleFailed, corePluginBundleGaveUp, corePluginBundleResultData, resetCorePluginBundleFailures } from "./pluginBundle";
@@ -41,6 +46,17 @@ export interface CorePluginUiOptions extends CorePluginDirectory {
   native?: NativePluginBridge;
   /** The conversation the timeline shows; card actions are dispatched bound to it. */
   conversationId?: () => string | undefined;
+  /**
+   * That conversation's type, `single` or `group` (or a getter, for a chat owner whose conversation changes). A card's
+   * detail web bundle is told it in its hello; without it the bundle gets an empty type, as before.
+   */
+  conversationType?: CorePluginConversationType | (() => CorePluginConversationType | undefined);
+  /**
+   * Opens a page beside the chat when a card's detail web bundle navigates to a page of its plugin (`ui.navigate` with
+   * `page`); the entry carries the plugin, the page, its arguments and the conversation. The detail sheet stays open,
+   * as on Flutter. Without it such a navigation does nothing, as before.
+   */
+  openPage?: CorePluginOpenPage;
   /** Card state changes (the SDK's `onMessagePluginStateChanged`): a card presents again when its message is named. */
   stateChanges?: CorePluginStateFeed;
   /** The host's copy for a failed plugin call (`sdk.plugin.*`). */
@@ -55,6 +71,11 @@ export function provideCorePluginUi(session: Ref<PluginUiSession | null>, option
   provide(pluginUiSessionKey, session);
   if (options.native) provideCorePluginNativeBridge(options.native);
   if (options.conversationId) provide(pluginUiConversationKey, options.conversationId);
+  if (options.conversationType) {
+    const type = options.conversationType;
+    provide(pluginUiConversationTypeKey, typeof type === "function" ? type : () => type);
+  }
+  if (options.openPage) provide(pluginUiOpenPageKey, options.openPage);
   if (options.resolveUser || options.members || options.encodePluginCode) provideCorePluginDirectory({ resolveUser: options.resolveUser, members: options.members, encodePluginCode: options.encodePluginCode });
   if (options.stateChanges) provide(pluginUiStateFeedKey, options.stateChanges);
   if (options.errorText) provide(pluginUiErrorTextKey, options.errorText);
@@ -97,3 +118,4 @@ export function useCorePluginStateChanges(messageId: () => string | undefined, o
 export function useCorePluginErrorText(): CorePluginErrorText {
   return inject(pluginUiErrorTextKey, () => undefined);
 }
+export { offerCapturedPhoto } from "./capturedPhotos";

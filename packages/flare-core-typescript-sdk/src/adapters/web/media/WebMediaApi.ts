@@ -347,8 +347,7 @@ export class WebMediaApi implements MediaApi {
           blob = await fetchBlob(url, controller.signal, onProgress);
         } catch (error) {
           if (controller.signal.aborted) throw error;
-          // The storage does not allow this origin to read it (CORS): the browser can still
-          // download the attachment URL itself.
+          // Let the browser stream the URL when the page cannot read or buffer it.
           await forgetSavedDownload(key);
           saveThroughBrowser(url, wanted);
           return this.savedResult(key, '', wanted, 0, false, 'browser');

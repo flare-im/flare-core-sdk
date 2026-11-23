@@ -29,7 +29,7 @@ export interface PluginFileUploadOptions {
   failure(kind: "policy" | "transport"): string;
   preview(url: string, fileName: string): void;
   commandId?: () => string;
-  createUrl?: (file: File) => string;
+  createUrl?: (file: Blob) => string;
   revokeUrl?: (url: string) => void;
 }
 
@@ -70,7 +70,11 @@ export class PluginFileUploads {
    * (`documentCapture` with `into`), so the host only shows the input uploading and then the reference the engine
    * wrote. A refusal or a cancel leaves the input as it was; a failure marks it failed.
    */
-  async captured(event: FlarePluginFileAction, run: () => Promise<PluginActionOutcome>, fileName?: string): Promise<void> {
+  /** `photo`: the captured picture, when the capture panel handed it over (taken once, whatever the outcome).
+   * `handedOver`: subscribes to the panel handing a photo over; the input shows uploading only from then on, so the
+   * consent and capture panels never sit over an "uploading 0%" slot (without it, from the start as before). */
+  async captured(event: FlarePluginFileAction, run: () => Promise<PluginActionOutcome>, fileName?: string, photo?: () => Blob | undefined,
+    handedOver?: (listener: () => void) => () => void): Promise<void> {
     const { inputId, scope, generation } = event;
     this.seen.set(inputId, { scope, generation });
     const previous = this.selections.get(inputId);
@@ -90,20 +94,28 @@ export class PluginFileUploads {
       this.states[inputId] = { scope, generation, ...value };
       this.publish();
     };
-    state({ phase: "uploading", ...(fileName ? { fileName } : {}) });
+    const uploading = () => state({ phase: "uploading", ...(fileName ? { fileName } : {}) });
+    const stop = handedOver?.(uploading);
+    if (!handedOver) uploading();
     try {
-      const outcome = await run();
+      const outcome = await run().finally(() => stop?.());
+      const picture = photo?.();
       if (!current()) return;
       if (outcome.kind === "input" && outcome.input === inputId && pluginFileReference(outcome.value)) {
-        state({ phase: "uploaded", value: { fileId: outcome.value.fileId }, ...(fileName ? { fileName } : {}) });
+        // §6.3: the slot shows the photo it holds; the object URL lives until remove, replace or close (release).
+        if (picture) selected.previewUrl = (this.options.createUrl ?? URL.createObjectURL)(picture);
+        state({ phase: "uploaded", value: { fileId: outcome.value.fileId }, ...(fileName ? { fileName } : {}),
+          ...(selected.previewUrl ? { previewUrl: selected.previewUrl } : {}) });
       } else if (outcome.kind === "declined" && outcome.reason !== "unavailable") {
-        if (oldState && oldState.scope === scope) this.states[inputId] = { ...oldState, generation };
+        // The earlier photo's URL was released with its selection: the slot keeps the reference, not the picture.
+        if (oldState && oldState.scope === scope) this.states[inputId] = { ...oldState, generation, previewUrl: undefined };
         else this.states[inputId] = { scope, generation, phase: "empty" };
         this.publish();
       } else {
         state({ phase: "failed", error: this.options.failure("transport"), ...(fileName ? { fileName } : {}) });
       }
     } catch {
+      photo?.();
       state({ phase: "failed", error: this.options.failure("transport"), ...(fileName ? { fileName } : {}) });
     }
   }
@@ -176,7 +188,7 @@ export class PluginFileUploads {
               previous.previewUrl = (this.options.createUrl ?? URL.createObjectURL)(previous.file);
             this.selections.set(inputId, { ...previous, scope, generation });
             const interrupted = oldState.phase === "selected" || oldState.phase === "uploading";
-            this.states[inputId] = { ...oldState, scope, generation, preview: !!previous.previewUrl,
+            this.states[inputId] = { ...oldState, scope, generation, preview: !!previous.previewUrl, previewUrl: previous.previewUrl,
               ...(interrupted ? { phase: "failed", error: this.options.failure("transport") } : {}) };
           } else {
             this.selections.delete(inputId);
@@ -195,12 +207,12 @@ export class PluginFileUploads {
         throw new PluginFilePolicyError();
       if (!selected.previewUrl && contentType.startsWith("image/"))
         selected.previewUrl = (this.options.createUrl ?? URL.createObjectURL)(file);
-      state({ phase: "selected", fileName: file.name, preview: !!selected.previewUrl });
+      state({ phase: "selected", fileName: file.name, preview: !!selected.previewUrl, previewUrl: selected.previewUrl });
       const bytes = new Uint8Array(await file.arrayBuffer());
       if (!current()) return;
       if (!bytes.length || bytes.length > policy.maxBytes || bytes.length !== file.size)
         throw new PluginFilePolicyError();
-      state({ phase: "uploading", fileName: file.name, preview: !!selected.previewUrl });
+      state({ phase: "uploading", fileName: file.name, preview: !!selected.previewUrl, previewUrl: selected.previewUrl });
       const value = await context.port.uploadFile({
         page: context.page, inputId, platform: context.platform,
         ...(context.locale ? { locale: context.locale } : {}),
@@ -214,10 +226,10 @@ export class PluginFileUploads {
       if (!value || Object.keys(value).length !== 1 || typeof value.fileId !== "string" ||
           !/^[A-Za-z0-9_:-]{1,128}$/.test(value.fileId))
         throw new Error("FILE_UPLOAD_RESPONSE_INVALID");
-      state({ phase: "uploaded", value: { fileId: value.fileId }, fileName: file.name, preview: !!selected.previewUrl });
+      state({ phase: "uploaded", value: { fileId: value.fileId }, fileName: file.name, preview: !!selected.previewUrl, previewUrl: selected.previewUrl });
     } catch (cause) {
       state({ phase: "failed", fileName: selected.file?.name,
-        error: this.options.failure(cause instanceof PluginFilePolicyError ? "policy" : "transport"), preview: !!selected.previewUrl });
+        error: this.options.failure(cause instanceof PluginFilePolicyError ? "policy" : "transport"), preview: !!selected.previewUrl, previewUrl: selected.previewUrl });
     }
   }
 }

@@ -1,9 +1,11 @@
 const DB_NAME = "flare-core-web-app";
-const DB_VERSION = 6;
+const DB_VERSION = 8;
 const WASM_MESSAGES = "wasmMessages";
 const WASM_CONVERSATIONS = "wasmConversations";
 const WASM_CURSORS = "wasmCursors";
 const WASM_PENDING_SENDS = "wasmPendingSends";
+const MESSAGE_TIMELINE = "timeline";
+const INLINE_FILE_SOURCE_LIMIT = 1024 * 1024;
 
 export const WASM_STORAGE_CHANGED_EVENT = "flare:wasm-storage-changed";
 
@@ -16,9 +18,29 @@ export type WasmStorageChangedDetail = {
   conversation?: Record<string, unknown>;
 };
 
+// userId is the opaque tenant/user partition supplied by Core, not the account ID.
 type PersistMessagePayload = {
   userId: string;
   message: Record<string, unknown>;
+};
+
+type PersistMessagesPayload = {
+  userId: string;
+  messages: Record<string, unknown>[];
+};
+
+type LoadSnapshotPayload = { userId?: string; metadataOnly?: boolean };
+
+type ReadMessagesPayload = { userId: string } & (
+  | { kind: "ids"; ids: string[] }
+  | { kind: "all" }
+  | { kind: "timeline"; conversationId: string; beforeSeq?: number; afterSeq?: number; limit?: number; oldestSeq?: number }
+);
+
+type StoredMessageRow = PersistMessagePayload & {
+  key: string;
+  /** Large local file locators. The URL can refer to the same Blob as fileId. */
+  localFileSources?: { fileId?: Blob; url?: Blob | "fileId" };
 };
 
 type PersistConversationPayload = {
@@ -97,25 +119,22 @@ function openDbConnection(): Promise<IDBDatabase> {
     request.onupgradeneeded = () => {
       const db = request.result;
       for (const storeName of [WASM_MESSAGES, WASM_CONVERSATIONS, WASM_CURSORS, WASM_PENDING_SENDS]) {
-        if (db.objectStoreNames.contains(storeName)) {
-          db.deleteObjectStore(storeName);
+        const store = db.objectStoreNames.contains(storeName)
+          ? request.transaction!.objectStore(storeName)
+          : db.createObjectStore(storeName, { keyPath: "key" });
+        if (!store.indexNames.contains("userId")) {
+          store.createIndex("userId", "userId", { unique: false });
         }
-      }
-      if (!db.objectStoreNames.contains(WASM_MESSAGES)) {
-        const store = db.createObjectStore(WASM_MESSAGES, { keyPath: "key" });
-        store.createIndex("userId", "userId", { unique: false });
-      }
-      if (!db.objectStoreNames.contains(WASM_CONVERSATIONS)) {
-        const store = db.createObjectStore(WASM_CONVERSATIONS, { keyPath: "key" });
-        store.createIndex("userId", "userId", { unique: false });
-      }
-      if (!db.objectStoreNames.contains(WASM_CURSORS)) {
-        const store = db.createObjectStore(WASM_CURSORS, { keyPath: "key" });
-        store.createIndex("userId", "userId", { unique: false });
-      }
-      if (!db.objectStoreNames.contains(WASM_PENDING_SENDS)) {
-        const store = db.createObjectStore(WASM_PENDING_SENDS, { keyPath: "key" });
-        store.createIndex("userId", "userId", { unique: false });
+        if (storeName === WASM_MESSAGES) {
+          for (const [name, field] of [["serverId", "serverId"], ["clientMsgId", "clientMsgId"]] as const) {
+            if (!store.indexNames.contains(name)) {
+              store.createIndex(name, ["userId", `message.${field}`], { unique: false });
+            }
+          }
+          if (!store.indexNames.contains(MESSAGE_TIMELINE)) {
+            store.createIndex(MESSAGE_TIMELINE, ["userId", "message.conversationId", "message.conversationSeq"]);
+          }
+        }
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -152,6 +171,41 @@ function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isLargeInlineSource(value: unknown): value is string {
+  return typeof value === "string" && value.length > INLINE_FILE_SOURCE_LIMIT && value.startsWith("data:");
+}
+
+function messageRowForStorage(key: string, userId: string, message: Record<string, unknown>): StoredMessageRow {
+  const { content, localState } = message;
+  const row = { key, userId, message };
+  if (!isRecord(localState) || localState.isLocal !== true || !isRecord(content) || content.contentType !== "file") {
+    return row;
+  }
+  const fileId = isLargeInlineSource(content.fileId) ? content.fileId : undefined;
+  const url = isLargeInlineSource(content.url) ? content.url : undefined;
+  if (!fileId && !url) return row;
+
+  // IndexedDB stores Blob bytes outside the structured-clone record, in the same transaction as the message.
+  // Rust regenerates the protobuf cache from the restored file content when it hydrates this local row.
+  const { encodedContent: _encodedContent, ...stored } = message;
+  return {
+    ...row,
+    message: { ...stored, content: { ...content, fileId: fileId ? "" : content.fileId, url: url ? "" : content.url } },
+    localFileSources: {
+      fileId: fileId ? new Blob([fileId]) : undefined,
+      url: url ? (url === fileId ? "fileId" : new Blob([url])) : undefined,
+    },
+  };
+}
+
+async function restoreMessage(row: StoredMessageRow): Promise<Record<string, unknown>> {
+  const { message, localFileSources } = row;
+  if (!localFileSources || !isRecord(message.content)) return message;
+  const fileId = await localFileSources.fileId?.text();
+  const url = localFileSources.url === "fileId" ? fileId : await localFileSources.url?.text();
+  return { ...message, content: { ...message.content, fileId: fileId ?? message.content.fileId, url: url ?? message.content.url } };
 }
 
 function hasCanonicalOptionalBooleans(record: Record<string, unknown>, keys: readonly string[]): boolean {
@@ -192,7 +246,8 @@ async function deleteRowsByKeys(storeName: string, keys: readonly string[]): Pro
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(storeName, "readwrite");
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed"));
+    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB transaction aborted"));
     tx.oncomplete = () => resolve();
     const store = tx.objectStore(storeName);
     for (const key of keys) {
@@ -201,21 +256,20 @@ async function deleteRowsByKeys(storeName: string, keys: readonly string[]): Pro
   });
 }
 
-async function getAllForUser<T extends { userId: string }>(
+function getAllForUser<T>(
+  tx: IDBTransaction,
   storeName: string,
   userId: string,
 ): Promise<T[]> {
-  const db = await openDb();
-  const tx = db.transaction(storeName, "readonly");
   const index = tx.objectStore(storeName).index("userId");
-  return requestToPromise(index.getAll(userPrefix(userId)));
+  return requestToPromise(index.getAll(userId));
 }
 
 async function putRow(storeName: string, row: Record<string, unknown>): Promise<void> {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(storeName, "readwrite");
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed"));
     tx.onabort = () => reject(tx.error ?? new Error(`IndexedDB ${storeName} transaction aborted`));
     tx.oncomplete = () => resolve();
     tx.objectStore(storeName).put(row);
@@ -227,45 +281,52 @@ function notifyStorageChanged(detail: WasmStorageChangedDetail): void {
   window.dispatchEvent(new CustomEvent<WasmStorageChangedDetail>(WASM_STORAGE_CHANGED_EVENT, { detail }));
 }
 
-async function deleteRowsForUser(storeName: string, userId: string, id: string): Promise<void> {
+async function deleteMessageRows(userId: string, id: string): Promise<void> {
   const db = await openDb();
-  const prefix = `${userPrefix(userId)}::`;
   await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(storeName, "readwrite");
-    tx.onerror = () => reject(tx.error);
+    const tx = db.transaction(WASM_MESSAGES, "readwrite");
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed"));
+    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB transaction aborted"));
     tx.oncomplete = () => resolve();
-    const store = tx.objectStore(storeName);
-    const req = store.openCursor();
-    req.onsuccess = () => {
-      const cursor = req.result;
-      if (!cursor) return;
-      const key = String((cursor.value as { key?: string }).key ?? "");
-      if (key.startsWith(prefix) && key.includes(`::${id}`)) {
+    const store = tx.objectStore(WASM_MESSAGES);
+    let foundServer = false;
+    const request = store.index("serverId").openCursor([userPrefix(userId), id]);
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        foundServer = true;
         cursor.delete();
+        cursor.continue();
+      } else if (!foundServer) {
+        const clients = store.index("clientMsgId").getAll([userPrefix(userId), id]);
+        clients.onsuccess = () => {
+          const local = clients.result.filter((row) => row.message && (!row.message.serverId || row.message.localState?.isLocal === true));
+          if (local.length === 1) store.delete(local[0].key);
+        };
       }
-      cursor.continue();
     };
   });
 }
 
-export async function wasmStorageLoadSnapshot(payload: { userId?: string }): Promise<string> {
+export async function wasmStorageLoadSnapshot(payload: LoadSnapshotPayload): Promise<string> {
   const userId = payload.userId?.trim();
   if (!userId) {
     return JSON.stringify({ messages: [], conversations: [], cursors: {}, pendingSends: [] });
   }
+  const db = await openDb();
+  const stores = [WASM_CONVERSATIONS, WASM_CURSORS, WASM_PENDING_SENDS];
+  if (!payload.metadataOnly) stores.push(WASM_MESSAGES);
+  const tx = db.transaction(stores, "readonly");
   const [messageRows, conversationRows, cursorRows, pendingRows] = await Promise.all([
-    getAllForUser<{ userId: string; message: Record<string, unknown> }>(WASM_MESSAGES, userId),
-    getAllForUser<{ userId: string; conversation: Record<string, unknown> }>(
-      WASM_CONVERSATIONS,
-      userId,
-    ),
-    getAllForUser<{ userId: string; key: string; value: string }>(WASM_CURSORS, userId),
-    getAllForUser<{ userId: string; key: string; entry: Record<string, unknown> }>(WASM_PENDING_SENDS, userId),
+    payload.metadataOnly ? [] : getAllForUser<StoredMessageRow>(tx, WASM_MESSAGES, userId),
+    getAllForUser<{ key: string; conversation: Record<string, unknown> }>(tx, WASM_CONVERSATIONS, userId),
+    getAllForUser<{ key: string; value: string; cursorKey?: string }>(tx, WASM_CURSORS, userId),
+    getAllForUser<{ key: string; entry: Record<string, unknown> }>(tx, WASM_PENDING_SENDS, userId),
   ]);
   const cursors: Record<string, string> = {};
   for (const row of cursorRows) {
     const cursorKey =
-      (row as { cursorKey?: string }).cursorKey ??
+      row.cursorKey ??
       String(row.key).split("::").slice(1).join("::");
     cursors[cursorKey] = row.value;
   }
@@ -282,52 +343,181 @@ export async function wasmStorageLoadSnapshot(payload: { userId?: string }): Pro
   void deleteRowsByKeys(WASM_MESSAGES, invalidMessageKeys).catch(() => undefined);
   void deleteRowsByKeys(WASM_CONVERSATIONS, invalidConversationKeys).catch(() => undefined);
 
-  // 修历史遗留：pendingSendKey 曾错读 camelCase，对 snake_case wire 取到 undefined
-  // 后回退成随机 UUID 当主键，导致这些行**永远删不掉**（删除按真实 client_msg_id
-  // 拼键），只增不减，且每次登录都被重新水化、把已送达的消息再发一遍。
-  // 这里把错键行重写到正确主键，之后 ack 就能正常把它们弹出。
-  const orphanPendingKeys: string[] = [];
+  // Prefer the canonical row over old random-key copies of the same pending send.
+  const canonicalPending = new Map<string, Record<string, unknown>>();
   for (const row of pendingRows) {
-    const rowKey = String((row as { key?: string }).key ?? "");
-    const wantKey = pendingSendKey(userId, row.entry ?? {});
-    if (!rowKey || !wantKey || rowKey === wantKey) continue;
-    orphanPendingKeys.push(rowKey);
-    void putRow(WASM_PENDING_SENDS, {
-      key: wantKey,
-      userId: userPrefix(userId),
-      entry: row.entry,
-    }).catch(() => undefined);
+    const key = pendingSendKey(userId, row.entry ?? {});
+    if (key === row.key) canonicalPending.set(key, row.entry);
   }
-  if (orphanPendingKeys.length) {
-    console.warn(
-      `[flare-core] repaired ${orphanPendingKeys.length} pending-send rows stored under a random key`,
-    );
-    void deleteRowsByKeys(WASM_PENDING_SENDS, orphanPendingKeys).catch(() => undefined);
+  const orphanPendingRows = pendingRows.filter((row) => {
+    const key = pendingSendKey(userId, row.entry ?? {});
+    if (!key) return false;
+    if (!canonicalPending.has(key)) canonicalPending.set(key, row.entry);
+    return row.key !== key;
+  });
+  if (orphanPendingRows.length) {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(WASM_PENDING_SENDS, "readwrite");
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed"));
+      tx.onabort = () => reject(tx.error ?? new Error("pending-send migration aborted"));
+      const store = tx.objectStore(WASM_PENDING_SENDS);
+      for (const key of new Set(orphanPendingRows.map((row) => pendingSendKey(userId, row.entry)!))) {
+        const request = store.get(key);
+        request.onsuccess = () => {
+          if (request.result) canonicalPending.set(key, request.result.entry);
+          else store.put({ key, userId: userPrefix(userId), entry: canonicalPending.get(key)! });
+        };
+      }
+      for (const row of orphanPendingRows) store.delete(row.key);
+    });
   }
   return JSON.stringify({
-    messages: canonicalMessages.map((row) => row.message),
+    messages: await Promise.all(canonicalMessages.map(restoreMessage)),
     conversations: canonicalConversations.map((row) => row.conversation),
     cursors,
-    pendingSends: pendingRows.map((row) => row.entry),
+    pendingSends: [...canonicalPending.values()],
   });
 }
 
-export async function wasmStorageSaveMessage(payload: PersistMessagePayload): Promise<void> {
+function readTimelineRows(
+  store: IDBObjectStore,
+  userId: string,
+  query: Extract<ReadMessagesPayload, { kind: "timeline" }>,
+): Promise<StoredMessageRow[]> {
+  const { conversationId, afterSeq, beforeSeq, limit, oldestSeq } = query;
+  if (limit === 0) return Promise.resolve([]);
+  const scope = [userId, conversationId];
+  const confirmed = IDBKeyRange.bound(
+    [...scope, afterSeq ?? 0],
+    [...scope, beforeSeq || []],
+    true,
+    true,
+  );
+  const request = store.index(MESSAGE_TIMELINE).openCursor(confirmed, afterSeq === undefined ? "prev" : "next");
+  const confirmedRows = new Promise<StoredMessageRow[]>((resolve, reject) => {
+    const rows: StoredMessageRow[] = [];
+    let lastSeq: unknown;
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) return resolve(rows);
+      const seq = (cursor.key as IDBValidKey[])[2];
+      // Let Core break sequence ties consistently with its timeline comparator.
+      if (limit !== undefined && rows.length >= limit && seq !== lastSeq) return resolve(rows);
+      if (isCanonicalStoredMessage(cursor.value.message)) {
+        rows.push(cursor.value);
+        lastSeq = seq;
+        if (oldestSeq !== undefined && typeof seq === "number" && seq < oldestSeq) return resolve(rows);
+      }
+      cursor.continue();
+    };
+  });
+  if (afterSeq !== undefined || beforeSeq) return confirmedRows;
+  // Older rows can omit conversationSeq. Their original primary key still encodes zero.
+  const prefix = `${userId}::${conversationId}::00000000000000000000::`;
+  const zeroRows = requestToPromise<StoredMessageRow[]>(
+    store.getAll(IDBKeyRange.bound(prefix, prefix.slice(0, -1) + ";", false, true)),
+  );
+  return Promise.all([confirmedRows, zeroRows]).then(([rows, zeros]) =>
+    rows.concat(zeros.filter((row) => row.userId === userId && row.message?.conversationId === conversationId)),
+  );
+}
+
+export async function wasmStorageReadMessages(payload: ReadMessagesPayload): Promise<string> {
   const userId = payload.userId?.trim();
-  if (!userId) return;
-  const message = payload.message ?? {};
-  const conversationId = messageConversationId(message);
-  await putRow(WASM_MESSAGES, {
-    key: messageKey(userId, message),
-    userId: userPrefix(userId),
+  if (!userId) return "[]";
+  const db = await openDb();
+  const tx = db.transaction(WASM_MESSAGES, "readonly");
+  const store = tx.objectStore(WASM_MESSAGES);
+  let rows: StoredMessageRow[];
+  switch (payload.kind) {
+    case "timeline":
+      rows = await readTimelineRows(store, userId, payload);
+      break;
+    case "ids": {
+      const requests = [...new Set(payload.ids.filter(Boolean))].flatMap((id) =>
+        ["serverId", "clientMsgId"].map((name) => requestToPromise<StoredMessageRow[]>(store.index(name).getAll([userId, id]))),
+      );
+      const matches = (await Promise.all(requests)).flat();
+      rows = [...new Map(matches.map((row) => [row.key, row])).values()];
+      break;
+    }
+    case "all":
+      rows = await getAllForUser<StoredMessageRow>(tx, WASM_MESSAGES, userId);
+      break;
+  }
+  return JSON.stringify(await Promise.all(rows.filter((row) => isCanonicalStoredMessage(row.message)).map(restoreMessage)));
+}
+
+export async function wasmStorageSaveMessage(payload: PersistMessagePayload): Promise<void> {
+  await wasmStorageSaveMessages({ userId: payload.userId, messages: [payload.message ?? {}] });
+}
+
+export async function wasmStorageSaveMessages(payload: PersistMessagesPayload): Promise<void> {
+  const userId = payload.userId?.trim();
+  if (!userId || !payload.messages.length) return;
+  const writes = payload.messages.map((message) => ({
     message,
+    row: messageRowForStorage(messageKey(userId, message), userId, message),
+  }));
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(WASM_MESSAGES, "readwrite");
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed"));
+    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB message transaction aborted"));
+    tx.oncomplete = () => resolve();
+    const store = tx.objectStore(WASM_MESSAGES);
+    let index = 0;
+    function queueNext() {
+      const write = writes[index++];
+      if (!write) return;
+      const { message, row } = write;
+      const put = () => {
+        try {
+          // Keep writes ordered so an ACK can replace a pending row from this batch.
+          store.put(row).onsuccess = queueNext;
+        } catch (error) {
+          reject(error);
+          tx.abort();
+        }
+      };
+      const identities = [["serverId", message.serverId], ["clientMsgId", message.clientMsgId]]
+        .filter(([, id]) => typeof id === "string" && id.length > 0);
+      if (!identities.length) {
+        put();
+        return;
+      }
+      let remaining = identities.length;
+      for (const [name, id] of identities) {
+        const request = store.index(String(name)).openCursor([userId, String(id)]);
+        request.onsuccess = () => {
+          const cursor = request.result;
+          if (!cursor) {
+            if (--remaining === 0) put();
+            return;
+          }
+          const previous = cursor.value.message as Record<string, unknown>;
+          const sameServer = previous.serverId && previous.serverId === message.serverId;
+          const previousLocal = !previous.serverId || (previous.localState as { isLocal?: boolean } | undefined)?.isLocal === true;
+          const sameSend = previous.clientMsgId === message.clientMsgId
+            && previous.conversationId === message.conversationId && previous.senderId === message.senderId;
+          if (sameServer || (previousLocal && sameSend)) cursor.delete();
+          cursor.continue();
+        };
+      }
+    }
+    queueNext();
   });
-  notifyStorageChanged({
-    userId,
-    kind: "message",
-    conversationId,
-    message,
-  });
+  for (const { message } of writes) {
+    notifyStorageChanged({
+      userId,
+      kind: "message",
+      conversationId: messageConversationId(message),
+      message,
+    });
+  }
 }
 
 export async function wasmStorageSaveConversation(payload: PersistConversationPayload): Promise<void> {
@@ -370,8 +560,7 @@ export async function wasmStorageSavePendingSend(payload: PersistPendingSendPayl
   const entry = payload.entry ?? {};
   const key = pendingSendKey(userId, entry);
   if (!key) {
-    console.warn("[flare-core] pending send has no client_msg_id; skipped to avoid an undeletable row");
-    return;
+    throw new Error("pending send has no client_msg_id");
   }
   await putRow(WASM_PENDING_SENDS, {
     key,
@@ -388,7 +577,7 @@ export async function wasmStorageSavePendingSend(payload: PersistPendingSendPayl
 export async function wasmStorageDeleteMessage(payload: DeletePayload): Promise<void> {
   const userId = payload.userId?.trim();
   if (!userId || !payload.id) return;
-  await deleteRowsForUser(WASM_MESSAGES, userId, payload.id);
+  await deleteMessageRows(userId, payload.id);
   notifyStorageChanged({
     userId,
     kind: "delete",
@@ -399,13 +588,7 @@ export async function wasmStorageDeleteMessage(payload: DeletePayload): Promise<
 export async function wasmStorageDeleteConversation(payload: DeletePayload): Promise<void> {
   const userId = payload.userId?.trim();
   if (!userId || !payload.id) return;
-  const db = await openDb();
-  await requestToPromise(
-    db
-      .transaction(WASM_CONVERSATIONS, "readwrite")
-      .objectStore(WASM_CONVERSATIONS)
-      .delete(`${userPrefix(userId)}::${payload.id}`),
-  );
+  await deleteRowsByKeys(WASM_CONVERSATIONS, [`${userPrefix(userId)}::${payload.id}`]);
   notifyStorageChanged({
     userId,
     kind: "delete",
@@ -417,13 +600,7 @@ export async function wasmStorageDeleteConversation(payload: DeletePayload): Pro
 export async function wasmStorageDeletePendingSend(payload: DeletePayload): Promise<void> {
   const userId = payload.userId?.trim();
   if (!userId || !payload.id) return;
-  const db = await openDb();
-  await requestToPromise(
-    db
-      .transaction(WASM_PENDING_SENDS, "readwrite")
-      .objectStore(WASM_PENDING_SENDS)
-      .delete(`${userPrefix(userId)}::${payload.id}`),
-  );
+  await deleteRowsByKeys(WASM_PENDING_SENDS, [`${userPrefix(userId)}::${payload.id}`]);
   notifyStorageChanged({
     userId,
     kind: "delete",
@@ -437,8 +614,10 @@ function cryptoSafeId(): string {
 }
 
 export type WasmStorageHostCallbacks = {
-  loadSnapshot: (payload: { userId?: string }) => Promise<string>;
+  loadSnapshot: (payload: LoadSnapshotPayload) => Promise<string>;
+  readMessages?: (payload: ReadMessagesPayload) => Promise<string>;
   saveMessage: (payload: PersistMessagePayload) => Promise<void>;
+  saveMessages?: (payload: PersistMessagesPayload) => Promise<void>;
   saveConversation: (payload: PersistConversationPayload) => Promise<void>;
   saveCursor: (payload: PersistCursorPayload) => Promise<void>;
   savePendingSend: (payload: PersistPendingSendPayload) => Promise<void>;
@@ -450,7 +629,9 @@ export type WasmStorageHostCallbacks = {
 export function createWasmIndexedDbStorageHost(): WasmStorageHostCallbacks {
   return {
     loadSnapshot: wasmStorageLoadSnapshot,
+    readMessages: wasmStorageReadMessages,
     saveMessage: wasmStorageSaveMessage,
+    saveMessages: wasmStorageSaveMessages,
     saveConversation: wasmStorageSaveConversation,
     saveCursor: wasmStorageSaveCursor,
     savePendingSend: wasmStorageSavePendingSend,

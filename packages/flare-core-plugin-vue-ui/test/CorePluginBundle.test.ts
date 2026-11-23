@@ -9,7 +9,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { FlarePluginBundleHost, FlarePluginPage, FlarePluginView } from "@flare-im/vue-ui";
 import { useFlareI18nProvider } from "@flare-im/vue-ui/i18n";
 import { createPluginBundleEventHub, type PluginBundlePort } from "@flare-im/sdk/plugin-ui";
-import { CorePluginMessage, CorePluginPage, PluginComposerSheet, corePluginBundleFailed, corePluginBundleGaveUp, corePluginBundleResultData, provideCorePluginHost, resetCorePluginBundleFailures, type CorePluginBundleHost, type CorePluginPageEntry } from "../src/index";
+import { CorePluginMessage, CorePluginPage, PluginComposerSheet, corePluginBundleFailed, corePluginBundleGaveUp, corePluginBundleResultData, provideCorePluginHost, resetCorePluginBundleFailures, type CorePluginBundleHost, type CorePluginPageEntry, type CorePluginUiOptions } from "../src/index";
 import { cardContent, fakePort, mountWithSession, unmountAll } from "./support";
 
 const root: CorePluginPageEntry = { pluginId: "sdk.plugin.task", page: "task.dashboard", title: "Tasks" };
@@ -128,5 +128,50 @@ describe("forms and card details with web bundles", () => {
       expect(host.port.pluginBundleOpen).toHaveBeenCalledTimes(marked ? 1 : 0);
       expect(port.pluginDetail).toHaveBeenCalledTimes(marked ? 0 : 1);
     }
+  });
+
+  const pollCard = { pluginId: "acme.poll", contributionId: "acme.poll.card", schemaVersion: 1, summary: "Lunch?", payload: {} };
+  const markedPort = () => fakePort({ presentMessage: vi.fn(async () => ({ available: true, title: "Lunch?", fields: [], actions: [], detail: true, stateVersion: 1, bundle: true })) });
+
+  it("tells a card's detail bundle the conversation type the host provided, and an empty one without it", async () => {
+    const cases: Array<[CorePluginUiOptions["conversationType"], string]> = [["group", "group"], [() => "single", "single"], [undefined, ""]];
+    for (const [conversationType, expected] of cases) {
+      const host = bundles();
+      const { wrapper } = mountWithSession(markedPort(), () => h(CorePluginMessage, { content: cardContent(pollCard), messageId: "srv-1" }), undefined,
+        { plugin: { bundles: host }, options: conversationType ? { conversationType } : {} });
+      await flushPromises();
+      wrapper.getComponent(FlarePluginView).vm.$emit("openDetail");
+      await flushPromises();
+      expect(host.port.pluginBundleOpen).toHaveBeenCalledWith(expect.objectContaining({
+        presentation: "detail", conversation: { id: "conv-1", type: expected },
+      }));
+    }
+  });
+
+  it("hands a detail bundle's navigation to a page to the host's openPage, and keeps the sheet open", async () => {
+    const opened: CorePluginPageEntry[] = [];
+    const host = bundles();
+    const { wrapper } = mountWithSession(markedPort(), () => h(CorePluginMessage, { content: cardContent(pollCard), messageId: "srv-1" }), undefined,
+      { plugin: { bundles: host }, options: { openPage: (entry) => opened.push(entry) } });
+    await flushPromises();
+    wrapper.getComponent(FlarePluginView).vm.$emit("openDetail");
+    await flushPromises();
+    const frame = wrapper.getComponent(FlarePluginBundleHost);
+    frame.vm.$emit("navigate", { page: "acme.poll.results", arguments: { pollId: "p1" } });
+    frame.vm.$emit("navigate", { bundleRoute: "/inner" });
+    await flushPromises();
+    expect(opened).toEqual([{ pluginId: "acme.poll", page: "acme.poll.results", title: "", args: { pollId: "p1" }, conversationId: "conv-1" }]);
+    expect(wrapper.findComponent(FlarePluginBundleHost).exists()).toBe(true);
+  });
+
+  it("leaves a detail bundle's navigation unanswered without openPage, as before", async () => {
+    const host = bundles();
+    const { wrapper } = mountWithSession(markedPort(), () => h(CorePluginMessage, { content: cardContent(pollCard), messageId: "srv-1" }), undefined,
+      { plugin: { bundles: host } });
+    await flushPromises();
+    wrapper.getComponent(FlarePluginView).vm.$emit("openDetail");
+    await flushPromises();
+    expect(() => wrapper.getComponent(FlarePluginBundleHost).vm.$emit("navigate", { page: "acme.poll.results" })).not.toThrow();
+    expect(wrapper.findComponent(FlarePluginBundleHost).exists()).toBe(true);
   });
 });

@@ -4,10 +4,12 @@
  * the core's invoke with the page, its data and the row, never a message; a page target pushed with its own plugin and
  * the bound payload as arguments, popped by back, and `back` out of the root.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, nextTick, shallowRef, type Component } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
-import { FlarePluginPage } from "@flare-im/vue-ui";
+import { FlarePluginPage, type FlarePluginPageKind } from "@flare-im/vue-ui";
 import { useFlareI18nProvider } from "@flare-im/vue-ui/i18n";
 import type { NativePluginBridge, PluginNativeContext, PluginUiPort } from "@flare-im/sdk/plugin-ui";
 import { CorePluginPage, corePluginPageEntry, provideCorePluginNativeBridge, type CorePluginPageEntry } from "../src/index";
@@ -37,10 +39,11 @@ function render(port: PluginUiPort | null, props: Record<string, unknown> = {}, 
   const forwardedProps = { ...props };
   delete forwardedProps.root;
   delete forwardedProps.visible;
+  delete forwardedProps.omitVisible;
   const wrapper = mount(defineComponent({ setup() {
     useFlareI18nProvider("en-US");
     if (native) provideCorePluginNativeBridge(native);
-    return () => h(CorePluginPage as Component, { root: rootRef.value, visible: visibleRef.value, port: portRef.value, platform: "web", loadFailedText: "The page didn't load", onBack, ...forwardedProps });
+    return () => h(CorePluginPage as Component, { root: rootRef.value, ...(props.omitVisible ? {} : { visible: visibleRef.value }), port: portRef.value, platform: "web", loadFailedText: "The page didn't load", onBack, ...forwardedProps });
   } }));
   mounted.push(wrapper);
   const host = () => wrapper.getComponent(FlarePluginPage);
@@ -54,7 +57,170 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+type Kind = FlarePluginPageKind;
+/** R4 / §12.1 vectors, shared by the four hosts. */
+const refreshVectors = JSON.parse(readFileSync(resolve(__dirname, "../../../../flare-im-design/spec/plugin-refresh-vectors.json"), "utf8")) as {
+  afterReturn: Array<{ name: string; event: "pop" | "done" | "messageCard"; origin?: boolean; expect: { refresh: boolean; page: "self" | "origin" | "close" } }>;
+  doneTarget: Array<{ name: string; stack: Kind[]; expect: { target: number | null } }>;
+};
+/** A view the kit reads as each kind (flarePluginPageKind): an R2 overview, a primary task key, a plain list, a result block. */
+const kindViews: Record<Kind, Record<string, unknown>> = {
+  overview: { blocks: [{ kind: "stats", items: [{ label: "Open", value: "12" }] }],
+    actions: ["a", "b", "c", "d"].map((id) => ({ id, label: id.toUpperCase(), target: { kind: "page", page: `x.${id}` } })) },
+  task: { actions: [{ id: "go", label: "Go", style: "primary" }] },
+  records: {},
+  result: { blocks: [{ kind: "result", state: "completed", title: "Done", tone: "success" }] },
+};
+/** Pages `p0`…`pN` of one conversation, one per kind, each pushed by an action on the one before. */
+async function openStack(kinds: Kind[], props: Record<string, unknown> = {}) {
+  const at = (request: Record<string, unknown>) => Number(String(request.page).slice(1));
+  const port = pagePort(async (request) => page({ nextCursor: null, ...kindViews[kinds[at(request)]] }),
+    async (request) => ({ kind: "host", target: { kind: "page", page: `p${at(request) + 1}` }, payload: {} }));
+  const rendered = render(port, { root: { pluginId: root.pluginId, page: "p0", title: "Wallet", conversationId: "chat-1" }, ...props });
+  await flushPromises();
+  for (let next = 1; next < kinds.length; next++) {
+    rendered.host().vm.$emit("action", "next", { page: rendered.host().props("page"), data: {} });
+    await flushPromises();
+  }
+  return { ...rendered, port };
+}
+
 describe("CorePluginPage", () => {
+  it('keeps custom editor state through refresh and back, and discards it for a reopened flow', async () => {
+    const port=pagePort(async()=>page({nextCursor:null}),async()=>({kind:'host',target:{kind:'page',page:'history'},payload:{}}));
+    const Content=defineComponent({props:['contentState'],setup:props=>()=>h('input',{
+      'data-editor':true,value:props.contentState?.note??'',
+      onInput:(event:Event)=>{if(props.contentState)props.contentState.note=(event.target as HTMLInputElement).value;},
+    })});
+    const {wrapper,host,rootRef}=render(port,{pageContent:(entry: {page:string})=>entry.page===root.page?{component:Content,actionIds:[]}:undefined});
+    await flushPromises();await wrapper.get('[data-editor]').setValue('Keep my draft');
+    host().vm.$emit('refresh');await flushPromises();
+    expect((wrapper.get('[data-editor]').element as HTMLInputElement).value).toBe('Keep my draft');
+    host().vm.$emit('action','history',{page:host().props('page'),data:{}});await flushPromises();
+    expect(wrapper.find('[data-editor]').exists()).toBe(false);
+    host().vm.$emit('back');await flushPromises();
+    expect((wrapper.get('[data-editor]').element as HTMLInputElement).value).toBe('Keep my draft');
+    rootRef.value={...root};await flushPromises();
+    expect((wrapper.get('[data-editor]').element as HTMLInputElement).value).toBe('');
+  });
+  it('clears custom editor state when its session or visibility changes',async()=>{
+    const port=pagePort(async()=>page({nextCursor:null}));
+    const Content=defineComponent({props:['contentState'],setup:props=>()=>h('input',{
+      'data-editor':true,value:props.contentState?.note??'',
+      onInput:(event:Event)=>{if(props.contentState)props.contentState.note=(event.target as HTMLInputElement).value;},
+    })});
+    const {wrapper,portRef,visibleRef}=render(port,{pageContent:()=>({component:Content,actionIds:[]})});
+    await flushPromises();await wrapper.get('[data-editor]').setValue('Session draft');
+    portRef.value=pagePort(async()=>page({nextCursor:null}));await flushPromises();
+    expect((wrapper.get('[data-editor]').element as HTMLInputElement).value).toBe('');
+    await wrapper.get('[data-editor]').setValue('Visible draft');visibleRef.value=false;await flushPromises();
+    expect((wrapper.get('[data-editor]').element as HTMLInputElement).value).toBe('');
+  });
+  it("keeps host-composed kit content on the original page action session", async () => {
+    const invoke = vi.fn(async () => ({kind: "formErrors", errors: [{input: "amount", issue: "outOfRange"}]}));
+    const port = pagePort(async () => page({actions:[{id:"prepare",label:"Prepare",form:["amount"]}],nextCursor:null}), invoke);
+    const Content = defineComponent({props:["view","onAction","formErrors"], setup: props => () => h("button", {
+      "data-custom-content":true, onClick:()=>props.onAction("prepare",{formValues:{amount:{amount:"0.01",currency:"CNY"}}}),
+    }, props.formErrors.length ? "Correct amount" : props.view.title)});
+    const {wrapper} = render(port, {pageContent:()=>({component:Content,actionIds:["prepare"]})});
+    await flushPromises();
+    expect(invoke).not.toHaveBeenCalled();
+    await wrapper.get("[data-custom-content]").trigger("click"); await flushPromises();
+    expect(invoke).toHaveBeenCalledOnce();
+    expect(invoke).toHaveBeenCalledWith(expect.objectContaining({pluginId:root.pluginId,page:root.page,userGesture:true,
+      data:{balanceText:"¥12.30"},formValues:{amount:{amount:"0.01",currency:"CNY"}}}));
+    expect(wrapper.get("[data-custom-content]").text()).toBe("Correct amount");
+  });
+  it("continues an explicit navigation into its host-approved prompt once, in the destination context", async () => {
+    const prompt = vi.fn(() => ({ actionId: "authorize", operation: "wallet.prompt" }));
+    const invoke = vi.fn(async (request: Record<string, unknown>) => request.page === root.page
+      ? { kind: "host", target: { kind: "page", pluginId: "wallet", page: "checkout" }, payload: { intentId: "intent" } }
+      : { kind: "operation", response: { success: false } });
+    const port = pagePort(async request => page(request.page === "checkout" ? {
+      data: { intentId: "intent", amount: "1.00" },
+      actions: [{ id: "authorize", label: "Continue", target: { kind: "operation", operation: "wallet.prompt" } }],
+    } : {}), invoke);
+    const { host } = render(port, { promptOnNavigate: prompt, omitVisible: true });
+    await flushPromises();
+    expect(prompt).not.toHaveBeenCalled();
+    expect(invoke).not.toHaveBeenCalled();
+    host().vm.$emit("action", "prepare", { page: host().props("page"), data: {} });
+    await flushPromises();
+    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(invoke).toHaveBeenLastCalledWith(expect.objectContaining({ pluginId: "wallet", page: "checkout", actionId: "authorize",
+      data: { intentId: "intent", amount: "1.00" }, userGesture: true }));
+    host().vm.$emit("refresh"); await flushPromises();
+    host().vm.$emit("back"); await flushPromises();
+    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(prompt).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { actions: [] },
+    { actions: [{ id: "authorize", label: "Continue", target: { kind: "operation", operation: "other.operation" } }] },
+    { actions: [{ id: "authorize", label: "Continue", target: { kind: "operation", operation: "wallet.prompt" }, form: ["amount"] }] },
+    { actions: [{ id: "authorize", label: "Continue", target: { kind: "operation", operation: "wallet.prompt" }, confirm: "Are you sure?" }] },
+  ])("keeps unavailable, changed or additional-consent actions manual: %j", async ({ actions }) => {
+    const invoke = vi.fn(async () => ({ kind: "host", target: { kind: "page", page: "checkout" }, payload: {} }));
+    const port = pagePort(async request => page(request.page === "checkout" ? { actions } : {}), invoke);
+    const { host } = render(port, { promptOnNavigate: () => ({ actionId: "authorize", operation: "wallet.prompt" }) });
+    await flushPromises();
+    host().vm.$emit("action", "prepare", { page: host().props("page"), data: {} }); await flushPromises();
+    expect(invoke).toHaveBeenCalledOnce();
+  });
+
+  it("runs the action a navigation names once the pushed page has loaded, and never again on a refresh or a return", async () => {
+    const invoke = vi.fn(async (request: Record<string, unknown>) => request.page === root.page
+      ? { kind: "host", target: { kind: "page", pluginId: "acme.pay", page: "checkout" }, payload: { intentId: "intent" }, run: "authorize" }
+      : request.page === "checkout" ? { kind: "host", target: { kind: "page", page: "result" }, payload: {} }
+        : { kind: "operation", response: { success: true, data: {} } });
+    const port = pagePort(async request => page(request.page === "checkout" ? {
+      data: { intentId: "intent", amount: "1.00" }, actions: [],
+      menuActions: [{ id: "authorize", label: "Continue", target: { kind: "operation", operation: "acme.pay.authorize" } }],
+    } : {}), invoke);
+    const { host } = render(port);
+    await flushPromises();
+    host().vm.$emit("action", "prepare", { page: host().props("page"), data: {} });
+    await flushPromises();
+    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(invoke).toHaveBeenNthCalledWith(2, expect.objectContaining({ pluginId: "acme.pay", page: "checkout", actionId: "authorize",
+      data: { intentId: "intent", amount: "1.00" }, userGesture: true, locale: "en-US" }));
+    expect(host().props("page")).toEqual({ pluginId: "acme.pay", page: "result" });
+    host().vm.$emit("back"); await flushPromises();
+    expect(host().props("page")).toEqual({ pluginId: "acme.pay", page: "checkout" });
+    host().vm.$emit("refresh"); await flushPromises();
+    expect(invoke).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    { why: "missing", actions: [] },
+    { why: "not an operation", actions: [{ id: "authorize", label: "Continue", target: { kind: "page", page: "elsewhere" } }] },
+    { why: "a form", actions: [{ id: "authorize", label: "Continue", target: { kind: "operation", operation: "acme.pay.authorize" }, form: ["amount"] }] },
+    { why: "a confirm", actions: [{ id: "authorize", label: "Continue", target: { kind: "operation", operation: "acme.pay.authorize" }, confirm: "Sure?" }] },
+    { why: "disabled", actions: [{ id: "authorize", label: "Continue", target: { kind: "operation", operation: "acme.pay.authorize" }, disabledReason: "Not yet" }] },
+  ])("leaves the action a navigation names to the viewer when it is $why", async ({ actions }) => {
+    const invoke = vi.fn(async () => ({ kind: "host", target: { kind: "page", page: "checkout" }, payload: {}, run: "authorize" }));
+    const port = pagePort(async request => page(request.page === "checkout" ? { actions } : {}), invoke);
+    const { host } = render(port);
+    await flushPromises();
+    host().vm.$emit("action", "prepare", { page: host().props("page"), data: {} }); await flushPromises();
+    expect(host().props("page")).toEqual({ pluginId: root.pluginId, page: "checkout" });
+    expect(invoke).toHaveBeenCalledOnce();
+  });
+
+  it("drops a pending destination prompt when its owner is reopened", async () => {
+    const pending = deferred<unknown>();
+    const invoke = vi.fn(async () => ({ kind: "host", target: { kind: "page", page: "checkout" }, payload: {} }));
+    const port = pagePort(async request => request.page === "checkout" ? pending.promise : page(), invoke);
+    const { host, rootRef } = render(port, { promptOnNavigate: () => ({ actionId: "authorize", operation: "wallet.prompt" }) });
+    await flushPromises();
+    host().vm.$emit("action", "prepare", { page: host().props("page"), data: {} }); await flushPromises();
+    rootRef.value = { ...root }; await flushPromises();
+    pending.resolve(page({ actions: [{ id: "authorize", label: "Continue", target: { kind: "operation", operation: "wallet.prompt" } }] }));
+    await flushPromises();
+    expect(invoke).toHaveBeenCalledOnce();
+    expect(host().props("page")).toEqual({ pluginId: root.pluginId, page: root.page });
+  });
   it("inherits an approved host bridge and invalidates its context when hidden", async () => {
     const pending = deferred<unknown>();
     let context: PluginNativeContext | undefined;
@@ -73,6 +239,9 @@ describe("CorePluginPage", () => {
     const port = pagePort(async () => page(), async () => ({ kind: "host", target: { kind: "native", capability: "reauthenticate" }, payload: {} }));
     const { host } = render(port, {}, native); await flushPromises();
     host().vm.$emit("action", "reauth", { page: host().props("page"), data: {} }); await flushPromises();
+    // The kit asks for the re-read once the action settles cleanly (refresh "action"); the host adds none of its own.
+    expect(calls(port)).toHaveLength(1);
+    host().vm.$emit("refresh", "action"); await flushPromises();
     expect(calls(port)).toHaveLength(2); expect(host().props("view")?.data ?? {}).not.toHaveProperty("status");
   });
   it("forwards host-authorized member search and its revision without changing the page owner", async () => {
@@ -366,7 +535,7 @@ describe("CorePluginPage", () => {
     expect(host().props()).toMatchObject({busyActionId: undefined, formErrors: [{input: "amount", issue: "required"}], settleToken: 1});
   });
 
-  it("runs a page action with the page, its data and the row, never a message, then reads the page again", async () => {
+  it("runs a page action with the page, its data and the row, never a message, and re-reads when the kit asks", async () => {
     const port = pagePort(async () => page(), async () => ({ kind: "operation", response: { success: true, data: {} } }));
     const { host } = render(port);
     await flushPromises();
@@ -374,12 +543,106 @@ describe("CorePluginPage", () => {
       row: { key: "l1", input: { packetId: "p1" } } });
     await flushPromises();
     const request = port.invokePageAction.mock.calls[0][0];
-    expect(request).toEqual({ pluginId: root.pluginId, page: root.page, actionId: "open", userGesture: true, platform: "web",
+    expect(request).toEqual({ pluginId: root.pluginId, page: root.page, actionId: "open", userGesture: true, platform: "web", locale: "en-US",
       data: { balanceText: "¥12.30" }, row: { key: "l1", input: { packetId: "p1" } } });
     expect(port.invokeAction).not.toHaveBeenCalled();
     expect(host().props()).toMatchObject({ busyActionId: undefined, settleToken: 1 });
+    // A clean settle is the kit's to refresh (R4): one re-read, through its refresh("action").
+    expect(calls(port)).toHaveLength(1);
+    host().vm.$emit("refresh", "action");
+    await flushPromises();
     expect(calls(port)).toHaveLength(2);
     expect(calls(port)[1]).toMatchObject({ refresh: true });
+  });
+
+  it("shows an uncovered page's last view at once and re-reads it quietly on back", async () => {
+    let wallet = 1;
+    const port = pagePort(async (request) => request.page === "acme.task.board" ? page({ title: "Board" }) : page({ title: `Wallet ${wallet}` }),
+      async () => ({ kind: "host", target: { kind: "page", page: "acme.task.board" }, payload: {} }));
+    const { host } = render(port);
+    await flushPromises();
+    host().vm.$emit("action", "history", { page: { pluginId: root.pluginId, page: root.page }, data: {} });
+    await flushPromises();
+    wallet = 2;
+    const reread = deferred<unknown>();
+    port.pluginPage.mockImplementationOnce(() => reread.promise);
+    host().vm.$emit("back");
+    await nextTick();
+    // The wallet is back on screen while it is read again, never a blank first load.
+    expect(host().props()).toMatchObject({ page: { page: root.page }, view: { title: "Wallet 1" }, loading: false, refreshing: true });
+    expect(calls(port).at(-1)).toMatchObject({ page: root.page, refresh: true });
+    reread.resolve(page({ title: "Wallet 2" }));
+    await flushPromises();
+    expect(host().props()).toMatchObject({ view: { title: "Wallet 2" }, refreshing: false });
+  });
+
+  describe("done (§12.1, plugin-refresh-vectors doneTarget)", () => {
+    it.each(refreshVectors.doneTarget.map((vector) => [vector.name, vector] as const))("%s", async (_, vector) => {
+      const { host, port, onBack } = await openStack(vector.stack);
+      const reads = calls(port).length;
+      host().vm.$emit("done");
+      await flushPromises();
+      if (vector.expect.target === null) {
+        expect(onBack).toHaveBeenCalledOnce();
+        expect(calls(port)).toHaveLength(reads);
+      } else {
+        expect(onBack).not.toHaveBeenCalled();
+        expect(host().props("page")).toEqual({ pluginId: root.pluginId, page: `p${vector.expect.target}` });
+        expect(calls(port).slice(reads)).toEqual([expect.objectContaining({ page: `p${vector.expect.target}`, refresh: true })]);
+      }
+    });
+  });
+
+  describe("return (R4, plugin-refresh-vectors afterReturn)", () => {
+    // Each event from a stack that gives it: back from a next page, done over a data page or not, an action sending a card.
+    it.each(refreshVectors.afterReturn.map((vector) => [vector.name, vector] as const))("%s", async (_, vector) => {
+      const kinds: Kind[] = vector.event === "done" ? [vector.origin ? "overview" : "task", "result"] : ["records", "task"];
+      const onPosted = vi.fn();
+      const { host, port, onBack } = await openStack(kinds, { onPosted });
+      const reads = calls(port).length;
+      if (vector.event === "pop") host().vm.$emit("back");
+      else if (vector.event === "done") host().vm.$emit("done");
+      else {
+        port.invokePageAction.mockResolvedValueOnce({ kind: "operation", response: { success: true,
+          data: { posted: { conversationId: "chat-1", serverMsgId: "s", clientMsgId: "c" } } } });
+        host().vm.$emit("action", "send", { page: host().props("page"), data: {} });
+      }
+      await flushPromises();
+      expect(calls(port).slice(reads)).toEqual(vector.expect.refresh ? [expect.objectContaining({ page: "p0", refresh: true })] : []);
+      if (vector.expect.page === "close") expect(vector.event === "messageCard" ? onPosted : onBack).toHaveBeenCalledOnce();
+      else {
+        expect(onBack).not.toHaveBeenCalled();
+        expect(host().props("page")).toEqual({ pluginId: root.pluginId, page: "p0" });
+      }
+    });
+  });
+
+  it("says a refusal in the host's words for its code or error, never the raw code, else with the kit's line (R8)", async () => {
+    const errorText = (cause: unknown) => {
+      const { machineReason, message } = (cause ?? {}) as { machineReason?: unknown; message?: unknown };
+      if (machineReason === "PAYMENT_PASSWORD_INVALID") return "Wrong payment password";
+      return typeof message === "string" && message.includes("sdk.plugin.rate_limited") ? "Too many tries" : undefined;
+    };
+    const native: NativePluginBridge = { capabilities: ["reauthenticate"], invoke: vi.fn(async () => ({ success: false, error: "sdk.plugin.rate_limited" })) };
+    const port = pagePort(async () => page());
+    const { host } = render(port, { errorText }, native);
+    await flushPromises();
+    const refusal = async (outcome: unknown) => {
+      port.invokePageAction.mockResolvedValueOnce(outcome);
+      host().vm.$emit("action", "pay", { page: host().props("page"), data: {} });
+      await flushPromises();
+      return host().props("actionError");
+    };
+    expect(await refusal({ kind: "operation", response: { success: false, data: { errorCode: "PAYMENT_PASSWORD_INVALID" } } })).toBe("Wrong payment password");
+    expect(await refusal({ kind: "operation", response: { success: false, error: "sdk.plugin.rate_limited" } })).toBe("Too many tries");
+    expect(await refusal({ kind: "host", target: { kind: "native", capability: "reauthenticate" }, payload: {} })).toBe("Too many tries");
+    expect(await refusal({ kind: "operation", response: { success: false, data: { errorCode: "WALLET_FROZEN" } } }))
+      .toBe("Plugin command rejected. Check permission and business state.");
+    // The plugin's own words for the code come first, over the host's mapping and the kit's line.
+    expect(await refusal({ kind: "operation", response: { success: false, data: { errorCode: "PAYMENT_PASSWORD_INVALID" } }, message: "该证件号已被其他账号使用" }))
+      .toBe("该证件号已被其他账号使用");
+    expect(await refusal({ kind: "operation", response: { success: false, data: { errorCode: "WALLET_FROZEN" } }, message: "Account frozen" }))
+      .toBe("Account frozen");
   });
 
   it("says a refused action with the kit's line and a failed one with the host's copy", async () => {
@@ -428,6 +691,42 @@ describe("CorePluginPage", () => {
     await flushPromises();
     expect(host().props("page")).toEqual({ pluginId: root.pluginId, page: root.page });
     expect(onBack).not.toHaveBeenCalled();
+    host().vm.$emit("back");
+    await nextTick();
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("replaces the shown page with a chosen tab, keeping its arguments and adding no back step", async () => {
+    const records: CorePluginPageEntry = { pluginId: "flare.redpacket", page: "flare.redpacket.page.received", title: "Red packets", args: { scope: "me" } };
+    const port = pagePort(async (request) => page({ nextCursor: null, tabs: [
+      { page: "flare.redpacket.page.received", label: "Received", selected: request.page === "flare.redpacket.page.received" },
+      { page: "flare.redpacket.page.sent", label: "Sent", selected: request.page === "flare.redpacket.page.sent" }] }));
+    const { host, onBack } = render(port, { root: records });
+    await flushPromises();
+    expect(host().props("view")?.tabs?.[0]).toMatchObject({ selected: true });
+    host().vm.$emit("tab", "flare.redpacket.page.sent");
+    await flushPromises();
+    expect(calls(port).at(-1)).toMatchObject({ pluginId: "flare.redpacket", page: "flare.redpacket.page.sent", arguments: { scope: "me" } });
+    expect(host().props("page")).toEqual({ pluginId: "flare.redpacket", page: "flare.redpacket.page.sent" });
+    expect(host().props("view")?.tabs?.[1]).toMatchObject({ selected: true });
+    // The tab took the root's place: back leaves.
+    host().vm.$emit("back");
+    await nextTick();
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a completed workflow to its existing status page without keeping submitted editors behind Back", async () => {
+    const port = pagePort(async () => page(), async (request) => ({
+      kind: "host", target: { kind: "page", page: request.actionId === "edit" ? "application.editor" : root.page }, payload: {},
+    }));
+    const { host, onBack } = render(port);
+    await flushPromises();
+    host().vm.$emit("action", "edit", { page: { pluginId: root.pluginId, page: root.page } });
+    await flushPromises();
+    expect(host().props("page").page).toBe("application.editor");
+    host().vm.$emit("action", "submit", { page: { pluginId: root.pluginId, page: "application.editor" } });
+    await flushPromises();
+    expect(host().props("page").page).toBe(root.page);
     host().vm.$emit("back");
     await nextTick();
     expect(onBack).toHaveBeenCalledTimes(1);
@@ -596,5 +895,34 @@ describe("CorePluginPage", () => {
     host().vm.$emit("retry");
     await flushPromises();
     expect(host().props("protectedMedia")).toEqual({});
+  });
+
+  it("revokes local private previews when hidden and drops a late read", async () => {
+    const request = vi.spyOn(globalThis, "fetch");
+    const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:private-local");
+    const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const response = () => new Response(new Uint8Array([1, 2]), { headers: { "content-type": "image/png" } });
+    request.mockResolvedValueOnce(response());
+    const port = pagePort(async () => page(), async () => ({ kind: "operation", response: {
+      success: true, data: { readUrl: "http://127.0.0.1:56200/private/realname/owner-materials/a/b?grant=synthetic" },
+    } }));
+    try {
+      const { host, visibleRef } = render(port);
+      await flushPromises();
+      const read = { action: { id: "viewDocument", label: "View" }, item: { id: "m-1", label: "Front", input: { materialId: "m-1" } }, reason: "", urlPath: "/readUrl", formValues: { materialId: "m-1" } };
+      host().vm.$emit("protectedMediaRead", read);
+      await vi.waitFor(() => expect(host().props("protectedMedia")).toEqual({ "m-1": { url: "blob:private-local" } }));
+      visibleRef.value = false; await nextTick();
+      expect(revoke).toHaveBeenCalledExactlyOnceWith("blob:private-local");
+      expect(host().props("protectedMedia")).toEqual({});
+      visibleRef.value = true; await nextTick();
+      const pending = deferred<Response>(); request.mockImplementationOnce(() => pending.promise);
+      host().vm.$emit("protectedMediaRead", read); await flushPromises();
+      const signal = request.mock.calls.at(-1)?.[1]?.signal;
+      visibleRef.value = false; await nextTick();
+      expect(signal?.aborted).toBe(true);
+      pending.resolve(response()); await flushPromises();
+      expect(host().props("protectedMedia")).toEqual({});
+    } finally { request.mockRestore(); create.mockRestore(); revoke.mockRestore(); }
   });
 });
