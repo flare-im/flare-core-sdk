@@ -9,13 +9,13 @@ public struct PushTokenInput: Codable, Sendable {
     public let appVersion: String?
     /// wire: `capabilities`. What the app can do with a push: dataMessages (Android FCM data messages) and serviceExtension (iOS notification service extension). Unknown values are rejected.
     public let capabilities: [String]?
-    /// wire: `environment`. APNs only: sandbox or production, the APNs host the token belongs to.
+    /// wire: `environment`. APNs environment for direct APNs or iOS JPush: sandbox or production.
     public let environment: String?
     /// wire: `locale`. BCP 47 language tag the server renders notification text in, e.g. zh-CN.
     public let locale: String?
     /// wire: `platform`. Native platform: android, ios or harmony.
     public let platform: String
-    /// wire: `provider`. OS delivery provider: fcm, apns or getui.
+    /// wire: `provider`. OS delivery provider, such as fcm, apns, getui or jpush.
     public let provider: String
     /// wire: `timeZone`. IANA time zone, e.g. Asia/Shanghai.
     public let timeZone: String?

@@ -187,13 +187,6 @@
   "events": [
     {
       "names": [
-        "switched",
-        "changed"
-      ],
-      "type": "access"
-    },
-    {
-      "names": [
         "status",
         "sync_state_changed"
       ],
@@ -325,7 +318,6 @@
     "models": [
       "models/session.json",
       "models/connection.json",
-      "models/access.json",
       "models/lifecycle.json",
       "models/update.json",
       "models/diagnostics.json",
@@ -343,7 +335,6 @@
     "modules": [
       "modules/session.json",
       "modules/connection.json",
-      "modules/access.json",
       "modules/lifecycle.json",
       "modules/update.json",
       "modules/conversations.json",
@@ -418,20 +409,6 @@
       "kind": "connection",
       "name": "onConnectionStatusChanged",
       "payload": "ConnectionStatus"
-    },
-    {
-      "description": "The IM connection moved to another access point (access://switched).",
-      "eventName": "switched",
-      "kind": "access",
-      "name": "onAccessSwitched",
-      "payload": "AccessSwitchedEvent"
-    },
-    {
-      "description": "A new access manifest was accepted (access://changed).",
-      "eventName": "changed",
-      "kind": "access",
-      "name": "onAccessChanged",
-      "payload": "AccessChangedEvent"
     },
     {
       "description": "The update center state changed (update://state). Delivered with a session; before sign-in read update.getState.",
@@ -929,6 +906,78 @@
     "source": "../flare-core-sdk-engine/bindings/contract/apis.json#message_builder"
   },
   "modelGroups": [
+    {
+      "description": "Core-owned DTOs derived from Rust JsonSchema.",
+      "enums": [],
+      "group": "connection",
+      "models": [
+        {
+          "description": "CoreEndpoints",
+          "fields": [
+            {
+              "description": "Core API base URL, including any deployment path prefix.",
+              "name": "baseUrl",
+              "required": true,
+              "type": "String",
+              "wireName": "baseUrl"
+            },
+            {
+              "description": "Optional media API base. Defaults to the Core API base.",
+              "name": "mediaBaseUrl",
+              "required": false,
+              "type": "String",
+              "wireName": "mediaBaseUrl"
+            },
+            {
+              "description": "Optional native QUIC gateway; WebSocket remains available.",
+              "name": "quicUrl",
+              "required": false,
+              "type": "String",
+              "wireName": "quicUrl"
+            },
+            {
+              "description": "Fully qualified WebSocket gateway URL.",
+              "name": "websocketUrl",
+              "required": true,
+              "type": "String",
+              "wireName": "websocketUrl"
+            }
+          ],
+          "name": "CoreEndpoints",
+          "source": {
+            "file": "core_endpoints.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "CoreEndpoints"
+          }
+        },
+        {
+          "description": "Result of accepting a new set of addresses. Link readiness is reported separately through normal connection status.",
+          "fields": [
+            {
+              "description": "",
+              "name": "changed",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "changed"
+            },
+            {
+              "description": "Accepted endpoint generation for this initialized client.",
+              "name": "revision",
+              "required": true,
+              "type": "UInt32",
+              "wireName": "revision"
+            }
+          ],
+          "name": "EndpointUpdate",
+          "source": {
+            "file": "endpoint_update.schema.json",
+            "kind": "rust-json-schema",
+            "rustType": "EndpointUpdate"
+          }
+        }
+      ],
+      "source": "../flare-core-sdk-engine/bindings/contract/generated/model_schemas"
+    },
     {
       "description": "Core-owned conversation DTOs derived from Rust JsonSchema.",
       "enums": [
@@ -2340,7 +2389,7 @@
               "wireName": "capabilities"
             },
             {
-              "description": "APNs only: sandbox or production, the APNs host the token belongs to.",
+              "description": "APNs environment for direct APNs or iOS JPush: sandbox or production.",
               "name": "environment",
               "required": false,
               "type": "String",
@@ -2361,7 +2410,7 @@
               "wireName": "platform"
             },
             {
-              "description": "OS delivery provider: fcm, apns or getui.",
+              "description": "OS delivery provider, such as fcm, apns, getui or jpush.",
               "name": "provider",
               "required": true,
               "type": "String",
@@ -2489,7 +2538,7 @@
               "wireName": "payload"
             },
             {
-              "description": "Push channel that delivered it: apns, fcm or getui.",
+              "description": "Push channel that delivered the message.",
               "name": "provider",
               "required": true,
               "type": "String",
@@ -2979,6 +3028,19 @@
       "group": "connection",
       "models": [
         {
+          "description": "Select the IM connection transport.",
+          "fields": [
+            {
+              "description": "Transport mode: ws, quic, or race.",
+              "name": "mode",
+              "required": true,
+              "type": "String",
+              "wireName": "mode"
+            }
+          ],
+          "name": "SetProtocolModeRequest"
+        },
+        {
           "description": "Platform network-change notification. The link supervisor alone decides whether and how to reconnect.",
           "fields": [
             {
@@ -3017,7 +3079,7 @@
               "wireName": "reason"
             },
             {
-              "description": "Coarse network identity (native: a 16-hex-digit SHA-256 digest of the interface kind and the default gateway, plus the DNS servers on Android, or the cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID or a raw address.",
+              "description": "Coarse network identity (native: a 16-hex-digit SHA-256 digest of the interface kind and the default gateway, plus the DNS servers on Android, or the cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys heartbeat observations; never sent anywhere. Never pass an SSID or a raw address.",
               "name": "fingerprintHint",
               "required": false,
               "type": "String",
@@ -3027,7 +3089,7 @@
           "name": "NetworkChangeRequest"
         },
         {
-          "description": "Payload of connection://status and the value of connection.getStatus. Every field is present (null without a value): hosts replace their copy whole on every event and hand it to the Kit ConnectionNotice unchanged.",
+          "description": "Payload of connection://status and the value of connection.getStatus. Hosts replace their copy whole on every event. endpointRevision is present for host-selected endpoints.",
           "fields": [
             {
               "description": "Where the link supervisor is.",
@@ -3044,32 +3106,18 @@
               "wireName": "quality"
             },
             {
-              "description": "Current (or connecting) access point.",
-              "name": "accessPointId",
-              "required": false,
-              "type": "String",
-              "wireName": "accessPointId"
-            },
-            {
-              "description": "Cell of the current access point.",
-              "name": "cellId",
-              "required": false,
-              "type": "String",
-              "wireName": "cellId"
-            },
-            {
-              "description": "Region of the current access point.",
-              "name": "regionId",
-              "required": false,
-              "type": "String",
-              "wireName": "regionId"
-            },
-            {
               "description": "Transport of the current connection: quic or ws.",
               "name": "protocol",
               "required": false,
               "type": "String",
               "wireName": "protocol"
+            },
+            {
+              "description": "Generation of the accepted host-selected address group.",
+              "name": "endpointRevision",
+              "required": false,
+              "type": "UInt32",
+              "wireName": "endpointRevision"
             },
             {
               "description": "Latest heartbeat round trip (the handshake time before the first sample).",
@@ -3093,7 +3141,7 @@
               "wireName": "nextRetryAt"
             },
             {
-              "description": "actionRequired: kicked, expired, upgradeRequired or tenantUnavailable. switching: failure, drain, failback, manual or manifest.",
+              "description": "actionRequired: kicked, expired, upgradeRequired or tenantUnavailable. switching: drain or manual. Transport failure: transportUnavailable.",
               "name": "reason",
               "required": false,
               "type": "String",
@@ -3128,593 +3176,6 @@
             }
           ],
           "name": "ServerClockResponse"
-        }
-      ]
-    },
-    {
-      "description": "Access directory status, access point health, manual pinning, manifest refresh, recovery links and access events.",
-      "enums": [],
-      "group": "access",
-      "models": [
-        {
-          "description": "A manual access point pin.",
-          "fields": [
-            {
-              "description": "The pinned access point.",
-              "name": "accessPointId",
-              "required": true,
-              "type": "String",
-              "wireName": "accessPointId"
-            },
-            {
-              "description": "When the pin lapses, Unix milliseconds; an app restart also clears it.",
-              "name": "expiresAtMs",
-              "required": true,
-              "type": "Int64",
-              "wireName": "expiresAtMs"
-            }
-          ],
-          "name": "AccessPin"
-        },
-        {
-          "description": "Pins one access point of the home cell.",
-          "fields": [
-            {
-              "description": "Access point to pin, as listed by access.listAccessPoints.",
-              "name": "accessPointId",
-              "required": true,
-              "type": "String",
-              "wireName": "accessPointId"
-            }
-          ],
-          "name": "AccessPinRequest"
-        },
-        {
-          "description": "Diagnostics the gateway returned in CONNECT_ACK for the current connection; shown only, nothing acts on them.",
-          "fields": [
-            {
-              "description": "Gateway instance serving the connection.",
-              "name": "gatewayId",
-              "required": false,
-              "type": "String",
-              "wireName": "gatewayId"
-            },
-            {
-              "description": "Access point the server reports for the connection, when its gateway is configured with one.",
-              "name": "accessPointId",
-              "required": false,
-              "type": "String",
-              "wireName": "accessPointId"
-            },
-            {
-              "description": "Newest access manifest serial the server knows.",
-              "name": "accessSerial",
-              "required": false,
-              "type": "UInt64",
-              "wireName": "accessSerial"
-            },
-            {
-              "description": "Gateway heartbeat interval in seconds; the heartbeat itself follows the access policy.",
-              "name": "heartbeatIntervalHintSec",
-              "required": false,
-              "type": "UInt32",
-              "wireName": "heartbeatIntervalHintSec"
-            },
-            {
-              "description": "The server reports a different access point than the client chose; logged and counted, the connection stays up.",
-              "name": "accessPointMismatch",
-              "required": true,
-              "type": "Boolean",
-              "wireName": "accessPointMismatch"
-            }
-          ],
-          "name": "AccessConnectAck"
-        },
-        {
-          "description": "Access directory and current link summary for the diagnostics page.",
-          "fields": [
-            {
-              "description": "Whether the directory holds a usable manifest. False means there is no access point to connect to until bootstrap or a recovery link brings one.",
-              "name": "loaded",
-              "required": true,
-              "type": "Boolean",
-              "wireName": "loaded"
-            },
-            {
-              "description": "Serial of the loaded access manifest; 0 before loading.",
-              "name": "serial",
-              "required": true,
-              "type": "UInt64",
-              "wireName": "serial"
-            },
-            {
-              "description": "Where the manifest came from: seed, https:<mirror base>, wellKnown:<apId>, recovery, development, or none when the directory is empty. A restart keeps the original source.",
-              "name": "source",
-              "required": false,
-              "type": "String",
-              "wireName": "source"
-            },
-            {
-              "description": "Whether the manifest is past expiresAtMs: it still connects, and refresh retries every 10 minutes.",
-              "name": "stale",
-              "required": true,
-              "type": "Boolean",
-              "wireName": "stale"
-            },
-            {
-              "description": "Endpoints come from development-mode configuration.",
-              "name": "developmentMode",
-              "required": true,
-              "type": "Boolean",
-              "wireName": "developmentMode"
-            },
-            {
-              "description": "When the manifest was issued, Unix milliseconds; absent with an empty directory.",
-              "name": "issuedAtMs",
-              "required": false,
-              "type": "Int64",
-              "wireName": "issuedAtMs"
-            },
-            {
-              "description": "When the manifest expires, Unix milliseconds; absent with an empty directory.",
-              "name": "expiresAtMs",
-              "required": false,
-              "type": "Int64",
-              "wireName": "expiresAtMs"
-            },
-            {
-              "description": "When the manifest reached this device, Unix milliseconds; absent for a seed or development mode.",
-              "name": "fetchedAtMs",
-              "required": false,
-              "type": "Int64",
-              "wireName": "fetchedAtMs"
-            },
-            {
-              "description": "Home region.",
-              "name": "regionId",
-              "required": false,
-              "type": "String",
-              "wireName": "regionId"
-            },
-            {
-              "description": "Home cell.",
-              "name": "cellId",
-              "required": false,
-              "type": "String",
-              "wireName": "cellId"
-            },
-            {
-              "description": "Serial of the loaded signing key state.",
-              "name": "keystateSerial",
-              "required": false,
-              "type": "UInt64",
-              "wireName": "keystateSerial"
-            },
-            {
-              "description": "Access point the IM connection is on.",
-              "name": "accessPointId",
-              "required": false,
-              "type": "String",
-              "wireName": "accessPointId"
-            },
-            {
-              "description": "Transport of the IM connection: quic or ws.",
-              "name": "protocol",
-              "required": false,
-              "type": "String",
-              "wireName": "protocol"
-            },
-            {
-              "description": "The manual pin, when one is in force.",
-              "name": "pinned",
-              "required": false,
-              "type": "AccessPin",
-              "wireName": "pinned"
-            },
-            {
-              "description": "CONNECT_ACK diagnostics of the current connection; absent without one.",
-              "name": "connectAck",
-              "required": false,
-              "type": "AccessConnectAck",
-              "wireName": "connectAck"
-            },
-            {
-              "description": "Manifest refresh progress; absent in development mode.",
-              "name": "refresh",
-              "required": false,
-              "type": "AccessRefreshStatus",
-              "wireName": "refresh"
-            },
-            {
-              "description": "Present only while every access point has failed and recovery is running.",
-              "name": "recovering",
-              "required": false,
-              "type": "AccessRecoveringStatus",
-              "wireName": "recovering"
-            }
-          ],
-          "name": "AccessStatus"
-        },
-        {
-          "description": "Progress of the periodic manifest refresh.",
-          "fields": [
-            {
-              "description": "When the last round ran, Unix milliseconds.",
-              "name": "lastAttemptAtMs",
-              "required": false,
-              "type": "Int64",
-              "wireName": "lastAttemptAtMs"
-            },
-            {
-              "description": "When a source last gave a trusted answer, Unix milliseconds.",
-              "name": "lastSuccessAtMs",
-              "required": false,
-              "type": "Int64",
-              "wireName": "lastSuccessAtMs"
-            },
-            {
-              "description": "Outcome of the last round: adopted, upToDate, oldValues or failed; absent before the first round.",
-              "name": "lastOutcome",
-              "required": false,
-              "type": "String",
-              "wireName": "lastOutcome"
-            },
-            {
-              "description": "When the next round runs, Unix milliseconds; absent while recovering without a network.",
-              "name": "nextAtMs",
-              "required": false,
-              "type": "Int64",
-              "wireName": "nextAtMs"
-            }
-          ],
-          "name": "AccessRefreshStatus"
-        },
-        {
-          "description": "Recovery state while every access point has failed.",
-          "fields": [
-            {
-              "description": "When recovery began, Unix milliseconds.",
-              "name": "sinceMs",
-              "required": true,
-              "type": "Int64",
-              "wireName": "sinceMs"
-            },
-            {
-              "description": "Bootstrap rounds run so far.",
-              "name": "rounds",
-              "required": true,
-              "type": "UInt32",
-              "wireName": "rounds"
-            },
-            {
-              "description": "When the next round runs, Unix milliseconds; absent while the device has no network.",
-              "name": "nextRoundAtMs",
-              "required": false,
-              "type": "Int64",
-              "wireName": "nextRoundAtMs"
-            }
-          ],
-          "name": "AccessRecoveringStatus"
-        },
-        {
-          "description": "One source tried during a refresh round. Sources the round never reached are not listed.",
-          "fields": [
-            {
-              "description": "The source: https:<base>, wellKnown:<apId> or doh:<resolver>.",
-              "name": "source",
-              "required": true,
-              "type": "String",
-              "wireName": "source"
-            },
-            {
-              "description": "Tier: mirror, wellKnown, pointer (a mirror resolved through DoH) or resolver (the DoH resolver itself).",
-              "name": "tier",
-              "required": true,
-              "type": "String",
-              "wireName": "tier"
-            },
-            {
-              "description": "Document fetched: access, keys or pointer.",
-              "name": "document",
-              "required": true,
-              "type": "String",
-              "wireName": "document"
-            },
-            {
-              "description": "Result: adopted, notModified, sameSerial, olderSerial, rejected, failed or resolved.",
-              "name": "result",
-              "required": true,
-              "type": "String",
-              "wireName": "result"
-            },
-            {
-              "description": "Stable cross-platform code of a rejection or failure: badSignature, rollback, keyCert.expired, revoked, wrongPayloadType, wrongBootstrapId, tooLarge, malformedEnvelope, invalidPayload, unknownKey, unsupportedSchema, noNetwork, unreachable, tls, timeout, cancelled or http.<status>.",
-              "name": "code",
-              "required": false,
-              "type": "String",
-              "wireName": "code"
-            },
-            {
-              "description": "Serial of the document, when one was read.",
-              "name": "serial",
-              "required": false,
-              "type": "UInt64",
-              "wireName": "serial"
-            }
-          ],
-          "name": "AccessRefreshAttempt"
-        },
-        {
-          "description": "Result of one refresh round.",
-          "fields": [
-            {
-              "description": "adopted (a new manifest was taken), upToDate (a source confirmed there is no update), oldValues (notified mode only got old values; a manual refresh never reports it), failed (no source gave a trusted answer) or skipped (development mode).",
-              "name": "outcome",
-              "required": true,
-              "type": "String",
-              "wireName": "outcome"
-            },
-            {
-              "description": "Round mode: background, notified or recovering.",
-              "name": "mode",
-              "required": true,
-              "type": "String",
-              "wireName": "mode"
-            },
-            {
-              "description": "Directory serial when the round ended.",
-              "name": "serial",
-              "required": true,
-              "type": "UInt64",
-              "wireName": "serial"
-            },
-            {
-              "description": "Source of the adopted manifest, in the form of AccessStatus.source; absent when nothing was adopted.",
-              "name": "source",
-              "required": false,
-              "type": "String",
-              "wireName": "source"
-            },
-            {
-              "description": "Serial of the current key state document.",
-              "name": "keystateSerial",
-              "required": false,
-              "type": "UInt64",
-              "wireName": "keystateSerial"
-            },
-            {
-              "description": "Every source tried, in order.",
-              "name": "attempts",
-              "required": true,
-              "type": "AccessRefreshAttemptList",
-              "wireName": "attempts"
-            }
-          ],
-          "name": "AccessRefreshReport"
-        },
-        {
-          "description": "Imports a recovery link.",
-          "fields": [
-            {
-              "description": "The flare-recover:// deep link or QR code content, verbatim.",
-              "name": "link",
-              "required": true,
-              "type": "String",
-              "wireName": "link"
-            }
-          ],
-          "name": "AccessImportRecoveryRequest"
-        },
-        {
-          "description": "Result of importing a recovery link.",
-          "fields": [
-            {
-              "description": "adopted, unchanged (this link was already imported) or rejected.",
-              "name": "outcome",
-              "required": true,
-              "type": "String",
-              "wireName": "outcome"
-            },
-            {
-              "description": "Why a link was rejected: a code of AccessRefreshAttempt.code or developmentMode. Commonly rollback (the link is older than this device's manifest) or badSignature.",
-              "name": "code",
-              "required": false,
-              "type": "String",
-              "wireName": "code"
-            },
-            {
-              "description": "Directory serial after the import.",
-              "name": "serial",
-              "required": true,
-              "type": "UInt64",
-              "wireName": "serial"
-            }
-          ],
-          "name": "AccessRecoveryImport"
-        },
-        {
-          "description": "One access point of the home cell with its health on the current network.",
-          "fields": [
-            {
-              "description": "Access point id.",
-              "name": "accessPointId",
-              "required": true,
-              "type": "String",
-              "wireName": "accessPointId"
-            },
-            {
-              "description": "Region the access point is in.",
-              "name": "regionId",
-              "required": true,
-              "type": "String",
-              "wireName": "regionId"
-            },
-            {
-              "description": "Host name shown on the diagnostics page.",
-              "name": "host",
-              "required": true,
-              "type": "String",
-              "wireName": "host"
-            },
-            {
-              "description": "Manifest status: active, draining, disabled or unknown.",
-              "name": "status",
-              "required": true,
-              "type": "String",
-              "wireName": "status"
-            },
-            {
-              "description": "Smoothed round trip on the current network, when measured.",
-              "name": "rttMs",
-              "required": false,
-              "type": "Double",
-              "wireName": "rttMs"
-            },
-            {
-              "description": "Circuit breaker state: closed, open or halfOpen.",
-              "name": "breaker",
-              "required": true,
-              "type": "String",
-              "wireName": "breaker"
-            },
-            {
-              "description": "Protocol that last won the race on this network: quic or ws.",
-              "name": "protocolWinner",
-              "required": false,
-              "type": "String",
-              "wireName": "protocolWinner"
-            },
-            {
-              "description": "Whether this access point is manually pinned.",
-              "name": "pinned",
-              "required": true,
-              "type": "Boolean",
-              "wireName": "pinned"
-            },
-            {
-              "description": "Whether the IM connection is on this access point.",
-              "name": "current",
-              "required": true,
-              "type": "Boolean",
-              "wireName": "current"
-            }
-          ],
-          "name": "AccessPointInfo"
-        },
-        {
-          "description": "One side of an access point switch.",
-          "fields": [
-            {
-              "description": "Access point id.",
-              "name": "ap",
-              "required": true,
-              "type": "String",
-              "wireName": "ap"
-            },
-            {
-              "description": "Transport: quic or ws.",
-              "name": "protocol",
-              "required": true,
-              "type": "String",
-              "wireName": "protocol"
-            }
-          ],
-          "name": "AccessEndpoint"
-        },
-        {
-          "description": "Payload of access://switched: the IM connection moved to another access point (sent once, when the new connection is ready).",
-          "fields": [
-            {
-              "description": "Where the connection was.",
-              "name": "from",
-              "required": true,
-              "type": "AccessEndpoint",
-              "wireName": "from"
-            },
-            {
-              "description": "Where the connection is now.",
-              "name": "to",
-              "required": true,
-              "type": "AccessEndpoint",
-              "wireName": "to"
-            },
-            {
-              "description": "Why: failure, drain, failback, manual or manifest.",
-              "name": "reason",
-              "required": true,
-              "type": "String",
-              "wireName": "reason"
-            }
-          ],
-          "name": "AccessSwitchedEvent"
-        },
-        {
-          "description": "What a newly accepted access manifest changed.",
-          "fields": [
-            {
-              "description": "Access points that appeared.",
-              "name": "accessPointsAdded",
-              "required": true,
-              "type": "StringList",
-              "wireName": "accessPointsAdded"
-            },
-            {
-              "description": "Access points that disappeared.",
-              "name": "accessPointsRemoved",
-              "required": true,
-              "type": "StringList",
-              "wireName": "accessPointsRemoved"
-            },
-            {
-              "description": "Whether the client link policy changed.",
-              "name": "policyChanged",
-              "required": true,
-              "type": "Boolean",
-              "wireName": "policyChanged"
-            }
-          ],
-          "name": "AccessChanges"
-        },
-        {
-          "description": "Payload of access://changed: a new access manifest was accepted. Sent for every adoption; a periodic re-signature has empty changes.",
-          "fields": [
-            {
-              "description": "Serial of the accepted manifest.",
-              "name": "serial",
-              "required": true,
-              "type": "UInt64",
-              "wireName": "serial"
-            },
-            {
-              "description": "Where it came from, in the form of AccessStatus.source.",
-              "name": "source",
-              "required": true,
-              "type": "String",
-              "wireName": "source"
-            },
-            {
-              "description": "Whether it is past its expiry.",
-              "name": "stale",
-              "required": true,
-              "type": "Boolean",
-              "wireName": "stale"
-            },
-            {
-              "description": "Endpoints come from development-mode configuration.",
-              "name": "developmentMode",
-              "required": true,
-              "type": "Boolean",
-              "wireName": "developmentMode"
-            },
-            {
-              "description": "What changed against the previous manifest.",
-              "name": "changes",
-              "required": true,
-              "type": "AccessChanges",
-              "wireName": "changes"
-            }
-          ],
-          "name": "AccessChangedEvent"
         }
       ]
     },
@@ -5031,6 +4492,16 @@
       "description": "Message models mirrored from flare-core-sdk-engine/src/model/message.rs and message_elem.rs.",
       "enums": [
         {
+          "description": "Stage reached by an outbound message.",
+          "name": "MessageSendStage",
+          "values": [
+            "queued",
+            "accepted",
+            "persisted",
+            "failed"
+          ]
+        },
+        {
           "description": "Decoded message content discriminator.",
           "name": "MessageContentType",
           "values": [
@@ -5227,11 +4698,18 @@
               "wireName": "timestamp"
             },
             {
-              "description": "Whether this response contains a final accepted send ACK.",
+              "description": "Whether the SDK queued the message locally or the server accepted it. Check stage for persistence.",
               "name": "success",
               "required": true,
               "type": "Boolean",
               "wireName": "success"
+            },
+            {
+              "description": "Queued locally, accepted by the server, persisted by the server, or failed. Older engines omit this field.",
+              "name": "stage",
+              "required": false,
+              "type": "MessageSendStage",
+              "wireName": "stage"
             },
             {
               "description": "Core ACK error code when success is false.",
@@ -6822,7 +6300,6 @@
           "values": [
             "lifecycle",
             "connection",
-            "access",
             "update",
             "message",
             "notification",
@@ -6855,14 +6332,6 @@
           "values": [
             "status",
             "sync_state_changed"
-          ]
-        },
-        {
-          "description": "Access event name.",
-          "name": "AccessEventName",
-          "values": [
-            "switched",
-            "changed"
           ]
         },
         {
@@ -7826,7 +7295,7 @@
             "returnMode": "callback"
           },
           "operation": "sdk.init",
-          "request": "SdkConfig",
+          "request": "SdkInitRequest",
           "response": "Unit",
           "stability": "stable",
           "transport": "ffi-symbol"
@@ -8254,6 +7723,42 @@
           "transport": "contract-invoke-json"
         },
         {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Atomically accepts a complete address group for the current Core deployment. Use connection status to observe recovery after a transport address changes.",
+          "name": "replaceEndpoints",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "connection.replace_endpoints",
+          "request": "CoreEndpoints",
+          "response": "EndpointUpdate",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Selects WebSocket, native QUIC, or a race between available transports.",
+          "name": "setProtocolMode",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "unit",
+            "returnMode": "callback"
+          },
+          "operation": "connection.set_protocol_mode",
+          "request": "SetProtocolModeRequest",
+          "response": "Unit",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
+        },
+        {
           "cApi": "flare_sdk_disconnect",
           "name": "disconnect",
           "nativeBinding": {
@@ -8303,139 +7808,6 @@
           "operation": "connection.notify_network_change",
           "request": "NetworkChangeRequest",
           "response": "Unit",
-          "stability": "stable",
-          "transport": "contract-invoke-json"
-        }
-      ]
-    },
-    {
-      "description": "Access directory, access point health, manual pinning, manifest refresh and recovery links for the network diagnostics page.",
-      "facade": "client.access",
-      "key": "access",
-      "methods": [
-        {
-          "cApi": "flare_sdk_invoke_json",
-          "description": "Directory serial and source, manifest timestamps, staleness, development mode, the current region, cell, access point and protocol, the manual pin, refresh progress and recovery state.",
-          "name": "getStatus",
-          "nativeBinding": {
-            "asyncReturn": "i32 immediate_submit_code",
-            "callback": "FlareResultCallback",
-            "handlePolicy": "client-handle",
-            "requestEncoding": "json",
-            "responseEncoding": "json-object",
-            "returnMode": "callback"
-          },
-          "operation": "access.get_status",
-          "request": "Unit",
-          "response": "AccessStatus",
-          "stability": "stable",
-          "transport": "contract-invoke-json"
-        },
-        {
-          "cApi": "flare_sdk_invoke_json",
-          "description": "Every access point of the home cell with its RTT on the current network, breaker state, and whether it is current or pinned.",
-          "name": "listAccessPoints",
-          "nativeBinding": {
-            "asyncReturn": "i32 immediate_submit_code",
-            "callback": "FlareResultCallback",
-            "handlePolicy": "client-handle",
-            "requestEncoding": "json",
-            "responseEncoding": "json-object",
-            "returnMode": "callback"
-          },
-          "operation": "access.list_access_points",
-          "request": "Unit",
-          "response": "AccessPointInfoList",
-          "stability": "stable",
-          "transport": "contract-invoke-json"
-        },
-        {
-          "cApi": "flare_sdk_invoke_json",
-          "description": "Pins one access point (24 hours, cleared on app restart) and switches to it at once when it is not current, without signing in again.",
-          "name": "pin",
-          "nativeBinding": {
-            "asyncReturn": "i32 immediate_submit_code",
-            "callback": "FlareResultCallback",
-            "handlePolicy": "client-handle",
-            "requestEncoding": "json",
-            "responseEncoding": "json-object",
-            "returnMode": "callback"
-          },
-          "operation": "access.pin",
-          "request": "AccessPinRequest",
-          "response": "AccessPin",
-          "stability": "stable",
-          "transport": "contract-invoke-json"
-        },
-        {
-          "cApi": "flare_sdk_invoke_json",
-          "description": "Clears the manual pin; automatic selection decides at the next natural boundary.",
-          "name": "unpin",
-          "nativeBinding": {
-            "asyncReturn": "i32 immediate_submit_code",
-            "callback": "FlareResultCallback",
-            "handlePolicy": "client-handle",
-            "requestEncoding": "json",
-            "responseEncoding": "unit",
-            "returnMode": "callback"
-          },
-          "operation": "access.unpin",
-          "request": "Unit",
-          "response": "Unit",
-          "stability": "stable",
-          "transport": "contract-invoke-json"
-        },
-        {
-          "cApi": "flare_sdk_invoke_json",
-          "description": "Runs one manifest refresh round now (or waits for the round in flight) and reports every source it tried. During recovery the round tries every tier.",
-          "name": "refresh",
-          "nativeBinding": {
-            "asyncReturn": "i32 immediate_submit_code",
-            "callback": "FlareResultCallback",
-            "handlePolicy": "client-handle",
-            "requestEncoding": "json",
-            "responseEncoding": "json-object",
-            "returnMode": "callback"
-          },
-          "operation": "access.refresh",
-          "request": "Unit",
-          "response": "AccessRefreshReport",
-          "stability": "stable",
-          "transport": "contract-invoke-json"
-        },
-        {
-          "cApi": "flare_sdk_invoke_json",
-          "description": "Imports a recovery link or QR code. A bad link is an expected result carried in outcome and code, not an error; only a configuration problem throws.",
-          "name": "importRecovery",
-          "nativeBinding": {
-            "asyncReturn": "i32 immediate_submit_code",
-            "callback": "FlareResultCallback",
-            "handlePolicy": "client-handle",
-            "requestEncoding": "json",
-            "responseEncoding": "json-object",
-            "returnMode": "callback"
-          },
-          "operation": "access.import_recovery",
-          "request": "AccessImportRecoveryRequest",
-          "response": "AccessRecoveryImport",
-          "stability": "stable",
-          "transport": "contract-invoke-json"
-        },
-        {
-          "cApi": "flare_sdk_invoke_json",
-          "description": "Diagnostics JSON for support: access status, access point health, the locally hashed network fingerprint and warnings. Holds no tokens, users or message content.",
-          "name": "exportDiagnostics",
-          "nativeBinding": {
-            "asyncReturn": "i32 immediate_submit_code",
-            "callback": "FlareResultCallback",
-            "handlePolicy": "client-handle",
-            "requestEncoding": "json",
-            "responseEncoding": "json",
-            "returnMode": "callback"
-          },
-          "operation": "access.export_diagnostics",
-          "request": "Unit",
-          "response": "JsonValue",
           "stability": "stable",
           "transport": "contract-invoke-json"
         }

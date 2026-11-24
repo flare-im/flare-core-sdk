@@ -7,7 +7,7 @@ import XCTest
 /// package decodes the same file.
 final class LinkStatusVectorTests: XCTestCase {
     private static let fields: Set<String> = [
-        "phase", "quality", "accessPointId", "cellId", "regionId", "protocol",
+        "phase", "quality", "endpointRevision", "protocol",
         "rttMs", "attempt", "nextRetryAt", "reason", "developmentMode",
     ]
 
@@ -109,9 +109,7 @@ final class LinkStatusVectorTests: XCTestCase {
         let name = vector.name
         XCTAssertEqual(status.phase.rawValue, string("phase"), name, line: line)
         XCTAssertEqual(status.quality?.rawValue, string("quality"), name, line: line)
-        XCTAssertEqual(status.accessPointId, string("accessPointId"), name, line: line)
-        XCTAssertEqual(status.cellId, string("cellId"), name, line: line)
-        XCTAssertEqual(status.regionId, string("regionId"), name, line: line)
+        XCTAssertEqual(status.endpointRevision.map(Int64.init), number("endpointRevision"), name, line: line)
         XCTAssertEqual(status.protocol, string("protocol"), name, line: line)
         XCTAssertEqual(status.rttMs.map(Int64.init), number("rttMs"), name, line: line)
         XCTAssertEqual(Int64(status.attempt), number("attempt"), name, line: line)

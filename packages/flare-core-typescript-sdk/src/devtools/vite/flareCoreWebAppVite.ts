@@ -20,34 +20,12 @@ export type FlareCoreWebAppViteOptions = {
   wasmBindingRoot?: string;
   /** SDK sources the `@flare-im/sdk` aliases point at. Defaults to this package's own src. */
   sdkSourceRoot?: string;
-  /** Give it on a web app: production builds then carry a build id, `asset-manifest.json` and `sw.js`. */
-  webUpdate?: Pick<FlareWebUpdateBuildOptions, "viteBuild" | "serviceWorkerEntry">;
-};
-
-export type FlareWebUpdateBuildOptions = {
-  buildId: string;
-  /** Vite's `build`. */
-  viteBuild: (config: Record<string, unknown>) => Promise<unknown>;
-  /** The Service Worker's source, relative to the app. Default `src/sw.ts`. */
-  serviceWorkerEntry?: string;
-  /** Directories of the output holding files of this build with no content hash in their name. */
-  pinned?: string[];
-  /** The query strings the page asks for some of them with, by path relative to the output. */
-  assetQueries?: Record<string, string>;
-};
-
-export type WriteWebUpdateFilesOptions = {
-  outDir: string;
-  base?: string;
-  buildId: string;
-  assetsDir?: string;
-  pinned?: string[];
-  assetQueries?: Record<string, string>;
+  /** Optional app plugins can use the resolved WASM output paths. */
+  extraPlugins?: (context: {
+    env: Record<string, string | undefined>;
+    wasmAssetDirectory: string;
+    wasmAssetQueries: Record<string, string>;
+  }) => unknown[];
 };
 
 export declare function createFlareCoreWebAppViteConfig(options: FlareCoreWebAppViteOptions): unknown;
-/** The Vite plugin behind `webUpdate`, for apps with a Vite config of their own. */
-export declare function flareWebUpdateBuild(options: FlareWebUpdateBuildOptions): unknown;
-/** `VITE_FLARE_WEB_BUILD_ID`, else the day and a random suffix. */
-export declare function resolveWebBuildId(env?: Record<string, string | undefined>, now?: Date): string;
-export declare function writeWebUpdateFiles(options: WriteWebUpdateFilesOptions): Promise<{ manifest: unknown; sha256: string }>;

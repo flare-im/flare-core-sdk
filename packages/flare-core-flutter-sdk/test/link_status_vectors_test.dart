@@ -17,9 +17,7 @@ void main() {
   const fields = [
     'phase',
     'quality',
-    'accessPointId',
-    'cellId',
-    'regionId',
+    'endpointRevision',
     'protocol',
     'rttMs',
     'attempt',
@@ -32,9 +30,7 @@ void main() {
   Map<String, Object?> asWire(ConnectionStatus status) => {
         'phase': status.phase.name,
         'quality': status.quality?.name,
-        'accessPointId': status.accessPointId,
-        'cellId': status.cellId,
-        'regionId': status.regionId,
+        'endpointRevision': status.endpointRevision,
         'protocol': status.protocol,
         'rttMs': status.rttMs,
         'attempt': status.attempt,

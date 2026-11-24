@@ -15,6 +15,7 @@ extension PlatformLifecycle {
         lifecycle: any LifecycleApiProtocol,
         network: any PlatformNetworkSource = SystemNetworkSource(),
         appState: any PlatformAppStateSource = SystemAppStateSource(),
+        backgroundExecution: (any PlatformBackgroundExecution)? = nil,
         onError: @escaping @Sendable (Error) -> Void = { _ in }
     ) {
         let apis = ClientLifecycleApis(connection: connection, lifecycle: lifecycle)
@@ -39,6 +40,7 @@ extension PlatformLifecycle {
             },
             network: network,
             appState: appState,
+            backgroundExecution: backgroundExecution,
             onError: onError
         )
     }

@@ -383,6 +383,32 @@ abstract final class NativeCallMap {
       handlePolicy: "client-handle",
       callback: "FlareResultCallback");
 
+  /// replaceEndpoints maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.replace_endpoints`.
+  static const connectionReplaceEndpoints = NativeCallDescriptor(
+      module: "connection",
+      method: "replaceEndpoints",
+      operation: "connection.replace_endpoints",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
+  /// setProtocolMode maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.set_protocol_mode`.
+  static const connectionSetProtocolMode = NativeCallDescriptor(
+      module: "connection",
+      method: "setProtocolMode",
+      operation: "connection.set_protocol_mode",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "unit",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
   /// disconnect maps to `flare_sdk_disconnect` via `ffi-symbol`. Operation: `connection.disconnect`.
   static const connectionDisconnect = NativeCallDescriptor(
       module: "connection",
@@ -418,97 +444,6 @@ abstract final class NativeCallMap {
       cApi: "flare_sdk_invoke_json",
       requestEncoding: "json",
       responseEncoding: "unit",
-      returnMode: "callback",
-      handlePolicy: "client-handle",
-      callback: "FlareResultCallback");
-
-  /// getStatus maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.get_status`.
-  static const accessGetStatus = NativeCallDescriptor(
-      module: "access",
-      method: "getStatus",
-      operation: "access.get_status",
-      transport: "contract-invoke-json",
-      cApi: "flare_sdk_invoke_json",
-      requestEncoding: "json",
-      responseEncoding: "json-object",
-      returnMode: "callback",
-      handlePolicy: "client-handle",
-      callback: "FlareResultCallback");
-
-  /// listAccessPoints maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.list_access_points`.
-  static const accessListAccessPoints = NativeCallDescriptor(
-      module: "access",
-      method: "listAccessPoints",
-      operation: "access.list_access_points",
-      transport: "contract-invoke-json",
-      cApi: "flare_sdk_invoke_json",
-      requestEncoding: "json",
-      responseEncoding: "json-object",
-      returnMode: "callback",
-      handlePolicy: "client-handle",
-      callback: "FlareResultCallback");
-
-  /// pin maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.pin`.
-  static const accessPin = NativeCallDescriptor(
-      module: "access",
-      method: "pin",
-      operation: "access.pin",
-      transport: "contract-invoke-json",
-      cApi: "flare_sdk_invoke_json",
-      requestEncoding: "json",
-      responseEncoding: "json-object",
-      returnMode: "callback",
-      handlePolicy: "client-handle",
-      callback: "FlareResultCallback");
-
-  /// unpin maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.unpin`.
-  static const accessUnpin = NativeCallDescriptor(
-      module: "access",
-      method: "unpin",
-      operation: "access.unpin",
-      transport: "contract-invoke-json",
-      cApi: "flare_sdk_invoke_json",
-      requestEncoding: "json",
-      responseEncoding: "unit",
-      returnMode: "callback",
-      handlePolicy: "client-handle",
-      callback: "FlareResultCallback");
-
-  /// refresh maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.refresh`.
-  static const accessRefresh = NativeCallDescriptor(
-      module: "access",
-      method: "refresh",
-      operation: "access.refresh",
-      transport: "contract-invoke-json",
-      cApi: "flare_sdk_invoke_json",
-      requestEncoding: "json",
-      responseEncoding: "json-object",
-      returnMode: "callback",
-      handlePolicy: "client-handle",
-      callback: "FlareResultCallback");
-
-  /// importRecovery maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.import_recovery`.
-  static const accessImportRecovery = NativeCallDescriptor(
-      module: "access",
-      method: "importRecovery",
-      operation: "access.import_recovery",
-      transport: "contract-invoke-json",
-      cApi: "flare_sdk_invoke_json",
-      requestEncoding: "json",
-      responseEncoding: "json-object",
-      returnMode: "callback",
-      handlePolicy: "client-handle",
-      callback: "FlareResultCallback");
-
-  /// exportDiagnostics maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `access.export_diagnostics`.
-  static const accessExportDiagnostics = NativeCallDescriptor(
-      module: "access",
-      method: "exportDiagnostics",
-      operation: "access.export_diagnostics",
-      transport: "contract-invoke-json",
-      cApi: "flare_sdk_invoke_json",
-      requestEncoding: "json",
-      responseEncoding: "json",
       returnMode: "callback",
       handlePolicy: "client-handle",
       callback: "FlareResultCallback");

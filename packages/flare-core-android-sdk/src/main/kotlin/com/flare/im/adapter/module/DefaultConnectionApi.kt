@@ -15,7 +15,6 @@ import com.flare.im.model.common.error.*
 import com.flare.im.model.content.*
 import com.flare.im.model.entity.*
 import com.flare.im.model.event.*
-import com.flare.im.model.event.access.*
 import com.flare.im.model.event.connection.*
 import com.flare.im.model.event.conversation.*
 import com.flare.im.model.event.lifecycle.*
@@ -39,6 +38,14 @@ class DefaultConnectionApi(
 
     override suspend fun reconnectNow(): Unit {
         invokeUnit(bridge, NativeCallMap.CONNECTION_RECONNECT_NOW)
+    }
+
+    override suspend fun replaceEndpoints(request: CoreEndpoints): EndpointUpdate {
+        return endpointUpdateFromJson(invokeMap(bridge, NativeCallMap.CONNECTION_REPLACE_ENDPOINTS, coreEndpointsToMap(request)))
+    }
+
+    override suspend fun setProtocolMode(request: SetProtocolModeRequest): Unit {
+        invokeUnit(bridge, NativeCallMap.CONNECTION_SET_PROTOCOL_MODE, setProtocolModeRequestToMap(request))
     }
 
     override suspend fun disconnect(): Unit {

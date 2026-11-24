@@ -4,8 +4,6 @@ import Foundation
 public enum EventCode {
     public static let connectionSyncStateChanged: Int = 1005
     public static let connectionStatus: Int = 1010
-    public static let accessSwitched: Int = 1011
-    public static let accessChanged: Int = 1012
     public static let updateState: Int = 1013
     public static let messageReceived: Int = 2001
     public static let messageReceivedBatch: Int = 2002

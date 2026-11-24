@@ -190,7 +190,6 @@ async function loadMoreDetail(cursor: string): Promise<void> {
  */
 const bundleDetail = shallowRef<{ pluginId: string; contributionId: string; args: Record<string, unknown> } | null>(null);
 const bundleTitle = ref("");
-let detailDeclarative = false;
 function bundleArguments(payload: Record<string, unknown>): Record<string, unknown> {
   const args: Record<string, unknown> = props.messageId ? { messageId: props.messageId } : {};
   // The hello carries at most 16 KiB of arguments: a large payload is left for the bundle to query.
@@ -199,18 +198,21 @@ function bundleArguments(payload: Record<string, unknown>): Record<string, unkno
 }
 function bundleDetailFallback(): void {
   bundleDetail.value = null;
-  detailDeclarative = true;
-  openDetail();
+  openDeclarativeDetail();
 }
 function openDetail(): void {
   if (!view.value.available || !view.value.detail) return;
   const message = session.value?.envelope(props.content);
   const offered = (view.value as { bundle?: unknown }).bundle === true;
-  if (pluginHost.bundles && message && offered && !detailDeclarative) {
+  if (pluginHost.bundles && message && offered) {
     bundleTitle.value = "";
     bundleDetail.value = { pluginId: message.pluginId, contributionId: message.contributionId, args: bundleArguments(message.payload) };
     return;
   }
+  openDeclarativeDetail();
+}
+function openDeclarativeDetail(): void {
+  if (!view.value.available || !view.value.detail) return;
   detailUsed.value = true; detailOpen.value = true; detailView.value = undefined;
   inDetail.error = ""; inDetail.formErrors = [];
   void loadDetail();

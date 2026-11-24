@@ -1,11 +1,2 @@
-export {
-  createFlareCoreWebAppViteConfig,
-  flareWebUpdateBuild,
-  resolveWebBuildId,
-  writeWebUpdateFiles,
-} from "./flareCoreWebAppVite";
-export type {
-  FlareCoreWebAppViteOptions,
-  FlareWebUpdateBuildOptions,
-  WriteWebUpdateFilesOptions,
-} from "./flareCoreWebAppVite";
+export { createFlareCoreWebAppViteConfig } from "./flareCoreWebAppVite";
+export type { FlareCoreWebAppViteOptions } from "./flareCoreWebAppVite";

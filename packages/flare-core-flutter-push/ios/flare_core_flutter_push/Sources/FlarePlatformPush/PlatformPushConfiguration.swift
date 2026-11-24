@@ -1,1 +1,0 @@
-../../../../../flare-core-apple-sdk/Sources/FlarePlatformPush/PlatformPushConfiguration.swift

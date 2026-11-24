@@ -2,7 +2,7 @@ import XCTest
 @testable import FlareCoreAppleSDK
 
 final class ConnectionContractTests: XCTestCase {
-    // MARK: - connection://status and access events
+    // MARK: - connection://status events
 
     /// The C ABI event: every field present, null without a value, plus `type` / `event`.
     func testConnectionStatusEventDecodesWithNulls() async throws {
@@ -11,17 +11,14 @@ final class ConnectionContractTests: XCTestCase {
         _ = events.onConnectionStatusChanged { box.value = $0 }
 
         bridge.emit(eventType: EventCode.connectionStatus, json: """
-        {"type":"connection","event":"status","phase":"reconnecting","quality":null,"accessPointId":"ap-sg-1",
-         "cellId":"cell-sg-a","regionId":"sg","protocol":"quic","rttMs":null,"attempt":2,
+        {"type":"connection","event":"status","phase":"reconnecting","quality":null,"endpointRevision":1,"protocol":"quic","rttMs":null,"attempt":2,
          "nextRetryAt":1762250000000,"reason":null,"developmentMode":false}
         """)
 
         let status = try XCTUnwrap(box.value)
         XCTAssertEqual(status.phase, .reconnecting)
         XCTAssertNil(status.quality)
-        XCTAssertEqual(status.accessPointId, "ap-sg-1")
-        XCTAssertEqual(status.cellId, "cell-sg-a")
-        XCTAssertEqual(status.regionId, "sg")
+        XCTAssertEqual(status.endpointRevision, 1)
         XCTAssertEqual(status.protocol, "quic")
         XCTAssertNil(status.rttMs)
         XCTAssertEqual(status.attempt, 2)
@@ -38,7 +35,7 @@ final class ConnectionContractTests: XCTestCase {
         _ = events.addEventListener(listener)
 
         bridge.emit(eventType: EventCode.connectionStatus, json: """
-        {"phase":"online","quality":"poor","accessPointId":"development","cellId":null,"regionId":null,
+        {"phase":"online","quality":"poor","endpointRevision":1,
          "protocol":"ws","rttMs":412,"attempt":0,"nextRetryAt":null,"reason":null,"developmentMode":true}
         """)
         XCTAssertEqual(box.value?.phase, .online)
@@ -48,35 +45,11 @@ final class ConnectionContractTests: XCTestCase {
         XCTAssertEqual(listener.status?.phase, .online)
 
         bridge.emit(eventType: EventCode.connectionStatus, json: """
-        {"phase":"actionRequired","quality":null,"accessPointId":null,"cellId":null,"regionId":null,
+        {"phase":"actionRequired","quality":null,"endpointRevision":1,
          "protocol":null,"rttMs":null,"attempt":0,"nextRetryAt":null,"reason":"upgradeRequired","developmentMode":false}
         """)
         XCTAssertEqual(box.value?.phase, .actionRequired)
         XCTAssertEqual(box.value?.reason, "upgradeRequired")
-    }
-
-    func testAccessEventsDecode() async throws {
-        let (bridge, events) = try await subscribedEvents()
-        let switched = EventBox<AccessSwitchedEvent>()
-        let changed = EventBox<AccessChangedEvent>()
-        _ = events.onAccessSwitched { switched.value = $0 }
-        _ = events.onAccessChanged { changed.value = $0 }
-
-        bridge.emit(eventType: EventCode.accessSwitched, json: """
-        {"from":{"ap":"ap-sg-1","protocol":"quic"},"to":{"ap":"ap-sg-2","protocol":"ws"},"reason":"failure"}
-        """)
-        bridge.emit(eventType: EventCode.accessChanged, json: """
-        {"serial":42,"source":"lkg","stale":false,"developmentMode":false,
-         "changes":{"accessPointsAdded":["ap-sg-3"],"accessPointsRemoved":[],"policyChanged":true}}
-        """)
-
-        XCTAssertEqual(switched.value?.from.ap, "ap-sg-1")
-        XCTAssertEqual(switched.value?.to.protocol, "ws")
-        XCTAssertEqual(switched.value?.reason, "failure")
-        XCTAssertEqual(changed.value?.serial, 42)
-        XCTAssertEqual(changed.value?.source, "lkg")
-        XCTAssertEqual(changed.value?.changes.accessPointsAdded, ["ap-sg-3"])
-        XCTAssertEqual(changed.value?.changes.policyChanged, true)
     }
 
     // MARK: - typed errors

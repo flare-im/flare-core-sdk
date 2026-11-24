@@ -21,8 +21,6 @@ Method return values remain the primary success/failure contract for commands su
 | `onLoggedOut` | `lifecycle` | `logged_out` | `LifecycleEvent` | The current SDK session logged out. |
 | `onDisposed` | `lifecycle` | `disposed` | `LifecycleEvent` | The SDK client has been disposed. |
 | `onConnectionStatusChanged` | `connection` | `status` | `ConnectionStatus` | The connection status changed (connection://status). Replace the held status whole and hand it to the Kit ConnectionNotice unchanged. |
-| `onAccessSwitched` | `access` | `switched` | `AccessSwitchedEvent` | The IM connection moved to another access point (access://switched). |
-| `onAccessChanged` | `access` | `changed` | `AccessChangedEvent` | A new access manifest was accepted (access://changed). |
 | `onUpdateState` | `update` | `state` | `UpdateStatus` | The update center state changed (update://state). Delivered with a session; before sign-in read update.getState. |
 | `onMessageReceived` | `message` | `received` | `MessageReceivedEvent` | A single message was received. |
 | `onMessageReceivedBatch` | `message` | `received_batch` | `MessageReceivedBatchEvent` | A batch of messages was received. |
@@ -62,7 +60,6 @@ Method return values remain the primary success/failure contract for commands su
 
 | Domain | Names |
 |--------|-------|
-| `access` | `switched`, `changed` |
 | `connection` | `status`, `sync_state_changed` |
 | `conversation` | `synced`, `created`, `updated`, `unread_count_changed`, `deleted` |
 | `extension` | `event` |

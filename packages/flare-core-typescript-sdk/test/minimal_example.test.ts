@@ -13,7 +13,6 @@ function runtimeFixture(failDiagnostics = false) {
     }),
     setEventCallback: vi.fn(),
     setStorageHost: vi.fn(),
-    setAccessStoreHost: vi.fn(),
     dispose: vi.fn(),
   };
 }

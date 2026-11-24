@@ -4,8 +4,6 @@ package com.flare.im.model.event
 object EventCode {
     const val CONNECTION_SYNC_STATE_CHANGED: Int = 1005
     const val CONNECTION_STATUS: Int = 1010
-    const val ACCESS_SWITCHED: Int = 1011
-    const val ACCESS_CHANGED: Int = 1012
     const val UPDATE_STATE: Int = 1013
     const val MESSAGE_RECEIVED: Int = 2001
     const val MESSAGE_RECEIVED_BATCH: Int = 2002

@@ -1,7 +1,6 @@
 // GENERATED. Do not edit by hand.
 export type { SessionApi } from './modules/session';
 export type { ConnectionApi } from './modules/connection';
-export type { AccessApi } from './modules/access';
 export type { LifecycleApi } from './modules/lifecycle';
 export type { UpdateApi } from './modules/update';
 export type { ConversationsApi } from './modules/conversations';

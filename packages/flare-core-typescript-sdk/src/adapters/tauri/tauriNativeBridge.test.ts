@@ -37,7 +37,7 @@ describe('Tauri TypeScript SDK adapter', () => {
     });
 
     const sdkConfig = {
-      access: { trustMode: 'development', developmentEndpoints: { wsUrl: 'ws://127.0.0.1:60051' } },
+      endpoints: { baseUrl: "http://127.0.0.1:50050", websocketUrl: "ws://127.0.0.1:60051" },
     };
     await bridge.invoke(NativeCallMap.sdkInit, { environment: 'development', sdkConfig });
     const connected = await bridge.invoke<boolean>(NativeCallMap.sdkIsConnected);
@@ -83,6 +83,32 @@ describe('Tauri TypeScript SDK adapter', () => {
     });
   });
 
+  it('uses the Core endpoint contract from init through connection status', async () => {
+    const { FlareCoreSdk } = await import('./index');
+    tauri.invoke.mockImplementation(async (command: string, args?: { apiId: string }) => {
+      if (command === 'sdk_ffi_contract_version') return { version: ffiContractVersion };
+      if (args?.apiId === 'connection.replace_endpoints') return { revision: 2, changed: true };
+      if (args?.apiId === 'connection.get_status') {
+        return { phase: 'online', attempt: 0, developmentMode: false, endpointRevision: 2 };
+      }
+    });
+    const client = FlareCoreSdk.createClient();
+    const endpoints = { baseUrl: 'https://core.example', websocketUrl: 'wss://core.example/ws' };
+    await client.init({ endpoints, installPlatformLifecycle: false });
+    expect(tauri.invoke).toHaveBeenCalledWith('sdk_init', {
+      environment: undefined,
+      sdkConfig: { endpoints },
+    });
+
+    const replacement = { ...endpoints, mediaBaseUrl: 'https://media.example' };
+    expect(await client.connection.replaceEndpoints(replacement)).toEqual({ revision: 2, changed: true });
+    const call = tauri.invoke.mock.calls.find(
+      ([command, args]) => command === 'sdk_invoke_json' && args?.apiId === 'connection.replace_endpoints',
+    );
+    expect(JSON.parse(call?.[1].requestJson ?? '{}')).toEqual(replacement);
+    expect((await client.connection.getStatus()).endpointRevision).toBe(2);
+  });
+
   it('connects Tauri event channels to DefaultEventsApi when creating the default client', async () => {
     const { FlareCoreSdk } = await import('./index');
     const unlisten = vi.fn();
@@ -112,14 +138,14 @@ describe('Tauri TypeScript SDK adapter', () => {
     await client.events.subscribeEventsBatch({});
     statusPayload?.({
       payload: {
-        phase: 'actionRequired', quality: null, accessPointId: 'ap-1', cellId: null, regionId: null,
+        phase: 'actionRequired', quality: null, endpointRevision: 2,
         protocol: 'ws', rttMs: null, attempt: 0, nextRetryAt: null, reason: 'kicked', developmentMode: false,
       },
     });
 
     expect(received).toEqual([{
       phase: 'actionRequired',
-      accessPointId: 'ap-1',
+      endpointRevision: 2,
       protocol: 'ws',
       attempt: 0,
       reason: 'kicked',
@@ -189,9 +215,9 @@ describe('Tauri TypeScript SDK adapter', () => {
       throw { code: 'OVERLOADED', message: 'shedding load', retryable: true, retryAfterMs: 2500 };
     });
 
-    const error = await bridge.invoke(NativeCallMap.accessGetStatus).catch((e: unknown) => e);
+    const error = await bridge.invoke(NativeCallMap.connectionGetStatus).catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(OverloadedError);
-    expect(error).toMatchObject({ code: 'OVERLOADED', retryAfterMs: 2500, operation: 'access.get_status' });
+    expect(error).toMatchObject({ code: 'OVERLOADED', retryAfterMs: 2500, operation: 'connection.get_status' });
   });
 });

@@ -1,4 +1,5 @@
 /** GENERATED. Do not edit by hand. */
+import type { MessageSendStage } from './message_send_stage';
 
 /** Send acknowledgement returned by core-sdk. */
 export interface SendMessageResponse {
@@ -14,8 +15,10 @@ export interface SendMessageResponse {
   seq: number;
   /** wire: `timestamp`. Server send time in milliseconds. */
   timestamp: number;
-  /** wire: `success`. Whether this response contains a final accepted send ACK. */
+  /** wire: `success`. Whether the SDK queued the message locally or the server accepted it. Check stage for persistence. */
   success: boolean;
+  /** wire: `stage`. Queued locally, accepted by the server, persisted by the server, or failed. Older engines omit this field. */
+  stage?: MessageSendStage;
   /** wire: `errorCode`. Core ACK error code when success is false. */
   errorCode: number;
   /** wire: `errorMessage`. Core ACK error message when success is false. */

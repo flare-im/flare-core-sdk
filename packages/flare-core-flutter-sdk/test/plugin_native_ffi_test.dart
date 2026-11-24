@@ -12,11 +12,11 @@ void main() {
     final client = FlareCoreSdk.createClient(libraryPath: library!);
     try {
       await client.init({
-        'dataUrl': directory.uri.toString(),
-        'tenantId': '201',
-        'access': {
-          'trustMode': 'development',
-          'developmentEndpoints': {'coreApiUrl': gateway!},
+        'environment': 'development',
+        'sdkConfig': {
+          'dataUrl': directory.uri.toString(),
+          'tenantId': '201',
+          'endpoints': {'baseUrl': gateway!, 'websocketUrl': 'ws://127.0.0.1:1'},
         },
       });
       await client.prepare({'userId': 'u1'});

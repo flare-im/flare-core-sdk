@@ -15,8 +15,6 @@ import com.flare.im.model.entity.ConnectionPhase
 import com.flare.im.model.entity.ConnectionQuality
 import com.flare.im.model.entity.ConnectionStatus
 import com.flare.im.model.event.EventCode
-import com.flare.im.model.event.access.AccessChangedEvent
-import com.flare.im.model.event.access.AccessSwitchedEvent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -41,7 +39,7 @@ class ConnectionContractTest {
             EventCode.CONNECTION_STATUS,
             mapOf(
                 "type" to "connection", "event" to "status", "phase" to "reconnecting", "quality" to null,
-                "accessPointId" to "ap-sg-1", "cellId" to "cell-sg-a", "regionId" to "sg", "protocol" to "quic",
+                "endpointRevision" to 1, "protocol" to "quic",
                 "rttMs" to null, "attempt" to 2, "nextRetryAt" to 1_762_250_000_000L, "reason" to null,
                 "developmentMode" to false,
             ),
@@ -50,9 +48,7 @@ class ConnectionContractTest {
         val decoded = status ?: error("no status")
         assertEquals(ConnectionPhase.RECONNECTING, decoded.phase)
         assertNull(decoded.quality)
-        assertEquals("ap-sg-1", decoded.accessPointId)
-        assertEquals("cell-sg-a", decoded.cellId)
-        assertEquals("sg", decoded.regionId)
+        assertEquals(1, decoded.endpointRevision)
         assertEquals("quic", decoded.protocol)
         assertNull(decoded.rttMs)
         assertEquals(2, decoded.attempt)
@@ -83,43 +79,6 @@ class ConnectionContractTest {
         assertEquals(412, seen[0].rttMs)
         assertTrue(seen[0].developmentMode)
         assertEquals("upgradeRequired", seen[2].reason)
-    }
-
-    @Test
-    fun accessEventsDecode() {
-        val events = DefaultEventsApi(RecordingBridge())
-        var switched: AccessSwitchedEvent? = null
-        var changed: AccessChangedEvent? = null
-        events.onAccessSwitched { switched = it }
-        events.onAccessChanged { changed = it }
-
-        events.emitNativeEvent(
-            EventCode.ACCESS_SWITCHED,
-            mapOf(
-                "from" to mapOf("ap" to "ap-sg-1", "protocol" to "quic"),
-                "to" to mapOf("ap" to "ap-sg-2", "protocol" to "ws"),
-                "reason" to "failure",
-            ),
-        )
-        events.emitNativeEvent(
-            EventCode.ACCESS_CHANGED,
-            mapOf(
-                "serial" to 42, "source" to "lkg", "stale" to false, "developmentMode" to false,
-                "changes" to mapOf(
-                    "accessPointsAdded" to listOf("ap-sg-3"),
-                    "accessPointsRemoved" to emptyList<String>(),
-                    "policyChanged" to true,
-                ),
-            ),
-        )
-
-        assertEquals("ap-sg-1", switched?.from?.ap)
-        assertEquals("ws", switched?.to?.protocol)
-        assertEquals("failure", switched?.reason)
-        assertEquals(42L, changed?.serial)
-        assertEquals("lkg", changed?.source)
-        assertEquals(listOf("ap-sg-3"), changed?.changes?.accessPointsAdded)
-        assertEquals(true, changed?.changes?.policyChanged)
     }
 
     // typed errors
@@ -285,7 +244,7 @@ class ConnectionContractTest {
         reason: String? = null,
         developmentMode: Boolean = false,
     ): Map<String, Any?> = mapOf(
-        "phase" to phase, "quality" to quality, "accessPointId" to null, "cellId" to null, "regionId" to null,
+        "phase" to phase, "quality" to quality, "endpointRevision" to 1,
         "protocol" to null, "rttMs" to rttMs, "attempt" to 0, "nextRetryAt" to null, "reason" to reason,
         "developmentMode" to developmentMode,
     )

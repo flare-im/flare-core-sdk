@@ -47,9 +47,7 @@ export class LoginFlowMockBridge implements NativeBridge {
         return {
           phase: "online",
           quality: "good",
-          accessPointId: "development",
-          cellId: null,
-          regionId: null,
+          endpointRevision: 1,
           protocol: "ws",
           rttMs: 12,
           attempt: 0,

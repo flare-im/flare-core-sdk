@@ -1036,9 +1036,7 @@ void main() {
         'event': 'status',
         'phase': 'reconnecting',
         'quality': null,
-        'accessPointId': 'ap-sg-1',
-        'cellId': 'cell-sg-a',
-        'regionId': 'sg',
+        'endpointRevision': 1,
         'protocol': 'quic',
         'rttMs': null,
         'attempt': 2,
@@ -1057,9 +1055,7 @@ void main() {
       final reconnecting = statuses.first;
       expect(reconnecting.phase, ConnectionPhase.reconnecting);
       expect(reconnecting.quality, isNull);
-      expect(reconnecting.accessPointId, 'ap-sg-1');
-      expect(reconnecting.cellId, 'cell-sg-a');
-      expect(reconnecting.regionId, 'sg');
+      expect(reconnecting.endpointRevision, 1);
       expect(reconnecting.protocol, 'quic');
       expect(reconnecting.rttMs, isNull);
       expect(reconnecting.attempt, 2);
@@ -1120,53 +1116,6 @@ void main() {
           ),
         ),
       );
-    });
-
-    test('access switched and changed reach typed and object listeners',
-        () async {
-      final bridge = _RecordingBridge();
-      final client = FlareCoreSdk.createClientWithBridge(bridge);
-      final switched = <AccessSwitchedEvent>[];
-      final changed = <AccessChangedEvent>[];
-      final objectListener = _ConnectionListener();
-      client.events.onAccessSwitched(switched.add);
-      client.events.onAccessChanged(changed.add);
-      client.events.addEventListener(objectListener);
-
-      await client.events.subscribeEvents(const {});
-
-      bridge.emitEvent(EventCode.accessSwitched, {
-        'from': {'ap': 'ap-sg-1', 'protocol': 'quic'},
-        'to': {'ap': 'ap-sg-2', 'protocol': 'ws'},
-        'reason': 'failure',
-      });
-      bridge.emitEvent(EventCode.accessChanged, {
-        'serial': 42,
-        'source': 'lkg',
-        'stale': false,
-        'developmentMode': false,
-        'changes': {
-          'accessPointsAdded': ['ap-sg-3'],
-          'accessPointsRemoved': <String>[],
-          'policyChanged': true,
-        },
-      });
-      // The coarse sync state hint has no listener and reaches none of these.
-      bridge.emitEvent(EventCode.connectionSyncStateChanged, {'state': 'idle'});
-
-      expect(switched.single.from.ap, 'ap-sg-1');
-      expect(switched.single.from.protocol, 'quic');
-      expect(switched.single.to.ap, 'ap-sg-2');
-      expect(switched.single.to.protocol, 'ws');
-      expect(switched.single.reason, 'failure');
-      expect(changed.single.serial, 42);
-      expect(changed.single.source, 'lkg');
-      expect(changed.single.changes.accessPointsAdded, ['ap-sg-3']);
-      expect(changed.single.changes.accessPointsRemoved, isEmpty);
-      expect(changed.single.changes.policyChanged, isTrue);
-      expect(objectListener.switched, hasLength(1));
-      expect(objectListener.changed, hasLength(1));
-      expect(objectListener.statuses, isEmpty);
     });
 
     test('connection getStatus and reconnectNow use the unified invoke route',
@@ -1340,17 +1289,13 @@ final class _TypingAggregateListener extends FlareImEventListener {
 
 final class _ConnectionListener extends FlareImEventListener {
   final statuses = <ConnectionStatus>[];
-  final switched = <AccessSwitchedEvent>[];
-  final changed = <AccessChangedEvent>[];
 
   @override
   void onConnectionStatusChanged(ConnectionStatus event) => statuses.add(event);
 
   @override
-  void onAccessSwitched(AccessSwitchedEvent event) => switched.add(event);
 
   @override
-  void onAccessChanged(AccessChangedEvent event) => changed.add(event);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
@@ -1359,9 +1304,6 @@ final class _ConnectionListener extends FlareImEventListener {
 Map<String, Object?> _statusPayload(String phase) => {
       'phase': phase,
       'quality': phase == 'online' ? 'good' : null,
-      'accessPointId': null,
-      'cellId': null,
-      'regionId': null,
       'protocol': null,
       'rttMs': null,
       'attempt': 0,

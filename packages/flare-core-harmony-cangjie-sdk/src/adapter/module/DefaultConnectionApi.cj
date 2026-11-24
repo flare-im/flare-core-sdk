@@ -21,6 +21,15 @@ public class DefaultConnectionApi <: ConnectionApi {
         let _ignored = bridge.invoke(descriptor: NativeCallMap.connectionReconnectNow, requestJson: wireEncodeRequest("{}"))
     }
 
+    public func replaceEndpoints(request: CoreEndpoints): EndpointUpdate {
+        let raw = bridge.invoke(descriptor: NativeCallMap.connectionReplaceEndpoints, requestJson: wireEncodeRequest(coreEndpointsToJson(request)))
+        return endpointUpdateFromJson(raw)
+    }
+
+    public func setProtocolMode(request: SetProtocolModeRequest): Unit {
+        let _ignored = bridge.invoke(descriptor: NativeCallMap.connectionSetProtocolMode, requestJson: wireEncodeRequest(setProtocolModeRequestToJson(request)))
+    }
+
     public func disconnect(): Unit {
         let _ignored = bridge.invoke(descriptor: NativeCallMap.connectionDisconnect, requestJson: wireEncodeRequest("{}"))
     }

@@ -1,7 +1,6 @@
 /** GENERATED. Do not edit by hand. */
 export type { SessionApi } from './session';
 export type { ConnectionApi } from './connection';
-export type { AccessApi } from './access';
 export type { LifecycleApi } from './lifecycle';
 export type { UpdateApi } from './update';
 export type { ConversationsApi } from './conversations';

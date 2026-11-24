@@ -1,7 +1,6 @@
 // GENERATED. Do not edit by hand.
 import { SessionApi } from './modules/session';
 import type { ConnectionApi } from './modules/connection';
-import type { AccessApi } from './modules/access';
 import type { LifecycleApi } from './modules/lifecycle';
 import type { UpdateApi } from './modules/update';
 import type { ConversationsApi } from './modules/conversations';
@@ -19,7 +18,6 @@ import type { NotificationApi } from './modules/notification';
 
 export interface FlareImClient extends SessionApi {
   readonly connection: ConnectionApi;
-  readonly access: AccessApi;
   readonly lifecycle: LifecycleApi;
   readonly update: UpdateApi;
   readonly conversations: ConversationsApi;

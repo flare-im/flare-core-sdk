@@ -33,10 +33,6 @@ abstract interface class EventsApi {
   EventSubscription onDisposed(EventCallback<LifecycleEvent> listener);
   /// The connection status changed (connection://status). Replace the held status whole and hand it to the Kit ConnectionNotice unchanged.
   EventSubscription onConnectionStatusChanged(EventCallback<ConnectionStatus> listener);
-  /// The IM connection moved to another access point (access://switched).
-  EventSubscription onAccessSwitched(EventCallback<AccessSwitchedEvent> listener);
-  /// A new access manifest was accepted (access://changed).
-  EventSubscription onAccessChanged(EventCallback<AccessChangedEvent> listener);
   /// The update center state changed (update://state). Delivered with a session; before sign-in read update.getState.
   EventSubscription onUpdateState(EventCallback<UpdateStatus> listener);
   /// A single message was received.

@@ -1,22 +1,6 @@
 // GENERATED. Do not edit by hand.
 import { FlareSdkException } from '../../bridge/flareSdkException';
 import {
-  AccessChangedEvent,
-  AccessChanges,
-  AccessConnectAck,
-  AccessEndpoint,
-  AccessEventName,
-  AccessImportRecoveryRequest,
-  AccessPin,
-  AccessPinRequest,
-  AccessPointInfo,
-  AccessRecoveringStatus,
-  AccessRecoveryImport,
-  AccessRefreshAttempt,
-  AccessRefreshReport,
-  AccessRefreshStatus,
-  AccessStatus,
-  AccessSwitchedEvent,
   AppState,
   AudioContentPayload,
   BackgroundRefreshRequest,
@@ -68,10 +52,12 @@ import {
   ConversationTotalUnreadResponse,
   ConversationType,
   ConversationVersion,
+  CoreEndpoints,
   CreateTextMessageRequest,
   DisplayName,
   DisplayNameKind,
   EmojiContentPayload,
+  EndpointUpdate,
   FileContentPayload,
   ForwardContentPayload,
   ForwardSourceMessage,
@@ -111,6 +97,7 @@ import {
   MessageSearchQuery,
   MessageSendAckEvent,
   MessageSendFailedEvent,
+  MessageSendStage,
   MultiDeviceAlertPolicy,
   NameEntity,
   NameSource,
@@ -163,6 +150,7 @@ import {
   SetHeartbeatNatTimeoutRequest,
   SetNotificationFocusRequest,
   SetNotificationSnapshotDirectoryRequest,
+  SetProtocolModeRequest,
   SetPushPermissionRequest,
   StartupHomeSyncRequest,
   StartupHomeSyncResponse,
@@ -225,6 +213,22 @@ export function messageContentToWireMap(request: MessageContent): Record<string,
     out.mentions = [];
   }
   return out;
+}
+
+export function coreEndpointsToMap(request: CoreEndpoints): Record<string, unknown> {
+  return {
+  baseUrl: request.baseUrl,
+  ...(request.mediaBaseUrl !== undefined ? { mediaBaseUrl: request.mediaBaseUrl } : {}),
+  ...(request.quicUrl !== undefined ? { quicUrl: request.quicUrl } : {}),
+  websocketUrl: request.websocketUrl,
+  };
+}
+
+export function endpointUpdateToMap(request: EndpointUpdate): Record<string, unknown> {
+  return {
+  changed: request.changed,
+  revision: request.revision,
+  };
 }
 
 export function conversationParticipantToMap(request: ConversationParticipant): Record<string, unknown> {
@@ -595,6 +599,12 @@ export function completeConnectTokenRefreshRequestToMap(request: CompleteConnect
   };
 }
 
+export function setProtocolModeRequestToMap(request: SetProtocolModeRequest): Record<string, unknown> {
+  return {
+  mode: request.mode,
+  };
+}
+
 export function networkChangeRequestToMap(request: NetworkChangeRequest): Record<string, unknown> {
   return {
   available: request.available,
@@ -610,10 +620,8 @@ export function connectionStatusToMap(request: ConnectionStatus): Record<string,
   return {
   phase: request.phase,
   ...(request.quality !== undefined ? { quality: request.quality } : {}),
-  ...(request.accessPointId !== undefined ? { accessPointId: request.accessPointId } : {}),
-  ...(request.cellId !== undefined ? { cellId: request.cellId } : {}),
-  ...(request.regionId !== undefined ? { regionId: request.regionId } : {}),
   ...(request.protocol !== undefined ? { protocol: request.protocol } : {}),
+  ...(request.endpointRevision !== undefined ? { endpointRevision: request.endpointRevision } : {}),
   ...(request.rttMs !== undefined ? { rttMs: request.rttMs } : {}),
   attempt: request.attempt,
   ...(request.nextRetryAt !== undefined ? { nextRetryAt: request.nextRetryAt } : {}),
@@ -626,151 +634,6 @@ export function serverClockResponseToMap(request: ServerClockResponse): Record<s
   return {
   offsetMs: request.offsetMs,
   estimated: request.estimated,
-  };
-}
-
-export function accessPinToMap(request: AccessPin): Record<string, unknown> {
-  return {
-  accessPointId: request.accessPointId,
-  expiresAtMs: request.expiresAtMs,
-  };
-}
-
-export function accessPinRequestToMap(request: AccessPinRequest): Record<string, unknown> {
-  return {
-  accessPointId: request.accessPointId,
-  };
-}
-
-export function accessConnectAckToMap(request: AccessConnectAck): Record<string, unknown> {
-  return {
-  ...(request.gatewayId !== undefined ? { gatewayId: request.gatewayId } : {}),
-  ...(request.accessPointId !== undefined ? { accessPointId: request.accessPointId } : {}),
-  ...(request.accessSerial !== undefined ? { accessSerial: request.accessSerial } : {}),
-  ...(request.heartbeatIntervalHintSec !== undefined ? { heartbeatIntervalHintSec: request.heartbeatIntervalHintSec } : {}),
-  accessPointMismatch: request.accessPointMismatch,
-  };
-}
-
-export function accessStatusToMap(request: AccessStatus): Record<string, unknown> {
-  return {
-  loaded: request.loaded,
-  serial: request.serial,
-  ...(request.source !== undefined ? { source: request.source } : {}),
-  stale: request.stale,
-  developmentMode: request.developmentMode,
-  ...(request.issuedAtMs !== undefined ? { issuedAtMs: request.issuedAtMs } : {}),
-  ...(request.expiresAtMs !== undefined ? { expiresAtMs: request.expiresAtMs } : {}),
-  ...(request.fetchedAtMs !== undefined ? { fetchedAtMs: request.fetchedAtMs } : {}),
-  ...(request.regionId !== undefined ? { regionId: request.regionId } : {}),
-  ...(request.cellId !== undefined ? { cellId: request.cellId } : {}),
-  ...(request.keystateSerial !== undefined ? { keystateSerial: request.keystateSerial } : {}),
-  ...(request.accessPointId !== undefined ? { accessPointId: request.accessPointId } : {}),
-  ...(request.protocol !== undefined ? { protocol: request.protocol } : {}),
-  ...(request.pinned !== undefined ? { pinned: accessPinToMap(request.pinned) } : {}),
-  ...(request.connectAck !== undefined ? { connectAck: accessConnectAckToMap(request.connectAck) } : {}),
-  ...(request.refresh !== undefined ? { refresh: accessRefreshStatusToMap(request.refresh) } : {}),
-  ...(request.recovering !== undefined ? { recovering: accessRecoveringStatusToMap(request.recovering) } : {}),
-  };
-}
-
-export function accessRefreshStatusToMap(request: AccessRefreshStatus): Record<string, unknown> {
-  return {
-  ...(request.lastAttemptAtMs !== undefined ? { lastAttemptAtMs: request.lastAttemptAtMs } : {}),
-  ...(request.lastSuccessAtMs !== undefined ? { lastSuccessAtMs: request.lastSuccessAtMs } : {}),
-  ...(request.lastOutcome !== undefined ? { lastOutcome: request.lastOutcome } : {}),
-  ...(request.nextAtMs !== undefined ? { nextAtMs: request.nextAtMs } : {}),
-  };
-}
-
-export function accessRecoveringStatusToMap(request: AccessRecoveringStatus): Record<string, unknown> {
-  return {
-  sinceMs: request.sinceMs,
-  rounds: request.rounds,
-  ...(request.nextRoundAtMs !== undefined ? { nextRoundAtMs: request.nextRoundAtMs } : {}),
-  };
-}
-
-export function accessRefreshAttemptToMap(request: AccessRefreshAttempt): Record<string, unknown> {
-  return {
-  source: request.source,
-  tier: request.tier,
-  document: request.document,
-  result: request.result,
-  ...(request.code !== undefined ? { code: request.code } : {}),
-  ...(request.serial !== undefined ? { serial: request.serial } : {}),
-  };
-}
-
-export function accessRefreshReportToMap(request: AccessRefreshReport): Record<string, unknown> {
-  return {
-  outcome: request.outcome,
-  mode: request.mode,
-  serial: request.serial,
-  ...(request.source !== undefined ? { source: request.source } : {}),
-  ...(request.keystateSerial !== undefined ? { keystateSerial: request.keystateSerial } : {}),
-  attempts: request.attempts.map((item) => accessRefreshAttemptToMap(item)),
-  };
-}
-
-export function accessImportRecoveryRequestToMap(request: AccessImportRecoveryRequest): Record<string, unknown> {
-  return {
-  link: request.link,
-  };
-}
-
-export function accessRecoveryImportToMap(request: AccessRecoveryImport): Record<string, unknown> {
-  return {
-  outcome: request.outcome,
-  ...(request.code !== undefined ? { code: request.code } : {}),
-  serial: request.serial,
-  };
-}
-
-export function accessPointInfoToMap(request: AccessPointInfo): Record<string, unknown> {
-  return {
-  accessPointId: request.accessPointId,
-  regionId: request.regionId,
-  host: request.host,
-  status: request.status,
-  ...(request.rttMs !== undefined ? { rttMs: request.rttMs } : {}),
-  breaker: request.breaker,
-  ...(request.protocolWinner !== undefined ? { protocolWinner: request.protocolWinner } : {}),
-  pinned: request.pinned,
-  current: request.current,
-  };
-}
-
-export function accessEndpointToMap(request: AccessEndpoint): Record<string, unknown> {
-  return {
-  ap: request.ap,
-  protocol: request.protocol,
-  };
-}
-
-export function accessSwitchedEventToMap(request: AccessSwitchedEvent): Record<string, unknown> {
-  return {
-  from: accessEndpointToMap(request.from),
-  to: accessEndpointToMap(request.to),
-  reason: request.reason,
-  };
-}
-
-export function accessChangesToMap(request: AccessChanges): Record<string, unknown> {
-  return {
-  accessPointsAdded: request.accessPointsAdded,
-  accessPointsRemoved: request.accessPointsRemoved,
-  policyChanged: request.policyChanged,
-  };
-}
-
-export function accessChangedEventToMap(request: AccessChangedEvent): Record<string, unknown> {
-  return {
-  serial: request.serial,
-  source: request.source,
-  stale: request.stale,
-  developmentMode: request.developmentMode,
-  changes: accessChangesToMap(request.changes),
   };
 }
 
@@ -1155,6 +1018,7 @@ export function sendMessageResponseToMap(request: SendMessageResponse): Record<s
   seq: request.seq,
   timestamp: request.timestamp,
   success: request.success,
+  ...(request.stage !== undefined ? { stage: request.stage } : {}),
   errorCode: request.errorCode,
   errorMessage: request.errorMessage,
   };
@@ -2187,6 +2051,7 @@ export function sendAckFromJson(value: unknown | undefined): SendMessageResponse
     seq: requiredIntField(json, 'seq', 'SendMessageResponse'),
     timestamp: requiredIntField(json, 'timestamp', 'SendMessageResponse'),
     success: boolValue(field(json, 'success')),
+    stage: Object.values(MessageSendStage).find(stage => stage === json.stage),
     errorCode: intValue(field(json, 'errorCode')),
     errorMessage: stringValue(field(json, 'errorMessage')),
   };

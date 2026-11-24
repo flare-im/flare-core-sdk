@@ -5,14 +5,14 @@
  */
 import type { ConnectTokenRefresher } from '../../contract';
 import type { ClearPushTokenRequest, HandleRemoteMessageRequest, HeartbeatEffectiveIntervalResponse, NotificationTapResult, PushLifecycleStatus, PushTokenInput, RemoteMessageOutcome, ResolveNotificationTapRequest, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest } from '../../model';
-import type { CreateClientRequest, CreateClientResponse, CurrentUserIdResponse, LoginRequest, SdkConfig, UpdateAccessTokenRequest } from '../types';
+import type { CreateClientRequest, CreateClientResponse, CurrentUserIdResponse, LoginRequest, SdkInitRequest, UpdateAccessTokenRequest } from '../types';
 
 /** SDK lifecycle, authenticated session and process-level utilities. */
 export interface SessionApi {
   /** create maps to `flare_sdk_create` via `ffi-symbol`. Operation: `sdk.create`. */
   create(request: CreateClientRequest): Promise<CreateClientResponse>;
   /** init maps to `flare_sdk_init` via `ffi-symbol`. Operation: `sdk.init`. */
-  init(request: SdkConfig): Promise<void>;
+  init(request: SdkInitRequest): Promise<void>;
   /** uninit maps to `flare_sdk_uninit` via `ffi-symbol`. Operation: `sdk.uninit`. */
   uninit(): Promise<void>;
   /** login maps to `flare_sdk_login` via `ffi-symbol`. Operation: `sdk.login`. */

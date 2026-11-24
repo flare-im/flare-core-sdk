@@ -29,7 +29,7 @@ const vectorPath = path.resolve(
 const vectors = (JSON.parse(fs.readFileSync(vectorPath, "utf8")) as { cases: Vector[] }).cases;
 
 const fields: Array<keyof ConnectionStatus> = [
-  "phase", "quality", "accessPointId", "cellId", "regionId", "protocol",
+  "phase", "quality", "endpointRevision", "protocol",
   "rttMs", "attempt", "nextRetryAt", "reason", "developmentMode",
 ];
 

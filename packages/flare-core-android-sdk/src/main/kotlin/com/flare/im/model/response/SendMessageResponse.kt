@@ -1,5 +1,7 @@
 package com.flare.im.model.response
 
+import com.flare.im.model.entity.MessageSendStage
+
 /** GENERATED. Do not edit by hand. */
 /** Send acknowledgement returned by core-sdk. */
 data class SendMessageResponse(
@@ -15,8 +17,10 @@ data class SendMessageResponse(
     val seq: Long = 0L,
     /** wire: `timestamp`. Server send time in milliseconds. */
     val timestamp: Long = 0L,
-    /** wire: `success`. Whether this response contains a final accepted send ACK. */
+    /** wire: `success`. Whether the SDK queued the message locally or the server accepted it. Check stage for persistence. */
     val success: Boolean = false,
+    /** wire: `stage`. Queued locally, accepted by the server, persisted by the server, or failed. Older engines omit this field. */
+    val stage: MessageSendStage? = null,
     /** wire: `errorCode`. Core ACK error code when success is false. */
     val errorCode: Int = 0,
     /** wire: `errorMessage`. Core ACK error message when success is false. */

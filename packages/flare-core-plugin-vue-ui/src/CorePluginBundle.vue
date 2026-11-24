@@ -44,7 +44,7 @@ let session: PluginBundleSession | null = null;
 let opened: PluginBundleOpened | null = null;
 let generation = 0;
 
-const key = () => `${props.pluginId}\u0000${props.contributionId}`;
+const key = (root: string) => `${props.pluginId}\u0000${props.contributionId}\u0000${root}`;
 
 function release(): void {
   const current = session, page = opened;
@@ -59,7 +59,6 @@ async function open(): Promise<void> {
   const mine = ++generation;
   release();
   error.value = undefined;
-  if (corePluginBundleGaveUp(key())) { emit("fallback"); return; }
   theme.value = props.host.theme();
   let next: PluginBundleSession | null;
   try {
@@ -81,6 +80,7 @@ async function open(): Promise<void> {
   }
   if (mine !== generation) { next?.close(); return; }
   if (!next) { emit("fallback"); return; }
+  if (corePluginBundleGaveUp(key(next.opened.root))) { next.close(); emit("fallback"); return; }
   let base: string;
   try {
     base = await (props.host.files?.(next.opened) ?? next.opened.root);
@@ -110,10 +110,18 @@ function closed(): void {
   emit("fallback");
 }
 function failed(): void {
-  if (corePluginBundleFailed(key())) { release(); emit("fallback"); }
+  if (opened && corePluginBundleFailed(key(opened.root))) { release(); emit("fallback"); }
 }
 
-watch(() => [props.pluginId, props.contributionId, props.route, JSON.stringify(props.args ?? null), props.presentation, props.conversation?.id], () => {
+watch([
+  () => props.pluginId,
+  () => props.contributionId,
+  () => props.route,
+  () => JSON.stringify(props.args ?? null),
+  () => props.presentation,
+  () => props.conversation?.id,
+  () => props.conversation?.type,
+], () => {
   void open();
 }, { immediate: true });
 watch(() => props.host.theme(), (value) => { theme.value = value; }, { deep: true });

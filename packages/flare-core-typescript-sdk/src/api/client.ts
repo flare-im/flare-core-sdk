@@ -5,7 +5,6 @@
  */
 import type { SessionApi } from './modules/session';
 import type { ConnectionApi } from './modules/connection';
-import type { AccessApi } from './modules/access';
 import type { LifecycleApi } from './modules/lifecycle';
 import type { UpdateApi } from './modules/update';
 import type { ConversationsApi } from './modules/conversations';
@@ -25,8 +24,6 @@ import type { NotificationApi } from './modules/notification';
 export interface FlareImClient extends SessionApi {
   /** Connection status and manual network lifecycle. */
   readonly connection: ConnectionApi;
-  /** Access directory, access point health, manual pinning, manifest refresh and recovery links for the network diagnostics page. */
-  readonly access: AccessApi;
   /** Platform lifecycle signals the core needs (foreground and background). */
   readonly lifecycle: LifecycleApi;
   /** Update center: release evaluation, download and the install plan. Works before sign-in and with every IM node down; the release manifest comes from the access mirrors. */

@@ -3,13 +3,6 @@
   "events": [
     {
       "names": [
-        "switched",
-        "changed"
-      ],
-      "type": "access"
-    },
-    {
-      "names": [
         "status",
         "sync_state_changed"
       ],

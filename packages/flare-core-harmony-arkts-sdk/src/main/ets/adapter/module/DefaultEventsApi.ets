@@ -4,8 +4,6 @@ import type { EventsApi } from '../../api/modules/events';
 import type { EventCallback, EventSubscription, FlareImEventListener } from '../../listener';
 import { FfiNativeBridge } from '../../bridge/FfiNativeBridge';
 import {
-  AccessChangedEvent,
-  AccessSwitchedEvent,
   ConnectionStatus,
   ConversationEvent,
   LifecycleEvent,
@@ -25,13 +23,11 @@ import {
   TypingEvent,
   ViewUpdate,
 } from '../../model';
-import { accessChangedEventFromJson, accessSwitchedEventFromJson, connectionStatusFromJson } from '../codec/WireCodec';
+import { connectionStatusFromJson } from '../codec/WireCodec';
 
 /** C ABI event codes (`FLARE_EVENT_*`) this module decodes from the native event stream. */
 export class NativeEventCode {
   static readonly connectionStatus: number = 1010;
-  static readonly accessSwitched: number = 1011;
-  static readonly accessChanged: number = 1012;
 }
 
 /** Which typed callback an event goes to; one per `on*` registration. */
@@ -44,8 +40,6 @@ export enum EventRoute {
   LoggedOut = 'loggedOut',
   Disposed = 'disposed',
   ConnectionStatusChanged = 'connectionStatusChanged',
-  AccessSwitched = 'accessSwitched',
-  AccessChanged = 'accessChanged',
   MessageReceived = 'messageReceived',
   MessageReceivedBatch = 'messageReceivedBatch',
   MessageSendAck = 'messageSendAck',
@@ -103,10 +97,8 @@ export function routeNativeEvent(eventType: number, eventJson: string): RoutedEv
     switch (eventType) {
       case NativeEventCode.connectionStatus:
         return new RoutedEvent(EventRoute.ConnectionStatusChanged, connectionStatusFromJson(payload));
-      case NativeEventCode.accessSwitched:
-        return new RoutedEvent(EventRoute.AccessSwitched, accessSwitchedEventFromJson(payload));
-      case NativeEventCode.accessChanged:
-        return new RoutedEvent(EventRoute.AccessChanged, accessChangedEventFromJson(payload));
+
+
       default:
         return undefined;
     }
@@ -257,13 +249,9 @@ export class DefaultEventsApi implements EventsApi {
   }
 
   /** `access://switched`. */
-  onAccessSwitched(listener: EventCallback<AccessSwitchedEvent>): EventSubscription {
-    return this.registerTyped(EventRoute.AccessSwitched, listener);
   }
 
   /** `access://changed`. */
-  onAccessChanged(listener: EventCallback<AccessChangedEvent>): EventSubscription {
-    return this.registerTyped(EventRoute.AccessChanged, listener);
   }
 
   onMessageReceived(listener: EventCallback<MessageReceivedEvent>): EventSubscription {
@@ -445,11 +433,7 @@ export class DefaultEventsApi implements EventsApi {
       case EventRoute.ConnectionStatusChanged:
         listener.onConnectionStatusChanged?.(event as ConnectionStatus);
         break;
-      case EventRoute.AccessSwitched:
-        listener.onAccessSwitched?.(event as AccessSwitchedEvent);
         break;
-      case EventRoute.AccessChanged:
-        listener.onAccessChanged?.(event as AccessChangedEvent);
         break;
       case EventRoute.MessageReceived:
         listener.onMessageReceived?.(event as MessageReceivedEvent);

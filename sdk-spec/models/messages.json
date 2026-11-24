@@ -3,6 +3,11 @@
   "description": "Message models mirrored from flare-core-sdk-engine/src/model/message.rs and message_elem.rs.",
   "enums": [
     {
+      "name": "MessageSendStage",
+      "description": "Stage reached by an outbound message.",
+      "values": ["queued", "accepted", "persisted", "failed"]
+    },
+    {
       "name": "MessageContentType",
       "description": "Decoded message content discriminator.",
       "values": [
@@ -563,7 +568,14 @@
           "wireName": "success",
           "type": "Boolean",
           "required": true,
-          "description": "Whether this response contains a final accepted send ACK."
+          "description": "Whether the SDK queued the message locally or the server accepted it. Check stage for persistence."
+        },
+        {
+          "name": "stage",
+          "wireName": "stage",
+          "type": "MessageSendStage",
+          "required": false,
+          "description": "Queued locally, accepted by the server, persisted by the server, or failed. Older engines omit this field."
         },
         {
           "name": "errorCode",

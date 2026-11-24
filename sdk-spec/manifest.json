@@ -20,7 +20,6 @@
     "models": [
       "models/session.json",
       "models/connection.json",
-      "models/access.json",
       "models/lifecycle.json",
       "models/update.json",
       "models/diagnostics.json",
@@ -38,7 +37,6 @@
     "modules": [
       "modules/session.json",
       "modules/connection.json",
-      "modules/access.json",
       "modules/lifecycle.json",
       "modules/update.json",
       "modules/conversations.json",

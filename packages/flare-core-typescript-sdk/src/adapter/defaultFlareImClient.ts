@@ -2,7 +2,6 @@
 import { NativeBridge, NativeCallMap } from '../contract/bridge_contract';
 import type { FlareImClient } from '../api';
 import type { ConnectionApi } from '../api/modules/connection';
-import type { AccessApi } from '../api/modules/access';
 import type { UpdateApi } from '../api/modules/update';
 import type { LifecycleApi } from '../api/modules/lifecycle';
 import type { ConversationsApi } from '../api/modules/conversations';
@@ -17,7 +16,7 @@ import type { ViewsApi } from '../api/modules/views';
 import type { EventsApi } from '../api/modules/events';
 import type { DiagnosticsApi } from '../api/modules/diagnostics';
 import type { NotificationApi } from '../api/modules/notification';
-import type { CreateClientRequest, CreateClientResponse, CurrentUserIdResponse, LoginRequest, SdkConfig, UpdateAccessTokenRequest } from '../api/types';
+import type { CreateClientRequest, CreateClientResponse, CurrentUserIdResponse, LoginRequest, SdkInitRequest, UpdateAccessTokenRequest } from '../api/types';
 import type { ClearPushTokenRequest, HandleRemoteMessageRequest, HeartbeatEffectiveIntervalResponse, NotificationTapResult, PushLifecycleStatus, PushTokenInput, RemoteMessageOutcome, ResolveNotificationTapRequest, SetHeartbeatNatTimeoutRequest, SetPushPermissionRequest } from '../model';
 import { LifecycleEventName } from '../model';
 import { emitLifecycleEvent, invokeBool, invokeMap, invokeVoid, sdkErrorPayloadFromError, userIdFromRequest } from './codec/nativeInvoke';
@@ -27,7 +26,6 @@ import { FlareSdkException } from '../bridge/flareSdkException';
 import { PlatformLifecycle } from '../lifecycle/platformLifecycle';
 import { DefaultEventsApi } from './module/DefaultEventsApi';
 import { DefaultConnectionApi } from './module/DefaultConnectionApi';
-import { DefaultAccessApi } from './module/DefaultAccessApi';
 import { DefaultUpdateApi } from './module/DefaultUpdateApi';
 import { DefaultLifecycleApi } from './module/DefaultLifecycleApi';
 import { DefaultConversationsApi } from './module/DefaultConversationsApi';
@@ -44,7 +42,6 @@ import { DefaultMessageBuilderApi } from './module/DefaultMessageBuilderApi';
 
 export class DefaultFlareImClient implements FlareImClient {
   readonly connection: ConnectionApi;
-  readonly access: AccessApi;
   readonly update: UpdateApi;
   readonly lifecycle: LifecycleApi;
   readonly conversations: ConversationsApi;
@@ -65,7 +62,6 @@ export class DefaultFlareImClient implements FlareImClient {
   constructor(bridge: NativeBridge) {
     this.bridge = bridge;
     this.connection = new DefaultConnectionApi(bridge);
-    this.access = new DefaultAccessApi(bridge);
     this.update = new DefaultUpdateApi(bridge);
     this.lifecycle = new DefaultLifecycleApi(bridge);
     this.conversations = new DefaultConversationsApi(bridge);
@@ -85,7 +81,7 @@ export class DefaultFlareImClient implements FlareImClient {
   async create(request: CreateClientRequest): Promise<CreateClientResponse> {
     return await this.bridge.invoke<CreateClientResponse>(NativeCallMap.sdkCreate, request);
   }
-  async init(request: SdkConfig): Promise<void> {
+  async init(request: SdkInitRequest): Promise<void> {
     emitLifecycleEvent(this.events as unknown as DefaultEventsApi, LifecycleEventName.Initializing, "sdk.init");
     const { installPlatformLifecycle, ...config } = request;
     try {

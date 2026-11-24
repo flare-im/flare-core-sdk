@@ -24,6 +24,26 @@
       "description": "The banner's retry action: resets the backoff and starts the next round at once. No effect while online, connecting or stopped for a user action; fails with notConnected without a session."
     },
     {
+      "name": "replaceEndpoints",
+      "operation": "connection.replace_endpoints",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "CoreEndpoints",
+      "response": "EndpointUpdate",
+      "stability": "stable",
+      "description": "Atomically accepts a complete address group for the current Core deployment. Use connection status to observe recovery after a transport address changes."
+    },
+    {
+      "name": "setProtocolMode",
+      "operation": "connection.set_protocol_mode",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "SetProtocolModeRequest",
+      "response": "Unit",
+      "stability": "stable",
+      "description": "Selects WebSocket, native QUIC, or a race between available transports."
+    },
+    {
       "name": "disconnect",
       "operation": "connection.disconnect",
       "transport": "ffi-symbol",

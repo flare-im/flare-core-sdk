@@ -21,10 +21,6 @@ public interface FlareImEventListener {
     func onDisposed(event: LifecycleEvent): Unit
     // The connection status changed (connection://status). Replace the held status whole and hand it to the Kit ConnectionNotice unchanged.
     func onConnectionStatusChanged(event: ConnectionStatus): Unit
-    // The IM connection moved to another access point (access://switched).
-    func onAccessSwitched(event: AccessSwitchedEvent): Unit
-    // A new access manifest was accepted (access://changed).
-    func onAccessChanged(event: AccessChangedEvent): Unit
     // The update center state changed (update://state). Delivered with a session; before sign-in read update.getState.
     func onUpdateState(event: UpdateStatus): Unit
     // A single message was received.

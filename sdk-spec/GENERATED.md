@@ -11,8 +11,7 @@
 | Module | Facade | Methods |
 |--------|--------|---------|
 | `session` | `client` | `create`, `init`, `uninit`, `login`, `prepare`, `connect`, `updateAccessToken`, `setConnectTokenRefresher`, `completeConnectTokenRefresh`, `setHeartbeatNatTimeout`, `heartbeatEffectiveInterval`, `logout`, `dispose`, `hardReset`, `currentUserId`, `isConnected`, `sessionActive`, `updatePushToken`, `clearPushToken`, `setPushPermission`, `reconcilePush`, `pushStatus`, `handleRemoteMessage`, `resolveNotificationTap` |
-| `connection` | `client.connection` | `getStatus`, `reconnectNow`, `disconnect`, `getServerClock`, `notifyNetworkChange` |
-| `access` | `client.access` | `getStatus`, `listAccessPoints`, `pin`, `unpin`, `refresh`, `importRecovery`, `exportDiagnostics` |
+| `connection` | `client.connection` | `getStatus`, `reconnectNow`, `replaceEndpoints`, `setProtocolMode`, `disconnect`, `getServerClock`, `notifyNetworkChange` |
 | `lifecycle` | `client.lifecycle` | `setAppState` |
 | `update` | `client.update` | `getState`, `check`, `download`, `install`, `reportInstall`, `defer`, `skip`, `markPrompted`, `setLocale`, `getResources`, `pluginUpgradeStatus`, `openFlow` |
 | `conversations` | `client.conversations` | `listConversations`, `listConversationsByQuery`, `listConversationsIncludingArchived`, `getConversation`, `getOneConversation`, `getGroupConversationByUserIds`, `getMultipleConversations`, `listConversationsPaginated`, `listRawConversations`, `getTotalUnread`, `bootstrapHomeTimeline`, `openConversationTimeline`, `markConversationRead`, `setConversationPinned`, `setConversationMuted`, `setConversationNotifyAll`, `setConversationArchived`, `markConversationUnread`, `deleteConversation`, `updateConversationDraft`, `clearLocalChatHistory`, `clearChatHistoryForSelf` |

@@ -1,7 +1,6 @@
 // GENERATED. Do not edit by hand.
 export 'session.dart' show SessionApi;
 export 'connection.dart' show ConnectionApi;
-export 'access.dart' show AccessApi;
 export 'lifecycle.dart' show LifecycleApi;
 export 'update.dart' show UpdateApi;
 export 'conversations.dart' show ConversationsApi;

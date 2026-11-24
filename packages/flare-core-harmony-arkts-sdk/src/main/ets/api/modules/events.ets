@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { AccessChangedEvent, AccessSwitchedEvent, ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
+import { ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
 import { EventCallback, EventSubscription, FlareImEventListener, MessageSendCallback } from '../../listener';
 
 /** Typed SDK event stream. */
@@ -18,8 +18,6 @@ export interface EventsApi {
   onLoggedOut(listener: EventCallback<LifecycleEvent>): EventSubscription;
   onDisposed(listener: EventCallback<LifecycleEvent>): EventSubscription;
   onConnectionStatusChanged(listener: EventCallback<ConnectionStatus>): EventSubscription;
-  onAccessSwitched(listener: EventCallback<AccessSwitchedEvent>): EventSubscription;
-  onAccessChanged(listener: EventCallback<AccessChangedEvent>): EventSubscription;
   onUpdateState(listener: EventCallback<UpdateStatus>): EventSubscription;
   onMessageReceived(listener: EventCallback<MessageReceivedEvent>): EventSubscription;
   onMessageReceivedBatch(listener: EventCallback<MessageReceivedBatchEvent>): EventSubscription;

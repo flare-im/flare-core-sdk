@@ -4,7 +4,7 @@
  * Module API: `events` — Typed SDK event stream.
  */
 import type { EventCallback, EventSubscription, FlareImEventListener } from '../../listener';
-import type { AccessChangedEvent, AccessSwitchedEvent, ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
+import type { ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
 import type { SubscribeEventsRequest, Subscription, UnsubscribeRequest } from '../types';
 
 /** Typed SDK event stream. */
@@ -37,10 +37,6 @@ export interface EventsApi {
   onDisposed(listener: EventCallback<LifecycleEvent>): EventSubscription;
   /** The connection status changed (connection://status). Replace the held status whole and hand it to the Kit ConnectionNotice unchanged. */
   onConnectionStatusChanged(listener: EventCallback<ConnectionStatus>): EventSubscription;
-  /** The IM connection moved to another access point (access://switched). */
-  onAccessSwitched(listener: EventCallback<AccessSwitchedEvent>): EventSubscription;
-  /** A new access manifest was accepted (access://changed). */
-  onAccessChanged(listener: EventCallback<AccessChangedEvent>): EventSubscription;
   /** The update center state changed (update://state). Delivered with a session; before sign-in read update.getState. */
   onUpdateState(listener: EventCallback<UpdateStatus>): EventSubscription;
   /** A single message was received. */

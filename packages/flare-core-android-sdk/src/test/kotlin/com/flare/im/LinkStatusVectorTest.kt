@@ -26,7 +26,7 @@ class LinkStatusVectorTest {
     private data class Vector(val name: String, val expected: Map<String, Any?>)
 
     private val fields = setOf(
-        "phase", "quality", "accessPointId", "cellId", "regionId", "protocol",
+        "phase", "quality", "endpointRevision", "protocol",
         "rttMs", "attempt", "nextRetryAt", "reason", "developmentMode",
     )
 
@@ -91,9 +91,7 @@ class LinkStatusVectorTest {
     private fun asWire(status: ConnectionStatus): Map<String, Any?> = mapOf(
         "phase" to connectionPhaseWireValue(status.phase),
         "quality" to status.quality?.let(::connectionQualityWireValue),
-        "accessPointId" to status.accessPointId,
-        "cellId" to status.cellId,
-        "regionId" to status.regionId,
+        "endpointRevision" to status.endpointRevision,
         "protocol" to status.protocol,
         "rttMs" to status.rttMs,
         "attempt" to status.attempt,

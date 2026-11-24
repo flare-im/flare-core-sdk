@@ -4,41 +4,11 @@
  * Shared request/response types for module APIs under `./modules/`.
  */
 import type { FlareSdkError } from '../contract';
+import type { CoreEndpoints } from '../model';
 
 export type Unit = void;
 export type JsonValue = unknown;
 export type SdkResourceProfile = "desktop" | "mobile";
-/** A root public key the access manifest signature chain is verified against. */
-export interface AccessTrustRoot { keyId: string; publicKey: string; }
-/** One more access point of the development cell (local dual-entry failover drills). */
-export interface DevelopmentAccessPoint {
-  id: string;
-  wsUrl?: string;
-  quicUrl?: string;
-  coreApiUrl?: string;
-  socialApiUrl?: string;
-  mediaUrl?: string;
-}
-/** Development mode only: endpoints of the primary access point (id `development`), unsigned. */
-export interface DevelopmentEndpoints {
-  wsUrl?: string;
-  quicUrl?: string;
-  coreApiUrl?: string;
-  socialApiUrl?: string;
-  mediaUrl?: string;
-  accessPoints?: DevelopmentAccessPoint[];
-  /** Client link policy overrides, clamped like a signed manifest's `clientPolicy`. */
-  clientPolicy?: Record<string, unknown>;
-}
-/** Where to connect: the signed access manifest, or development endpoints. The SDK has no other address field. */
-export interface AccessConfig {
-  bootstrapId?: string;
-  trustRoots?: AccessTrustRoot[];
-  /** Signed access manifest written at build time (DSSE envelope JSON text). */
-  seed?: string;
-  trustMode?: "production" | "development";
-  developmentEndpoints?: DevelopmentEndpoints;
-}
 /** Host app identity reported on CONNECT. When given it replaces the build-time value whole. */
 export interface SdkAppConfig {
   /** Version name, e.g. `3.2.1`. Web hosts inject it at build time. */
@@ -70,16 +40,16 @@ export interface SdkAuthConfig {
   refreshLeadSecs?: number;
 }
 export interface SdkConfig {
-  access?: AccessConfig;
   ackMaxInFlight?: number;
   ackMaxRetries?: number;
   ackTimeoutSecs?: number;
   app?: SdkAppConfig;
   auth?: SdkAuthConfig;
-  /** Local override of one handshake's timeout, clamped to 2..30; unset uses the manifest's clientPolicy. */
+  /** Local override of one handshake's timeout, clamped to 2..30; defaults to 8 seconds. */
   connectTimeoutSecs?: number;
   dataUrl?: string;
   deviceId?: string;
+  endpoints?: CoreEndpoints;
   enableMetrics?: boolean;
   eventBusCapacity?: number;
   eventDedupeCapacity?: number;
@@ -96,6 +66,7 @@ export interface SdkConfig {
    */
   installPlatformLifecycle?: boolean;
 }
+export type SdkInitRequest = SdkConfig | { environment?: string; sdkConfig?: SdkConfig; installPlatformLifecycle?: boolean };
 export interface CreateClientRequest { config: SdkConfig; }
 export interface CreateClientResponse { handle: bigint | number; }
 export interface LoginRequest { userId: string; token?: string; storeConfigJson?: string; }

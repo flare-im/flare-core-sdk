@@ -4,13 +4,14 @@
  * engine fails to open falls back to the view already read; the session ends with the page.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { defineComponent, h, type Component } from "vue";
+import { defineComponent, h, ref, type Component } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { FlarePluginBundleHost, FlarePluginPage, FlarePluginView } from "@flare-im/vue-ui";
 import { useFlareI18nProvider } from "@flare-im/vue-ui/i18n";
 import { createPluginBundleEventHub, type PluginBundlePort } from "@flare-im/sdk/plugin-ui";
 import { CorePluginMessage, CorePluginPage, PluginComposerSheet, corePluginBundleFailed, corePluginBundleGaveUp, corePluginBundleResultData, provideCorePluginHost, resetCorePluginBundleFailures, type CorePluginBundleHost, type CorePluginPageEntry, type CorePluginUiOptions } from "../src/index";
 import { cardContent, fakePort, mountWithSession, unmountAll } from "./support";
+import CorePluginBundle from "../src/CorePluginBundle.vue";
 
 const root: CorePluginPageEntry = { pluginId: "sdk.plugin.task", page: "task.dashboard", title: "Tasks" };
 const mounted: Array<{ unmount(): void }> = [];
@@ -40,6 +41,27 @@ function render(bundles: CorePluginBundleHost, bundle = true) {
 const opened = { sessionId: "s1", origin: "null", root: "https://plugin-sandbox.example.com/b/abc/", entry: "index.html", csp: "", hello: {} };
 
 describe("CorePluginPage with web bundles", () => {
+  it("keeps the bundle session when equivalent card props are rendered again", async () => {
+    const port = bundlePort(async () => opened);
+    const host: CorePluginBundleHost = { port, events: createPluginBundleEventHub(), theme: () => ({ mode: "light" }) };
+    const renderCount = ref(0);
+    const conversationId = ref("c1");
+    const wrapper = mount(defineComponent({ setup() {
+      useFlareI18nProvider("en-US");
+      return () => h(CorePluginBundle, { host, pluginId: "sdk.plugin.task", contributionId: "task.card",
+        presentation: "detail", conversation: { id: conversationId.value, type: "group" },
+        args: { messageId: "card-1" }, class: `pass-${renderCount.value}` });
+    } }));
+    mounted.push(wrapper);
+    await flushPromises();
+    renderCount.value++;
+    await flushPromises();
+    expect(port.pluginBundleOpen).toHaveBeenCalledTimes(1);
+    conversationId.value = "c2";
+    await flushPromises();
+    expect(port.pluginBundleOpen).toHaveBeenCalledTimes(2);
+  });
+
   it("opens the bundle the page view marks as offered", async () => {
     const port = bundlePort(async () => opened);
     const { wrapper, port: pagePort } = render({ port, events: createPluginBundleEventHub(), theme: () => ({ mode: "light" }) });
@@ -79,6 +101,22 @@ describe("CorePluginPage with web bundles", () => {
     await flushPromises();
     expect(wrapper.findComponent(FlarePluginPage).exists()).toBe(true);
     expect(pagePort.pluginPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens a new digest after the prior bundle exhausted its retry budget", async () => {
+    const port = bundlePort(async () => opened);
+    const { wrapper } = render({ port, events: createPluginBundleEventHub(), theme: () => ({ mode: "light" }) });
+    await flushPromises();
+    const frame = wrapper.getComponent(FlarePluginBundleHost);
+    for (let attempt = 0; attempt < 3; attempt++) frame.vm.$emit("failed");
+    await flushPromises();
+    expect(wrapper.findComponent(FlarePluginPage).exists()).toBe(true);
+
+    const root = "https://plugin-sandbox.example.com/b/def/";
+    const replacement = bundlePort(async () => ({ ...opened, sessionId: "s2", root }));
+    const next = render({ port: replacement, events: createPluginBundleEventHub(), theme: () => ({ mode: "light" }) });
+    await flushPromises();
+    expect(next.wrapper.getComponent(FlarePluginBundleHost).props("files")).toBe(root);
   });
 });
 

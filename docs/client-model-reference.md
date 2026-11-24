@@ -5,6 +5,30 @@
 Models are generated from `sdk-spec/models/*.json` and mirror stable message/conversation fields from `flare-im-core-sdk`.
 Field names shown here are SDK-facing lowerCamelCase names; `wireName` records the current core JSON field.
 
+## Connection
+
+Core-owned DTOs derived from Rust JsonSchema.
+
+### CoreEndpoints
+
+CoreEndpoints
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `baseUrl` | `baseUrl` | `String` | yes | Core API base URL, including any deployment path prefix. |
+| `mediaBaseUrl` | `mediaBaseUrl` | `String` | no | Optional media API base. Defaults to the Core API base. |
+| `quicUrl` | `quicUrl` | `String` | no | Optional native QUIC gateway; WebSocket remains available. |
+| `websocketUrl` | `websocketUrl` | `String` | yes | Fully qualified WebSocket gateway URL. |
+
+### EndpointUpdate
+
+Result of accepting a new set of addresses. Link readiness is reported separately through normal connection status.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `changed` | `changed` | `Boolean` | yes |  |
+| `revision` | `revision` | `UInt32` | yes | Accepted endpoint generation for this initialized client. |
+
 ## Conversations
 
 Core-owned conversation DTOs derived from Rust JsonSchema.
@@ -347,10 +371,10 @@ PushTokenInput
 | `appBundle` | `appBundle` | `String` | no | iOS bundle id or Android applicationId. The server sends APNs to this topic. |
 | `appVersion` | `appVersion` | `String` | no | App version string. |
 | `capabilities` | `capabilities` | `StringList` | no | What the app can do with a push: dataMessages (Android FCM data messages) and serviceExtension (iOS notification service extension). Unknown values are rejected. |
-| `environment` | `environment` | `String` | no | APNs only: sandbox or production, the APNs host the token belongs to. |
+| `environment` | `environment` | `String` | no | APNs environment for direct APNs or iOS JPush: sandbox or production. |
 | `locale` | `locale` | `String` | no | BCP 47 language tag the server renders notification text in, e.g. zh-CN. |
 | `platform` | `platform` | `String` | yes | Native platform: android, ios or harmony. |
-| `provider` | `provider` | `String` | yes | OS delivery provider: fcm, apns or getui. |
+| `provider` | `provider` | `String` | yes | OS delivery provider, such as fcm, apns, getui or jpush. |
 | `timeZone` | `timeZone` | `String` | no | IANA time zone, e.g. Asia/Shanghai. |
 | `token` | `token` | `String` | yes | OS-issued token. Never log or persist outside protected native storage. |
 
@@ -390,7 +414,7 @@ One remote push the platform push module received.
 |-------|-----------|------|----------|-------------|
 | `budgetMs` | `budgetMs` | `UInt32` | no | Background execution time the platform holds for this push, in milliseconds. Above zero the engine also wakes the link for one incremental sync within it; the answer never waits for that. |
 | `payload` | `payload` | `StringMap` | yes | The push payload flattened to strings (snake_case keys): uid, tenant_id, conversation_id, message_id, seq, collapse_id, thread_id, disposition, alert_class, count, badge, title, body, sound. Keys the engine does not know are ignored. |
-| `provider` | `provider` | `String` | yes | Push channel that delivered it: apns, fcm or getui. |
+| `provider` | `provider` | `String` | yes | Push channel that delivered the message. |
 
 ### RemoteMessageOutcome
 
@@ -545,6 +569,14 @@ Connection status, network-change notifications and the server clock.
 
 - `ConnectionQuality`: Line quality while online. Neither value shows a banner; poor shows on the diagnostics page. Values: `good`, `poor`
 
+### SetProtocolModeRequest
+
+Select the IM connection transport.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `mode` | `mode` | `String` | yes | Transport mode: ws, quic, or race. |
+
 ### NetworkChangeRequest
 
 Platform network-change notification. The link supervisor alone decides whether and how to reconnect.
@@ -556,24 +588,22 @@ Platform network-change notification. The link supervisor alone decides whether 
 | `expensive` | `expensive` | `Boolean` | no | Whether the active route is considered expensive by the platform. |
 | `metered` | `metered` | `Boolean` | no | Whether the active route is metered. |
 | `reason` | `reason` | `String` | no | Optional platform reason string for diagnostics. |
-| `fingerprintHint` | `fingerprintHint` | `String` | no | Coarse network identity (native: a 16-hex-digit SHA-256 digest of the interface kind and the default gateway, plus the DNS servers on Android, or the cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID or a raw address. |
+| `fingerprintHint` | `fingerprintHint` | `String` | no | Coarse network identity (native: a 16-hex-digit SHA-256 digest of the interface kind and the default gateway, plus the DNS servers on Android, or the cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys heartbeat observations; never sent anywhere. Never pass an SSID or a raw address. |
 
 ### ConnectionStatus
 
-Payload of connection://status and the value of connection.getStatus. Every field is present (null without a value): hosts replace their copy whole on every event and hand it to the Kit ConnectionNotice unchanged.
+Payload of connection://status and the value of connection.getStatus. Hosts replace their copy whole on every event. endpointRevision is present for host-selected endpoints.
 
 | Field | Wire name | Type | Required | Description |
 |-------|-----------|------|----------|-------------|
 | `phase` | `phase` | `ConnectionPhase` | yes | Where the link supervisor is. |
 | `quality` | `quality` | `ConnectionQuality` | no | Line quality; set only while online. |
-| `accessPointId` | `accessPointId` | `String` | no | Current (or connecting) access point. |
-| `cellId` | `cellId` | `String` | no | Cell of the current access point. |
-| `regionId` | `regionId` | `String` | no | Region of the current access point. |
 | `protocol` | `protocol` | `String` | no | Transport of the current connection: quic or ws. |
+| `endpointRevision` | `endpointRevision` | `UInt32` | no | Generation of the accepted host-selected address group. |
 | `rttMs` | `rttMs` | `UInt32` | no | Latest heartbeat round trip (the handshake time before the first sample). |
 | `attempt` | `attempt` | `UInt32` | yes | Which round of the current recovery this is; zero once online. |
 | `nextRetryAt` | `nextRetryAt` | `Int64` | no | When the next round starts: Unix milliseconds on the device clock (not the server clock, not a delay). |
-| `reason` | `reason` | `String` | no | actionRequired: kicked, expired, upgradeRequired or tenantUnavailable. switching: failure, drain, failback, manual or manifest. |
+| `reason` | `reason` | `String` | no | actionRequired: kicked, expired, upgradeRequired or tenantUnavailable. switching: drain or manual. Transport failure: transportUnavailable. |
 | `developmentMode` | `developmentMode` | `Boolean` | yes | Endpoints come from development-mode configuration: the Kit shows its development badge in every phase. |
 
 ### ServerClockResponse
@@ -584,185 +614,6 @@ The core's estimate of how far the server clock is from this device's.
 |-------|-----------|------|----------|-------------|
 | `offsetMs` | `offsetMs` | `Int64` | yes | Server clock minus device clock, in milliseconds; 0 until estimated. |
 | `estimated` | `estimated` | `Boolean` | yes | Whether the offset rests on a server frame received this session. |
-
-## Access
-
-Access directory status, access point health, manual pinning, manifest refresh, recovery links and access events.
-
-### AccessPin
-
-A manual access point pin.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `accessPointId` | `accessPointId` | `String` | yes | The pinned access point. |
-| `expiresAtMs` | `expiresAtMs` | `Int64` | yes | When the pin lapses, Unix milliseconds; an app restart also clears it. |
-
-### AccessPinRequest
-
-Pins one access point of the home cell.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `accessPointId` | `accessPointId` | `String` | yes | Access point to pin, as listed by access.listAccessPoints. |
-
-### AccessConnectAck
-
-Diagnostics the gateway returned in CONNECT_ACK for the current connection; shown only, nothing acts on them.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `gatewayId` | `gatewayId` | `String` | no | Gateway instance serving the connection. |
-| `accessPointId` | `accessPointId` | `String` | no | Access point the server reports for the connection, when its gateway is configured with one. |
-| `accessSerial` | `accessSerial` | `UInt64` | no | Newest access manifest serial the server knows. |
-| `heartbeatIntervalHintSec` | `heartbeatIntervalHintSec` | `UInt32` | no | Gateway heartbeat interval in seconds; the heartbeat itself follows the access policy. |
-| `accessPointMismatch` | `accessPointMismatch` | `Boolean` | yes | The server reports a different access point than the client chose; logged and counted, the connection stays up. |
-
-### AccessStatus
-
-Access directory and current link summary for the diagnostics page.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `loaded` | `loaded` | `Boolean` | yes | Whether the directory holds a usable manifest. False means there is no access point to connect to until bootstrap or a recovery link brings one. |
-| `serial` | `serial` | `UInt64` | yes | Serial of the loaded access manifest; 0 before loading. |
-| `source` | `source` | `String` | no | Where the manifest came from: seed, https:<mirror base>, wellKnown:<apId>, recovery, development, or none when the directory is empty. A restart keeps the original source. |
-| `stale` | `stale` | `Boolean` | yes | Whether the manifest is past expiresAtMs: it still connects, and refresh retries every 10 minutes. |
-| `developmentMode` | `developmentMode` | `Boolean` | yes | Endpoints come from development-mode configuration. |
-| `issuedAtMs` | `issuedAtMs` | `Int64` | no | When the manifest was issued, Unix milliseconds; absent with an empty directory. |
-| `expiresAtMs` | `expiresAtMs` | `Int64` | no | When the manifest expires, Unix milliseconds; absent with an empty directory. |
-| `fetchedAtMs` | `fetchedAtMs` | `Int64` | no | When the manifest reached this device, Unix milliseconds; absent for a seed or development mode. |
-| `regionId` | `regionId` | `String` | no | Home region. |
-| `cellId` | `cellId` | `String` | no | Home cell. |
-| `keystateSerial` | `keystateSerial` | `UInt64` | no | Serial of the loaded signing key state. |
-| `accessPointId` | `accessPointId` | `String` | no | Access point the IM connection is on. |
-| `protocol` | `protocol` | `String` | no | Transport of the IM connection: quic or ws. |
-| `pinned` | `pinned` | `AccessPin` | no | The manual pin, when one is in force. |
-| `connectAck` | `connectAck` | `AccessConnectAck` | no | CONNECT_ACK diagnostics of the current connection; absent without one. |
-| `refresh` | `refresh` | `AccessRefreshStatus` | no | Manifest refresh progress; absent in development mode. |
-| `recovering` | `recovering` | `AccessRecoveringStatus` | no | Present only while every access point has failed and recovery is running. |
-
-### AccessRefreshStatus
-
-Progress of the periodic manifest refresh.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `lastAttemptAtMs` | `lastAttemptAtMs` | `Int64` | no | When the last round ran, Unix milliseconds. |
-| `lastSuccessAtMs` | `lastSuccessAtMs` | `Int64` | no | When a source last gave a trusted answer, Unix milliseconds. |
-| `lastOutcome` | `lastOutcome` | `String` | no | Outcome of the last round: adopted, upToDate, oldValues or failed; absent before the first round. |
-| `nextAtMs` | `nextAtMs` | `Int64` | no | When the next round runs, Unix milliseconds; absent while recovering without a network. |
-
-### AccessRecoveringStatus
-
-Recovery state while every access point has failed.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `sinceMs` | `sinceMs` | `Int64` | yes | When recovery began, Unix milliseconds. |
-| `rounds` | `rounds` | `UInt32` | yes | Bootstrap rounds run so far. |
-| `nextRoundAtMs` | `nextRoundAtMs` | `Int64` | no | When the next round runs, Unix milliseconds; absent while the device has no network. |
-
-### AccessRefreshAttempt
-
-One source tried during a refresh round. Sources the round never reached are not listed.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `source` | `source` | `String` | yes | The source: https:<base>, wellKnown:<apId> or doh:<resolver>. |
-| `tier` | `tier` | `String` | yes | Tier: mirror, wellKnown, pointer (a mirror resolved through DoH) or resolver (the DoH resolver itself). |
-| `document` | `document` | `String` | yes | Document fetched: access, keys or pointer. |
-| `result` | `result` | `String` | yes | Result: adopted, notModified, sameSerial, olderSerial, rejected, failed or resolved. |
-| `code` | `code` | `String` | no | Stable cross-platform code of a rejection or failure: badSignature, rollback, keyCert.expired, revoked, wrongPayloadType, wrongBootstrapId, tooLarge, malformedEnvelope, invalidPayload, unknownKey, unsupportedSchema, noNetwork, unreachable, tls, timeout, cancelled or http.<status>. |
-| `serial` | `serial` | `UInt64` | no | Serial of the document, when one was read. |
-
-### AccessRefreshReport
-
-Result of one refresh round.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `outcome` | `outcome` | `String` | yes | adopted (a new manifest was taken), upToDate (a source confirmed there is no update), oldValues (notified mode only got old values; a manual refresh never reports it), failed (no source gave a trusted answer) or skipped (development mode). |
-| `mode` | `mode` | `String` | yes | Round mode: background, notified or recovering. |
-| `serial` | `serial` | `UInt64` | yes | Directory serial when the round ended. |
-| `source` | `source` | `String` | no | Source of the adopted manifest, in the form of AccessStatus.source; absent when nothing was adopted. |
-| `keystateSerial` | `keystateSerial` | `UInt64` | no | Serial of the current key state document. |
-| `attempts` | `attempts` | `AccessRefreshAttemptList` | yes | Every source tried, in order. |
-
-### AccessImportRecoveryRequest
-
-Imports a recovery link.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `link` | `link` | `String` | yes | The flare-recover:// deep link or QR code content, verbatim. |
-
-### AccessRecoveryImport
-
-Result of importing a recovery link.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `outcome` | `outcome` | `String` | yes | adopted, unchanged (this link was already imported) or rejected. |
-| `code` | `code` | `String` | no | Why a link was rejected: a code of AccessRefreshAttempt.code or developmentMode. Commonly rollback (the link is older than this device's manifest) or badSignature. |
-| `serial` | `serial` | `UInt64` | yes | Directory serial after the import. |
-
-### AccessPointInfo
-
-One access point of the home cell with its health on the current network.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `accessPointId` | `accessPointId` | `String` | yes | Access point id. |
-| `regionId` | `regionId` | `String` | yes | Region the access point is in. |
-| `host` | `host` | `String` | yes | Host name shown on the diagnostics page. |
-| `status` | `status` | `String` | yes | Manifest status: active, draining, disabled or unknown. |
-| `rttMs` | `rttMs` | `Double` | no | Smoothed round trip on the current network, when measured. |
-| `breaker` | `breaker` | `String` | yes | Circuit breaker state: closed, open or halfOpen. |
-| `protocolWinner` | `protocolWinner` | `String` | no | Protocol that last won the race on this network: quic or ws. |
-| `pinned` | `pinned` | `Boolean` | yes | Whether this access point is manually pinned. |
-| `current` | `current` | `Boolean` | yes | Whether the IM connection is on this access point. |
-
-### AccessEndpoint
-
-One side of an access point switch.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `ap` | `ap` | `String` | yes | Access point id. |
-| `protocol` | `protocol` | `String` | yes | Transport: quic or ws. |
-
-### AccessSwitchedEvent
-
-Payload of access://switched: the IM connection moved to another access point (sent once, when the new connection is ready).
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `from` | `from` | `AccessEndpoint` | yes | Where the connection was. |
-| `to` | `to` | `AccessEndpoint` | yes | Where the connection is now. |
-| `reason` | `reason` | `String` | yes | Why: failure, drain, failback, manual or manifest. |
-
-### AccessChanges
-
-What a newly accepted access manifest changed.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `accessPointsAdded` | `accessPointsAdded` | `StringList` | yes | Access points that appeared. |
-| `accessPointsRemoved` | `accessPointsRemoved` | `StringList` | yes | Access points that disappeared. |
-| `policyChanged` | `policyChanged` | `Boolean` | yes | Whether the client link policy changed. |
-
-### AccessChangedEvent
-
-Payload of access://changed: a new access manifest was accepted. Sent for every adoption; a periodic re-signature has empty changes.
-
-| Field | Wire name | Type | Required | Description |
-|-------|-----------|------|----------|-------------|
-| `serial` | `serial` | `UInt64` | yes | Serial of the accepted manifest. |
-| `source` | `source` | `String` | yes | Where it came from, in the form of AccessStatus.source. |
-| `stale` | `stale` | `Boolean` | yes | Whether it is past its expiry. |
-| `developmentMode` | `developmentMode` | `Boolean` | yes | Endpoints come from development-mode configuration. |
-| `changes` | `changes` | `AccessChanges` | yes | What changed against the previous manifest. |
 
 ## Lifecycle
 
@@ -1239,6 +1090,8 @@ Message models mirrored from flare-core-sdk-engine/src/model/message.rs and mess
 
 ### Enums
 
+- `MessageSendStage`: Stage reached by an outbound message. Values: `queued`, `accepted`, `persisted`, `failed`
+
 - `MessageContentType`: Decoded message content discriminator. Values: `text`, `image`, `video`, `audio`, `file`, `location`, `card`, `sticker`, `emoji`, `quote`, `link_card`, `forward`, `thread`, `mini_program`, `rich_text`, `image_group`, `system`, `notification`, `vote`, `task`, `schedule`, `announcement`, `custom`, `placeholder`
 
 - `MessageReceiptStatus`: Receipt state the core SDK projects for a message: pending (built locally, not yet sending), sending (no server sequence yet, media uploading included), sent (the server has it), read (single chat: the peer read it; group: the read summary says all members read it), failed (retryable). There is no delivered state. Values: `pending`, `sending`, `sent`, `read`, `failed`
@@ -1301,7 +1154,8 @@ Send acknowledgement returned by core-sdk.
 | `conversationId` | `conversationId` | `String` | yes | Conversation id. |
 | `seq` | `seq` | `UInt64` | yes | Assigned conversation sequence. |
 | `timestamp` | `timestamp` | `UInt64` | yes | Server send time in milliseconds. |
-| `success` | `success` | `Boolean` | yes | Whether this response contains a final accepted send ACK. |
+| `success` | `success` | `Boolean` | yes | Whether the SDK queued the message locally or the server accepted it. Check stage for persistence. |
+| `stage` | `stage` | `MessageSendStage` | no | Queued locally, accepted by the server, persisted by the server, or failed. Older engines omit this field. |
 | `errorCode` | `errorCode` | `Int32` | yes | Core ACK error code when success is false. |
 | `errorMessage` | `errorMessage` | `String` | yes | Core ACK error message when success is false. |
 
@@ -1828,13 +1682,11 @@ Typed SDK event and notification models for cross-platform subscriptions.
 
 ### Enums
 
-- `SdkEventKind`: Top-level event domain. Values: `lifecycle`, `connection`, `access`, `update`, `message`, `notification`, `conversation`, `sync`, `extension`, `extension_event`, `presence`, `media`, `plugin`, `view`
+- `SdkEventKind`: Top-level event domain. Values: `lifecycle`, `connection`, `update`, `message`, `notification`, `conversation`, `sync`, `extension`, `extension_event`, `presence`, `media`, `plugin`, `view`
 
 - `LifecycleEventName`: Client SDK lifecycle notification name. Values: `initializing`, `initialized`, `init_failed`, `login_succeeded`, `login_failed`, `logged_out`, `disposed`
 
 - `ConnectionEventName`: Connection event name: the one status event, and the coarse sync state hint. Values: `status`, `sync_state_changed`
-
-- `AccessEventName`: Access event name. Values: `switched`, `changed`
 
 - `UpdateEventName`: Update event name. Values: `state`
 

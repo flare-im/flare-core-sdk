@@ -5,7 +5,6 @@ package flare_core_harmony_cangjie_sdk.model.event
 public enum SdkEventKind {
     | Lifecycle
     | Connection
-    | Access
     | Update
     | Message
     | Notification

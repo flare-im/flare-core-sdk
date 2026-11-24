@@ -18,7 +18,7 @@
         "createdAt": 1000,
         "clientCreatedAt": 999,
         "messageType": 0,
-        "timelineKey": "client:cm1",
+        "timelineKey": "server:server-msg-1",
         "timelineSortTs": 1000,
         "content": {
           "contentType": "text",
@@ -40,7 +40,16 @@
         "reactions": [],
         "textPreview": "hello",
         "version": 1,
-        "updatedAt": 1000
+        "updatedAt": 1000,
+        "localState": {
+          "sending": false,
+          "failed": false,
+          "isLocal": false,
+          "uploading": false,
+          "uploadProgress": 0,
+          "sortTs": 0
+        },
+        "receipt": {"status": "sent"}
       }
     ],
     "upsert": [],

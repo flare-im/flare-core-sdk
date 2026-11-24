@@ -17,7 +17,7 @@
       "operation": "sdk.init",
       "transport": "ffi-symbol",
       "cApi": "flare_sdk_init",
-      "request": "SdkConfig",
+      "request": "SdkInitRequest",
       "response": "Unit",
       "stability": "stable"
     },

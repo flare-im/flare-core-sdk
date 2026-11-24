@@ -3,14 +3,6 @@ package flare_core_harmony_cangjie_sdk.listener
 import flare_core_harmony_cangjie_sdk.model.*
 
 // GENERATED. Do not edit by hand.
-public interface AccessChangedEventCallback {
-    func handle(event: AccessChangedEvent): Unit
-}
-
-public interface AccessSwitchedEventCallback {
-    func handle(event: AccessSwitchedEvent): Unit
-}
-
 public interface ConnectionStatusCallback {
     func handle(event: ConnectionStatus): Unit
 }

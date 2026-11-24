@@ -95,7 +95,7 @@ public final class PlatformLifecycle: @unchecked Sendable {
     private let setAppState: SetAppState
     private let network: any PlatformNetworkSource
     private let appState: any PlatformAppStateSource
-    private let backgroundExecution: any PlatformBackgroundExecution
+    private let backgroundExecution: (any PlatformBackgroundExecution)?
     private let onError: @Sendable (Error) -> Void
     private let openTasks = OpenBackgroundTasks()
     private let lock = NSLock()
@@ -104,14 +104,14 @@ public final class PlatformLifecycle: @unchecked Sendable {
     private var installed = false
     private var disposed = false
 
-    /// - Parameter backgroundExecution: 进后台上报期间持有的后台执行；默认是系统的后台任务。
+    /// - Parameter backgroundExecution: 进后台上报期间由宿主申请的后台执行窗口。
     /// - Parameter onError: called when a report fails; reports are best effort.
     public init(
         notifyNetworkChange: @escaping NotifyNetworkChange,
         setAppState: @escaping SetAppState,
         network: any PlatformNetworkSource = SystemNetworkSource(),
         appState: any PlatformAppStateSource = SystemAppStateSource(),
-        backgroundExecution: any PlatformBackgroundExecution = SystemBackgroundExecution(),
+        backgroundExecution: (any PlatformBackgroundExecution)? = nil,
         onError: @escaping @Sendable (Error) -> Void = { _ in }
     ) {
         self.notifyNetworkChange = notifyNetworkChange
@@ -145,7 +145,7 @@ public final class PlatformLifecycle: @unchecked Sendable {
         lock.unlock()
         network.start { continuation.yield(.network($0)) }
         appState.start { [backgroundExecution, openTasks] state in
-            let task = state == .background ? backgroundExecution.begin(name: "im.flare.sdk.app-state") : nil
+            let task = state == .background ? backgroundExecution?.begin(name: "im.flare.sdk.app-state") : nil
             if let task {
                 openTasks.add(task)
             }

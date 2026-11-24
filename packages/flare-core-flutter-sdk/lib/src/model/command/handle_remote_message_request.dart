@@ -6,7 +6,7 @@ final class HandleRemoteMessageRequest {
   final int? budgetMs;
   /// wire: `payload`. The push payload flattened to strings (snake_case keys): uid, tenant_id, conversation_id, message_id, seq, collapse_id, thread_id, disposition, alert_class, count, badge, title, body, sound. Keys the engine does not know are ignored.
   final Map<String, String> payload;
-  /// wire: `provider`. Push channel that delivered it: apns, fcm or getui.
+  /// wire: `provider`. Push channel that delivered the message.
   final String provider;
 
   const HandleRemoteMessageRequest({

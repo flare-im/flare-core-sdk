@@ -37,8 +37,12 @@ help:
 sync: sync-host sync-android sync-ios sync-flutter ## Distribute core dist/ into all native platform locations
 	@echo "synced $(CORE_DIST) -> android + ios + flutter"
 
+.PHONY: verify-public-dist
+verify-public-dist:
+	@test ! -f "$(CORE_DIST)/.commercial-sdk" || { echo "Commercial artifacts require a commercial application build" >&2; exit 1; }
+
 .PHONY: sync-host
-sync-host:
+sync-host: verify-public-dist
 	@src="$(CORE_DIST)/host/$(FFI_DYLIB)"; \
 	if [ -f "$$src" ]; then \
 		mkdir -p "$(NATIVE_ARTIFACTS_DIR)/host"; \
@@ -47,7 +51,7 @@ sync-host:
 	fi
 
 .PHONY: sync-android
-sync-android:
+sync-android: verify-public-dist
 	@for abi in $(ANDROID_ABIS); do \
 		src="$(CORE_DIST)/android/$$abi/$(FFI_SO)"; \
 		if [ ! -f "$$src" ]; then echo "skip android $$abi (missing $$src)"; continue; fi; \

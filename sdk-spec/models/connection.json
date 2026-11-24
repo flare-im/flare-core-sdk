@@ -39,6 +39,19 @@
   ],
   "models": [
     {
+      "name": "SetProtocolModeRequest",
+      "description": "Select the IM connection transport.",
+      "fields": [
+        {
+          "name": "mode",
+          "wireName": "mode",
+          "type": "String",
+          "required": true,
+          "description": "Transport mode: ws, quic, or race."
+        }
+      ]
+    },
+    {
       "name": "NetworkChangeRequest",
       "description": "Platform network-change notification. The link supervisor alone decides whether and how to reconnect.",
       "fields": [
@@ -82,13 +95,13 @@
           "wireName": "fingerprintHint",
           "type": "String",
           "required": false,
-          "description": "Coarse network identity (native: a 16-hex-digit SHA-256 digest of the interface kind and the default gateway, plus the DNS servers on Android, or the cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys access point health; never sent anywhere. Never pass an SSID or a raw address."
+          "description": "Coarse network identity (native: a 16-hex-digit SHA-256 digest of the interface kind and the default gateway, plus the DNS servers on Android, or the cellular MCC-MNC; web: navigator.connection.type). Hashed locally with interface into the network fingerprint that keys heartbeat observations; never sent anywhere. Never pass an SSID or a raw address."
         }
       ]
     },
     {
       "name": "ConnectionStatus",
-      "description": "Payload of connection://status and the value of connection.getStatus. Every field is present (null without a value): hosts replace their copy whole on every event and hand it to the Kit ConnectionNotice unchanged.",
+      "description": "Payload of connection://status and the value of connection.getStatus. Hosts replace their copy whole on every event. endpointRevision is present for host-selected endpoints.",
       "fields": [
         {
           "name": "phase",
@@ -105,32 +118,18 @@
           "description": "Line quality; set only while online."
         },
         {
-          "name": "accessPointId",
-          "wireName": "accessPointId",
-          "type": "String",
-          "required": false,
-          "description": "Current (or connecting) access point."
-        },
-        {
-          "name": "cellId",
-          "wireName": "cellId",
-          "type": "String",
-          "required": false,
-          "description": "Cell of the current access point."
-        },
-        {
-          "name": "regionId",
-          "wireName": "regionId",
-          "type": "String",
-          "required": false,
-          "description": "Region of the current access point."
-        },
-        {
           "name": "protocol",
           "wireName": "protocol",
           "type": "String",
           "required": false,
           "description": "Transport of the current connection: quic or ws."
+        },
+        {
+          "name": "endpointRevision",
+          "wireName": "endpointRevision",
+          "type": "UInt32",
+          "required": false,
+          "description": "Generation of the accepted host-selected address group."
         },
         {
           "name": "rttMs",
@@ -158,7 +157,7 @@
           "wireName": "reason",
           "type": "String",
           "required": false,
-          "description": "actionRequired: kicked, expired, upgradeRequired or tenantUnavailable. switching: failure, drain, failback, manual or manifest."
+          "description": "actionRequired: kicked, expired, upgradeRequired or tenantUnavailable. switching: drain or manual. Transport failure: transportUnavailable."
         },
         {
           "name": "developmentMode",

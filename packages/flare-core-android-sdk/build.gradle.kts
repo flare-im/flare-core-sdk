@@ -3,6 +3,9 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val productFfiDir = providers.environmentVariable("FLARE_SDK_PRODUCT_DIST")
+    .map { file(it).resolve("android") }
+
 android {
     namespace = "com.flare.im"
     compileSdk = 35
@@ -23,6 +26,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags += listOf("-std=c++17", "-fexceptions", "-frtti")
+                productFfiDir.orNull?.let { arguments += "-DFLARE_CORE_FFI_ROOT=${it.absolutePath}" }
             }
         }
     }
@@ -33,10 +37,9 @@ android {
         }
     }
 
-    // jniLibs 只认默认的 src/main/jniLibs —— 由客户端仓根的 `make sync-android`
-    // 从 flare-core-sdk-engine/dist/android 分发进来。曾额外挂 ../../native/artifacts/android
-    // 作为第二个 srcDir，但仓里没有任何步骤会去填它；一旦两处同时存在同名 .so，
-    // mergeDebugJniLibFolders 就报 Duplicate resources，照文档跑 make sync 反而构建不出来。
+    productFfiDir.orNull?.let { dir ->
+        sourceSets.getByName("main").jniLibs.setSrcDirs(listOf(dir))
+    }
 }
 
 kotlin {
@@ -47,10 +50,6 @@ dependencies {
     // PlatformLifecycle lives in its own module (no native library) so hosts with their own engine reuse it;
     // a build that includes this package includes `:flare-core-android-lifecycle` next to it.
     api(project(":flare-core-android-lifecycle"))
-    // ClientUpdateEngine adapts a client to the update controller; the same goes for `:flare-core-android-update`.
-    api(project(":flare-core-android-update"))
-    // CorePushHost adapts a client to the platform push module; the same goes for `:flare-core-android-push`.
-    api(project(":flare-core-android-push"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 
     testImplementation("junit:junit:4.13.2")

@@ -3,7 +3,6 @@ import fs from "node:fs";
 import { promises as fsPromises } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { flareWebUpdateBuild, resolveWebBuildId, writeWebUpdateFiles } from "./flareWebUpdateVite.js";
 const wasmBindingPublicPath = "/flare-core-wasm/";
 const wasmBindingFiles = /* @__PURE__ */ new Set(["flare_im_core_sdk.js", "flare_im_core_sdk_bg.wasm"]);
 // wasm-bindgen puts every crate's inline JS (`#[wasm_bindgen(module = ...)]`) under
@@ -382,12 +381,11 @@ function createFlareCoreWebAppViteConfig(options) {
         options.vuePlugin(),
         flareWasmBindingAssets(wasmBindingRoot, appDir),
         flareVueImUiAssets(vueImUiAssetRoot, appDir),
-        ...(options.webUpdate ? [flareWebUpdateBuild({
-          ...options.webUpdate,
-          buildId: resolveWebBuildId(env),
-          pinned: [wasmBindingPublicPath.replace(/^\/|\/$/g, "")],
-          assetQueries: wasmBindingAssetQueries(wasmBuildId)
-        })] : [])
+        ...(options.extraPlugins?.({
+          env,
+          wasmAssetDirectory: wasmBindingPublicPath.replace(/^\/|\/$/g, ""),
+          wasmAssetQueries: wasmBindingAssetQueries(wasmBuildId)
+        }) ?? [])
       ],
       define: {
         "import.meta.env.VITE_FLARE_WASM_BUILD_ID": JSON.stringify(wasmBuildId),
@@ -460,9 +458,4 @@ function createFlareCoreWebAppViteConfig(options) {
     };
   });
 }
-export {
-  createFlareCoreWebAppViteConfig,
-  flareWebUpdateBuild,
-  resolveWebBuildId,
-  writeWebUpdateFiles
-};
+export { createFlareCoreWebAppViteConfig };

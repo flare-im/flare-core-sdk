@@ -24,13 +24,6 @@ abstract final class SdkOperations {
   static const String sdkSessionActive = 'sdk.session_active';
   static const String connectionGetStatus = 'connection.get_status';
   static const String connectionReconnectNow = 'connection.reconnect_now';
-  static const String accessGetStatus = 'access.get_status';
-  static const String accessListAccessPoints = 'access.list_access_points';
-  static const String accessPin = 'access.pin';
-  static const String accessUnpin = 'access.unpin';
-  static const String accessRefresh = 'access.refresh';
-  static const String accessImportRecovery = 'access.import_recovery';
-  static const String accessExportDiagnostics = 'access.export_diagnostics';
   static const String updateGetState = 'update.get_state';
   static const String updateCheck = 'update.check';
   static const String updateDownload = 'update.download';

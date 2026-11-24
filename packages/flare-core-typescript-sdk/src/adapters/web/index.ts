@@ -8,5 +8,4 @@ export * from './webFlareImClient';
 export * from './webHostBridge';
 export * from './webProductionBridge';
 export * from './idbWasmStorageHost';
-export * from './idbAccessStoreHost';
 export * from './flareCoreSdk';

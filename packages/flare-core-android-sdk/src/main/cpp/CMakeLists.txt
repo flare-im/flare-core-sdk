@@ -4,7 +4,10 @@ project(flare_core_android_sdk_jni LANGUAGES CXX)
 
 set(FLARE_CLIENT_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../..")
 set(FLARE_CORE_FFI_HEADER_DIR "${FLARE_CLIENT_SDK_ROOT}/native/abi")
-set(FLARE_CORE_FFI_DIR "${FLARE_CLIENT_SDK_ROOT}/native/artifacts/android/${ANDROID_ABI}")
+if(NOT DEFINED FLARE_CORE_FFI_ROOT)
+    set(FLARE_CORE_FFI_ROOT "${FLARE_CLIENT_SDK_ROOT}/native/artifacts/android")
+endif()
+set(FLARE_CORE_FFI_DIR "${FLARE_CORE_FFI_ROOT}/${ANDROID_ABI}")
 
 add_library(flare_im_core_android_sdk_jni SHARED flare_jni_bridge.cpp)
 

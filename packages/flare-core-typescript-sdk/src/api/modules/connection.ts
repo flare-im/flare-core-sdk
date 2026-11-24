@@ -3,7 +3,7 @@
  *
  * Module API: `connection` — Connection status and manual network lifecycle.
  */
-import type { ConnectionStatus, NetworkChangeRequest, ServerClockResponse } from '../../model';
+import type { ConnectionStatus, CoreEndpoints, EndpointUpdate, NetworkChangeRequest, ServerClockResponse, SetProtocolModeRequest } from '../../model';
 
 /** Connection status and manual network lifecycle. */
 export interface ConnectionApi {
@@ -11,6 +11,10 @@ export interface ConnectionApi {
   getStatus(): Promise<ConnectionStatus>;
   /** reconnectNow maps to `flare_sdk_invoke_json`. Operation: `connection.reconnect_now`. */
   reconnectNow(): Promise<void>;
+  /** replaceEndpoints maps to `flare_sdk_invoke_json`. Operation: `connection.replace_endpoints`. */
+  replaceEndpoints(request: CoreEndpoints): Promise<EndpointUpdate>;
+  /** setProtocolMode maps to `flare_sdk_invoke_json`. Operation: `connection.set_protocol_mode`. */
+  setProtocolMode(request: SetProtocolModeRequest): Promise<void>;
   /** disconnect maps to `flare_sdk_disconnect` via `ffi-symbol`. Operation: `connection.disconnect`. */
   disconnect(): Promise<void>;
   /** getServerClock maps to `flare_sdk_invoke_json`. Operation: `connection.server_clock`. */

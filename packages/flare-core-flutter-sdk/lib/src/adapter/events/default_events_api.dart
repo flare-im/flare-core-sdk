@@ -70,10 +70,8 @@ final class DefaultEventsApi implements EventsApi {
         _emit(connectionStatusFromJson(eventPayload));
       case EventCode.connectionSyncStateChanged:
         _emit(connectionSyncStateEventFromJson(eventPayload));
-      case EventCode.accessSwitched:
-        _emit(accessSwitchedEventFromJson(eventPayload));
-      case EventCode.accessChanged:
-        _emit(accessChangedEventFromJson(eventPayload));
+
+
       case EventCode.updateState:
         _emit(updateStatusFromJson(eventPayload));
       case EventCode.messageSendAck:
@@ -323,16 +321,6 @@ final class DefaultEventsApi implements EventsApi {
   ) =>
       _addTyped(listener);
   @override
-  EventSubscription onAccessSwitched(
-    EventCallback<AccessSwitchedEvent> listener,
-  ) =>
-      _addTyped(listener);
-  @override
-  EventSubscription onAccessChanged(
-    EventCallback<AccessChangedEvent> listener,
-  ) =>
-      _addTyped(listener);
-  @override
   EventSubscription onUpdateState(
     EventCallback<UpdateStatus> listener,
   ) =>
@@ -575,10 +563,6 @@ final class _ListenerHandler {
         _dispatchLifecycle(event);
       case ConnectionStatus():
         listener.onConnectionStatusChanged(event);
-      case AccessSwitchedEvent():
-        listener.onAccessSwitched(event);
-      case AccessChangedEvent():
-        listener.onAccessChanged(event);
       case UpdateStatus():
         listener.onUpdateState(event);
       case MessageReceivedEvent():

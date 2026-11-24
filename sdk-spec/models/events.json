@@ -8,7 +8,6 @@
       "values": [
         "lifecycle",
         "connection",
-        "access",
         "update",
         "message",
         "notification",
@@ -41,14 +40,6 @@
       "values": [
         "status",
         "sync_state_changed"
-      ]
-    },
-    {
-      "name": "AccessEventName",
-      "description": "Access event name.",
-      "values": [
-        "switched",
-        "changed"
       ]
     },
     {

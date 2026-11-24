@@ -52,7 +52,6 @@ export async function loadWasmRuntimeForTests(): Promise<FlareWasmRuntime> {
     ...runtime,
     invoke: runtime.invoke.bind(runtime),
     ...(runtime.dispose ? { dispose: runtime.dispose.bind(runtime) } : {}),
-    ...bindHook("setAccessStoreHost"),
     ...bindHook("setConnectTokenRefresher"),
     flareBindingContractVersion: mod.flareBindingContractVersion,
   };

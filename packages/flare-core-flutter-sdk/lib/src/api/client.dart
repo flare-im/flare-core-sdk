@@ -7,8 +7,6 @@ typedef JsonObject = Map<String, Object?>;
 abstract interface class FlareImClient implements SessionApi {
   /// Connection status and manual network lifecycle.
   ConnectionApi get connection;
-  /// Access directory, access point health, manual pinning, manifest refresh and recovery links for the network diagnostics page.
-  AccessApi get access;
   /// Platform lifecycle signals the core needs (foreground and background).
   LifecycleApi get lifecycle;
   /// Update center: release evaluation, download and the install plan. Works before sign-in and with every IM node down; the release manifest comes from the access mirrors.

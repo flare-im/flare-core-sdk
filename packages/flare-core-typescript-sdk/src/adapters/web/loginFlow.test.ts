@@ -48,10 +48,7 @@ describe("web login flow (raw SDK)", () => {
     const raw = new WebFlareImClient(bridge);
 
     await raw.init({
-      access: {
-        trustMode: "development",
-        developmentEndpoints: { wsUrl: "ws://127.0.0.1:50051", coreApiUrl: "http://127.0.0.1:50050" },
-      },
+      endpoints: { baseUrl: "https://127.0.0.1:50050", websocketUrl: "wss://127.0.0.1:50051" },
       dataUrl: "idb://flare-core-web-app",
       tenantId: "0",
       installPlatformLifecycle: false,
@@ -83,7 +80,7 @@ describe("web login flow (raw SDK)", () => {
     await expect(raw.connection.getStatus()).resolves.toEqual({
       phase: "online",
       quality: "good",
-      accessPointId: "development",
+      endpointRevision: 1,
       protocol: "ws",
       rttMs: 12,
       attempt: 0,
@@ -123,10 +120,7 @@ describe.skipIf(!wasmPkgAvailable())("web login flow (wasm integration)", () => 
     const raw = new WebFlareImClient(new WasmNativeBridge({ runtime }));
     await expect(
       raw.init({
-        access: {
-          trustMode: "development",
-          developmentEndpoints: { wsUrl: "ws://127.0.0.1:50051", coreApiUrl: "http://127.0.0.1:50050" },
-        },
+        endpoints: { baseUrl: "https://127.0.0.1:50050", websocketUrl: "wss://127.0.0.1:50051" },
         tenantId: "0",
         installPlatformLifecycle: false,
       }),

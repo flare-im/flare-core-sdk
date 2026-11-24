@@ -29,6 +29,24 @@
 
 Rust 核心仍是 IM 行为的唯一归属地。本工作区负责平台 API 形态、生成的契约、原生产物落位、文档、示例与契约测试。
 
+## 自建 Core 接入
+
+```ts
+await client.init({
+  environment: "production",
+  sdkConfig: {
+    endpoints: {
+      baseUrl: "https://im.example.com",
+      websocketUrl: "wss://im.example.com/ws",
+    },
+    tenantId: "0",
+    auth: {},
+  },
+});
+```
+
+`endpoints` 接收完整地址组，可附加 `quicUrl` 和 `mediaBaseUrl`。初始化也可配置存储、设备 ID、私有 CA、ACK、同步、事件容量和资源档位。宿主选定同一部署的新地址后，调用 `client.connection.replaceEndpoints`，通过 `getStatus()` 或状态事件读取 `endpointRevision` 和 `phase`。
+
 ## 架构
 
 ```text

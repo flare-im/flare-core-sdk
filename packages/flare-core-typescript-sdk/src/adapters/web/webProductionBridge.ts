@@ -13,10 +13,6 @@ import {
   createWasmIndexedDbStorageHost,
   type WasmStorageHostCallbacks,
 } from "./idbWasmStorageHost";
-import {
-  createIndexedDbAccessStoreHost,
-  type WasmAccessStoreHost,
-} from "./idbAccessStoreHost";
 import { webAppInfoFromBuild, withWebAppInfo, type WebAppInfo } from "../../lifecycle/appInfo";
 
 /**
@@ -33,19 +29,11 @@ export type WasmRuntimeLoader = () => Promise<{ runtime: FlareWasmRuntime }>;
  */
 export type WasmStorageHostFactory = () => WasmStorageHostCallbacks | Promise<WasmStorageHostCallbacks>;
 
-/**
- * Builds the host of the core's pre-login global store (access manifest LKG, key state, health
- * book). Defaults to IndexedDB, falling back to memory where the browser offers none.
- */
-export type WasmAccessStoreHostFactory = () => WasmAccessStoreHost | Promise<WasmAccessStoreHost>;
-
 export interface WebProductionBridgeOptions {
   /** Host-injected WASM runtime loader. Required before the first real `invoke`. */
   loadRuntime?: WasmRuntimeLoader;
   /** Host-injected storage backend factory. Defaults to IndexedDB. */
   createStorageHost?: WasmStorageHostFactory;
-  /** Host of the pre-login global store. Defaults to IndexedDB (memory where unavailable). */
-  createAccessStoreHost?: WasmAccessStoreHostFactory;
   /** App identity for CONNECT; defaults to the build-time injected values. */
   appInfo?: WebAppInfo;
 }
@@ -148,8 +136,6 @@ type WasmRuntimeWithHost = FlareWasmRuntime & {
   setEventCallback?: (cb: ((event: unknown) => void) | null) => void;
   /** Installs the persistence host; the runtime reads its methods by name and throws when one is missing. */
   setStorageHost?: (host: WasmStorageHostCallbacks) => void;
-  /** Installs the pre-login global store host before `sdk.init`. */
-  setAccessStoreHost?: (host: WasmAccessStoreHost | null) => Promise<void> | void;
 };
 
 /** Browser production bridge: real WASM IMClient + WebSocket transport. */
@@ -175,13 +161,11 @@ export class WebProductionBridge implements NativeBridge {
   private invokeWaiters: Array<{ background: boolean; admit: () => void }> = [];
   private readonly loadRuntime?: WasmRuntimeLoader;
   private readonly createStorageHost: WasmStorageHostFactory;
-  private readonly createAccessStoreHost: WasmAccessStoreHostFactory;
   private readonly appInfo: WebAppInfo;
 
   constructor(options: WebProductionBridgeOptions = {}) {
     this.loadRuntime = options.loadRuntime;
     this.createStorageHost = options.createStorageHost ?? createWasmIndexedDbStorageHost;
-    this.createAccessStoreHost = options.createAccessStoreHost ?? (() => createIndexedDbAccessStoreHost());
     this.appInfo = options.appInfo ?? webAppInfoFromBuild();
   }
 
@@ -203,9 +187,6 @@ export class WebProductionBridge implements NativeBridge {
     const runtime = loaded.runtime as WasmRuntimeWithHost;
     const host = await this.createStorageHost();
     runtime.setStorageHost?.(host);
-    if (runtime.setAccessStoreHost) {
-      await runtime.setAccessStoreHost(await this.createAccessStoreHost());
-    }
     this.runtime = runtime;
     runtime.setEventCallback?.((raw: unknown) => {
       if (this.runtime === runtime) this.handleWasmEvent(raw);

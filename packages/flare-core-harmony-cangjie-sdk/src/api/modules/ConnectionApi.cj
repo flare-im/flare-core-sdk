@@ -7,6 +7,8 @@ import flare_core_harmony_cangjie_sdk.model.*
 public interface ConnectionApi {
     func getStatus(): ConnectionStatus
     func reconnectNow(): Unit
+    func replaceEndpoints(request: CoreEndpoints): EndpointUpdate
+    func setProtocolMode(request: SetProtocolModeRequest): Unit
     func disconnect(): Unit
     func getServerClock(): ServerClockResponse
     func notifyNetworkChange(request: NetworkChangeRequest): Unit

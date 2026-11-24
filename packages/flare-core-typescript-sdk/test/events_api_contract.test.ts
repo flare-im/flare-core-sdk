@@ -50,17 +50,13 @@ describe("DefaultEventsApi direct event callbacks", () => {
   it("hands connection://status to the status callback as the payload alone", () => {
     const events = new DefaultEventsApi(testBridge());
     const statuses: ConnectionStatus[] = [];
-    const switched: unknown[] = [];
 
     events.onConnectionStatusChanged((status) => statuses.push(status));
-    events.onAccessSwitched((event) => switched.push(event));
 
     events.emitNativeEvent(webEventType("connection://status"), {
       phase: "online",
       quality: "good",
-      accessPointId: "ap-sg-1",
-      cellId: "cell-sg-a",
-      regionId: "sg",
+      endpointRevision: 1,
       protocol: "quic",
       rttMs: 42,
       attempt: 0,
@@ -72,15 +68,12 @@ describe("DefaultEventsApi direct event callbacks", () => {
     expect(statuses).toEqual([{
       phase: ConnectionPhase.Online,
       quality: ConnectionQuality.Good,
-      accessPointId: "ap-sg-1",
-      cellId: "cell-sg-a",
-      regionId: "sg",
+      endpointRevision: 1,
       protocol: "quic",
       rttMs: 42,
       attempt: 0,
       developmentMode: false,
     }]);
-    expect(switched).toEqual([]);
   });
 
   it("dispatches message mutation callbacks by concrete event name", () => {

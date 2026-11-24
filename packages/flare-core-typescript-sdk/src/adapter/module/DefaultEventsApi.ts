@@ -4,11 +4,6 @@ import type { EventsApi } from '../../api/modules/events';
 import type { SubscribeEventsRequest, Subscription, UnsubscribeRequest } from '../../api/types';
 import type { EventCallback, EventSubscription, FlareImEventListener } from '../../listener';
 import {
-  AccessChangedEvent,
-  AccessChanges,
-  AccessEndpoint,
-  AccessEventName,
-  AccessSwitchedEvent,
   ConnectionEventName,
   ConnectionPhase,
   ConnectionQuality,
@@ -53,8 +48,6 @@ import { FlareSdkException } from '../../bridge/flareSdkException';
 
 const EVENT_CODE_CONNECTION_SYNC_STATE_CHANGED = 1005;
 const EVENT_CODE_CONNECTION_STATUS = 1010;
-const EVENT_CODE_ACCESS_SWITCHED = 1011;
-const EVENT_CODE_ACCESS_CHANGED = 1012;
 const EVENT_CODE_UPDATE_STATE = 1013;
 const EVENT_CODE_MESSAGE_RECEIVED = 2001;
 const EVENT_CODE_MESSAGE_RECEIVED_BATCH = 2002;
@@ -105,8 +98,6 @@ const EVENT_CODE_PLUGIN_BUNDLE_EVENT = 7004;
 const WEB_EVENT_TYPE_BY_CHANNEL: Record<string, number> = {
   "im://sync_state_changed": EVENT_CODE_CONNECTION_SYNC_STATE_CHANGED,
   "connection://status": EVENT_CODE_CONNECTION_STATUS,
-  "access://switched": EVENT_CODE_ACCESS_SWITCHED,
-  "access://changed": EVENT_CODE_ACCESS_CHANGED,
   "update://state": EVENT_CODE_UPDATE_STATE,
   "im://message": EVENT_CODE_MESSAGE_RECEIVED,
   "im://message_batch": EVENT_CODE_MESSAGE_RECEIVED_BATCH,
@@ -273,14 +264,10 @@ export function connectionStatusFromJson(payload: unknown): ConnectionStatus {
     developmentMode: requiredBoolean(record.developmentMode, 'developmentMode'),
   };
   if (record.quality !== undefined && record.quality !== null) status.quality = enumValue(ConnectionQuality, record.quality, 'quality');
-  const accessPointId = nullableString(record.accessPointId, 'accessPointId');
-  if (accessPointId !== undefined) status.accessPointId = accessPointId;
-  const cellId = nullableString(record.cellId, 'cellId');
-  if (cellId !== undefined) status.cellId = cellId;
-  const regionId = nullableString(record.regionId, 'regionId');
-  if (regionId !== undefined) status.regionId = regionId;
   const protocol = nullableString(record.protocol, 'protocol');
   if (protocol !== undefined) status.protocol = protocol;
+  const endpointRevision = optionalNumber(record.endpointRevision, 'endpointRevision');
+  if (endpointRevision !== undefined) status.endpointRevision = endpointRevision;
   const rttMs = optionalNumber(record.rttMs, 'rttMs');
   if (rttMs !== undefined) status.rttMs = rttMs;
   const nextRetryAt = optionalNumber(record.nextRetryAt, 'nextRetryAt');
@@ -290,40 +277,6 @@ export function connectionStatusFromJson(payload: unknown): ConnectionStatus {
   return status;
 }
 
-function accessEndpointFromJson(value: unknown, field: string): AccessEndpoint {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) invalidEventField(field, 'object');
-  const record = value as Record<string, unknown>;
-  return { ap: requiredString(record.ap, `${field}.ap`), protocol: requiredString(record.protocol, `${field}.protocol`) };
-}
-
-export function accessSwitchedEventFromJson(payload: unknown): AccessSwitchedEvent {
-  const record = eventPayloadRecord(payload);
-  return {
-    from: accessEndpointFromJson(record.from, 'from'),
-    to: accessEndpointFromJson(record.to, 'to'),
-    reason: requiredString(record.reason, 'reason'),
-  };
-}
-
-export function accessChangedEventFromJson(payload: unknown): AccessChangedEvent {
-  const record = eventPayloadRecord(payload);
-  const changes = record.changes;
-  if (!changes || typeof changes !== 'object' || Array.isArray(changes)) invalidEventField('changes', 'object');
-  const changeRecord = changes as Record<string, unknown>;
-  const accessChanges: AccessChanges = {
-    accessPointsAdded: requiredStringList(changeRecord.accessPointsAdded, 'changes.accessPointsAdded'),
-    accessPointsRemoved: requiredStringList(changeRecord.accessPointsRemoved, 'changes.accessPointsRemoved'),
-    policyChanged: requiredBoolean(changeRecord.policyChanged, 'changes.policyChanged'),
-  };
-  return {
-    serial: requiredNumber(record.serial, 'serial'),
-    source: requiredString(record.source, 'source'),
-    stale: requiredBoolean(record.stale, 'stale'),
-    developmentMode: requiredBoolean(record.developmentMode, 'developmentMode'),
-    changes: accessChanges,
-  };
-}
-
 function connectionStatusEvent(payload: unknown): ConnectionStatus & Record<string, unknown> {
   return { ...connectionStatusFromJson(payload), type: 'connection', event: ConnectionEventName.Status };
 }
@@ -331,14 +284,6 @@ function connectionStatusEvent(payload: unknown): ConnectionStatus & Record<stri
 function connectionSyncStateEvent(payload: unknown): ConnectionSyncStateEvent & Record<string, unknown> {
   const record = eventPayloadRecord(payload);
   return { type: 'connection', event: ConnectionEventName.SyncStateChanged, state: requiredString(record.state, 'state') };
-}
-
-function accessSwitchedEvent(payload: unknown): AccessSwitchedEvent & Record<string, unknown> {
-  return { ...accessSwitchedEventFromJson(payload), type: 'access', event: AccessEventName.Switched };
-}
-
-function accessChangedEvent(payload: unknown): AccessChangedEvent & Record<string, unknown> {
-  return { ...accessChangedEventFromJson(payload), type: 'access', event: AccessEventName.Changed };
 }
 
 function updateStateEvent(payload: unknown): UpdateStatus & Record<string, unknown> {
@@ -578,8 +523,6 @@ export function nativeEventFromCode(eventType: number, payload: unknown): unknow
   switch (eventType) {
     case EVENT_CODE_CONNECTION_SYNC_STATE_CHANGED: return connectionSyncStateEvent(payload);
     case EVENT_CODE_CONNECTION_STATUS: return connectionStatusEvent(payload);
-    case EVENT_CODE_ACCESS_SWITCHED: return accessSwitchedEvent(payload);
-    case EVENT_CODE_ACCESS_CHANGED: return accessChangedEvent(payload);
     case EVENT_CODE_UPDATE_STATE: return updateStateEvent(payload);
     case EVENT_CODE_MESSAGE_RECEIVED: return messageReceivedEvent(payload);
     case EVENT_CODE_MESSAGE_RECEIVED_BATCH: return messageReceivedBatchEvent(payload);
@@ -746,14 +689,6 @@ export class DefaultEventsApi implements EventsApi {
 
   onConnectionStatusChanged(listener: EventCallback<ConnectionStatus>): EventSubscription {
     return this.registerWhere(listener, (event) => eventEventIs(event, 'connection', ConnectionEventName.Status), eventPayloadOf);
-  }
-
-  onAccessSwitched(listener: EventCallback<AccessSwitchedEvent>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventEventIs(event, 'access', AccessEventName.Switched), eventPayloadOf);
-  }
-
-  onAccessChanged(listener: EventCallback<AccessChangedEvent>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventEventIs(event, 'access', AccessEventName.Changed), eventPayloadOf);
   }
 
   onUpdateState(listener: EventCallback<UpdateStatus>): EventSubscription {
@@ -1029,18 +964,6 @@ export class DefaultEventsApi implements EventsApi {
         listener.onConnectionStatusChanged?.(eventPayloadOf<ConnectionStatus>(event));
       }
       return;
-    }
-    if (type === 'access') {
-      switch (eventName) {
-        case AccessEventName.Switched:
-          listener.onAccessSwitched?.(eventPayloadOf<AccessSwitchedEvent>(event));
-          return;
-        case AccessEventName.Changed:
-          listener.onAccessChanged?.(eventPayloadOf<AccessChangedEvent>(event));
-          return;
-        default:
-          return;
-      }
     }
     if (type === 'update') {
       if (eventName === UpdateEventName.State) listener.onUpdateState?.(eventPayloadOf<UpdateStatus>(event));

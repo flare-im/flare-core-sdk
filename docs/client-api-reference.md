@@ -11,7 +11,7 @@ SDK lifecycle, authenticated session and process-level utilities.
 | Method | Request | Response | Transport | C API |
 |--------|---------|----------|-----------|-------|
 | `create` | `CreateClientRequest` | `CreateClientResponse` | `ffi-symbol` | `flare_sdk_create` |
-| `init` | `SdkConfig` | `Unit` | `ffi-symbol` | `flare_sdk_init` |
+| `init` | `SdkInitRequest` | `Unit` | `ffi-symbol` | `flare_sdk_init` |
 | `uninit` | `Unit` | `Unit` | `ffi-symbol` | `flare_sdk_uninit` |
 | `login` | `LoginRequest` | `Unit` | `ffi-symbol` | `flare_sdk_login` |
 | `prepare` | `LoginRequest` | `Unit` | `ffi-symbol` | `flare_sdk_prepare` |
@@ -43,23 +43,11 @@ Connection status and manual network lifecycle.
 |--------|---------|----------|-----------|-------|
 | `getStatus` | `Unit` | `ConnectionStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `reconnectNow` | `Unit` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `replaceEndpoints` | `CoreEndpoints` | `EndpointUpdate` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `setProtocolMode` | `SetProtocolModeRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `disconnect` | `Unit` | `Unit` | `ffi-symbol` | `flare_sdk_disconnect` |
 | `getServerClock` | `Unit` | `ServerClockResponse` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `notifyNetworkChange` | `NetworkChangeRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-
-## client.access
-
-Access directory, access point health, manual pinning, manifest refresh and recovery links for the network diagnostics page.
-
-| Method | Request | Response | Transport | C API |
-|--------|---------|----------|-----------|-------|
-| `getStatus` | `Unit` | `AccessStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `listAccessPoints` | `Unit` | `AccessPointInfoList` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `pin` | `AccessPinRequest` | `AccessPin` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `unpin` | `Unit` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `refresh` | `Unit` | `AccessRefreshReport` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `importRecovery` | `AccessImportRecoveryRequest` | `AccessRecoveryImport` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `exportDiagnostics` | `Unit` | `JsonValue` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 
 ## client.lifecycle
 

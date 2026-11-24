@@ -11,7 +11,6 @@ import com.flare.im.model.common.error.*
 import com.flare.im.model.content.*
 import com.flare.im.model.entity.*
 import com.flare.im.model.event.*
-import com.flare.im.model.event.access.*
 import com.flare.im.model.event.connection.*
 import com.flare.im.model.event.conversation.*
 import com.flare.im.model.event.lifecycle.*
@@ -45,8 +44,6 @@ interface EventsApi {
     fun onLoggedOut(listener: EventCallback<LifecycleEvent>): EventSubscription
     fun onDisposed(listener: EventCallback<LifecycleEvent>): EventSubscription
     fun onConnectionStatusChanged(listener: EventCallback<ConnectionStatus>): EventSubscription
-    fun onAccessSwitched(listener: EventCallback<AccessSwitchedEvent>): EventSubscription
-    fun onAccessChanged(listener: EventCallback<AccessChangedEvent>): EventSubscription
     fun onUpdateState(listener: EventCallback<UpdateStatus>): EventSubscription
     fun onMessageReceived(listener: EventCallback<MessageReceivedEvent>): EventSubscription
     fun onMessageReceivedBatch(listener: EventCallback<MessageReceivedBatchEvent>): EventSubscription

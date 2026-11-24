@@ -17,6 +17,15 @@ public final class DefaultConnectionApi: ConnectionApiProtocol {
         try await invokeVoid(bridge, descriptor: NativeCallMap.connectionReconnectNow, request: nil)
     }
 
+    public func replaceEndpoints(_ request: CoreEndpoints) async throws -> EndpointUpdate {
+        let raw = try await invokeMap(bridge, descriptor: NativeCallMap.connectionReplaceEndpoints, request: coreEndpointsToMap(request))
+        return try endpointUpdateFromJson(raw)
+    }
+
+    public func setProtocolMode(_ request: SetProtocolModeRequest) async throws -> Void {
+        try await invokeVoid(bridge, descriptor: NativeCallMap.connectionSetProtocolMode, request: AnySendable(setProtocolModeRequestToMap(request)))
+    }
+
     public func disconnect() async throws -> Void {
         try await invokeVoid(bridge, descriptor: NativeCallMap.connectionDisconnect, request: nil)
     }

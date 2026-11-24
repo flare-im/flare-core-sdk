@@ -11,7 +11,6 @@ import com.flare.im.model.common.error.*
 import com.flare.im.model.content.*
 import com.flare.im.model.entity.*
 import com.flare.im.model.event.*
-import com.flare.im.model.event.access.*
 import com.flare.im.model.event.connection.*
 import com.flare.im.model.event.conversation.*
 import com.flare.im.model.event.lifecycle.*
@@ -31,6 +30,10 @@ interface ConnectionApi {
     suspend fun getStatus(): ConnectionStatus
     /** reconnectNow maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.reconnect_now`. */
     suspend fun reconnectNow(): Unit
+    /** replaceEndpoints maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.replace_endpoints`. */
+    suspend fun replaceEndpoints(request: CoreEndpoints): EndpointUpdate
+    /** setProtocolMode maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.set_protocol_mode`. */
+    suspend fun setProtocolMode(request: SetProtocolModeRequest): Unit
     /** disconnect maps to `flare_sdk_disconnect` via `ffi-symbol`. Operation: `connection.disconnect`. */
     suspend fun disconnect(): Unit
     /** getServerClock maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `connection.server_clock`. */
