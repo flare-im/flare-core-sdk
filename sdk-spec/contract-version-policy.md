@@ -7,7 +7,7 @@ breaking changes behind platform adapters.
 
 | Layer | Current source | Current value | Compatibility rule |
 |-------|----------------|---------------|--------------------|
-| Shared model proto | `../flare-protocol/Cargo.toml` | `2.1.0` | Breaking shared model/wire changes require a major version bump or a new `*.vN` proto package before public release. |
+| Shared model proto | `../flare-protocol-grpc/crates/flare-proto/Cargo.toml` | `2.2.0` | Breaking shared model/wire changes require a major version bump or a new `*.vN` proto package before public release. |
 | gRPC service proto | `../flare-protocol-grpc/Cargo.toml` | `2.3.0` | Service surface changes are pre-1.0. Breaking request/response or service ownership changes require a minor bump while pre-1.0, and a major bump after 1.0. |
 | Native FFI contract | `sdk-spec/manifest.json#ffiContractVersion`, `sdk-spec/native/c_abi.json#contract`, generated platform constants | `flare-im-ffi/v2` | Must be identical across the manifest, generated client spec, native C ABI metadata, and every generated platform package. Any incompatible C ABI, event code, operation id, callback shape, handle policy, or JSON dispatch encoding change requires `vN+1`. |
 | Platform SDK API | `sdk-spec/manifest.json#apiVersion` | `2.0.0` | Semver for the platform SDK contract overlay. Additive modules/models/events are minor bumps before 1.0; breaking platform API or DTO shape changes are minor bumps while pre-1.0 and major bumps after 1.0. |
