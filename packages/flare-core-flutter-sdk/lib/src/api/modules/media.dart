@@ -1,5 +1,6 @@
 // GENERATED. Do not edit by hand.
 // Module API: `media` — Media access URL and local cache operations.
+import '../../model/model.dart';
 
 /// Media access URL and local cache operations.
 abstract interface class MediaApi {
@@ -15,6 +16,8 @@ abstract interface class MediaApi {
   Future<Map<String, Object?>> deleteFile(Map<String, Object?> request);
   /// getMediaUrl maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `get_url`. Operation: `media.get_url`.
   Future<Map<String, Object?>> getMediaUrl(Map<String, Object?> request);
+  /// resolveAttachment maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `resolve_attachment`. Operation: `media.resolve_attachment`.
+  Future<Map<String, Object?>> resolveAttachment(Map<String, Object?> request);
   /// getTempDownloadUrl maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `temp_download_url`. Operation: `media.temp_download_url`.
   Future<Map<String, Object?>> getTempDownloadUrl(Map<String, Object?> request);
   /// resolveMediaAccess maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `resolve_access`. Operation: `media.resolve_access`.
@@ -43,6 +46,12 @@ abstract interface class MediaApi {
   Future<Map<String, Object?>> setUserDownloadDirectory(Map<String, Object?> request);
   /// downloadToUserDirectory maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `download_to_user_directory`. Operation: `media.download_to_user_directory`.
   Future<Map<String, Object?>> downloadToUserDirectory(Map<String, Object?> request);
+  /// uploadRecovery maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `upload_recovery`. Operation: `media.upload_recovery`.
+  Future<MediaUploadRecovery> uploadRecovery(MediaUploadRecoveryRequest request);
+  /// cancelUpload maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `cancel_upload`. Operation: `media.cancel_upload`.
+  Future<MediaTransferCancellation> cancelUpload(MediaTransferRequest request);
+  /// cancelTransfer maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `cancel_transfer`. Operation: `media.cancel_transfer`.
+  Future<MediaTransferCancellation> cancelTransfer(MediaTransferRequest request);
   /// cancelUserFileDownload maps to `flare_media_cancel_user_file_download` via `ffi-symbol`. Operation: `media.cancel_user_file_download`.
   Future<bool> cancelUserFileDownload(Map<String, Object?> request);
   /// downloadFileToDownloads maps to `flare_media_download_file_to_downloads` via `ffi-symbol`. Operation: `media.download_file_to_downloads`.

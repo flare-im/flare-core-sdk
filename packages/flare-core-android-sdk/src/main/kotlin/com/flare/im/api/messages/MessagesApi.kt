@@ -72,6 +72,10 @@ interface MessagesApi {
     suspend fun unmarkMessageById(request: Map<String, Any?>): Unit
     /** getMessage maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `get`. Operation: `message.get`. */
     suspend fun getMessage(request: Map<String, Any?>): Message
+    /** getMessageByKey maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `get_by_key`. Operation: `message.get_by_key`. */
+    suspend fun getMessageByKey(request: MessageKey): MessageByKeyResponse
+    /** awaitMessageConfirmation maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `await_confirmation`. Operation: `message.await_confirmation`. */
+    suspend fun awaitMessageConfirmation(request: Map<String, Any?>): Map<String, Any?>
     /** getRawMessage maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `get_raw`. Operation: `message.get_raw`. */
     suspend fun getRawMessage(request: Map<String, Any?>): Map<String, Any?>
     /** searchMessages maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `search`. Operation: `message.search`. */

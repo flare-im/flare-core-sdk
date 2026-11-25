@@ -4,7 +4,7 @@
  * Module API: `conversations` — Conversation query and local conversation state.
  */
 import type { BootstrapHomeTimelineRequest, Conversation, ConversationListQuery, ConversationTimelineSnapshot, ConversationTotalUnreadResponse, HomeTimelineSnapshot, ListConversationsResponse, OpenConversationTimelineRequest, UpdateConversationDraftRequest } from '../../model';
-import type { ClearLocalChatHistoryRequest, DeleteConversationRequest, GetConversationRequest, GetGroupConversationByUserIdsRequest, GetMultipleConversationsRequest, GetOneConversationRequest, ListConversationsPaginatedRequest, MarkConversationReadRequest, MarkConversationUnreadRequest, SetConversationArchivedRequest, SetConversationMutedRequest, SetConversationNotifyAllRequest, SetConversationPinnedRequest } from '../types';
+import type { ClearLocalChatHistoryRequest, ConversationMemberRequest, DeleteConversationRequest, GetConversationRequest, GetGroupConversationByUserIdsRequest, GetMultipleConversationsRequest, GetOneConversationRequest, ListConversationsPaginatedRequest, MarkConversationReadRequest, MarkConversationUnreadRequest, SetConversationArchivedRequest, SetConversationMutedRequest, SetConversationNotifyAllRequest, SetConversationPinnedRequest } from '../types';
 
 /** Conversation query and local conversation state. */
 export interface ConversationsApi {
@@ -16,6 +16,8 @@ export interface ConversationsApi {
   listConversationsIncludingArchived(): Promise<ListConversationsResponse>;
   /** getConversation maps to `flare_sdk_invoke_json`. Operation: `conversation.get`. */
   getConversation(request: GetConversationRequest): Promise<Conversation>;
+  /** getConversationMember maps to `flare_sdk_invoke_json`. Operation: `conversation.member`. */
+  getConversationMember(request: ConversationMemberRequest): Promise<unknown>;
   /** getOneConversation maps to `flare_sdk_invoke_json`. Operation: `conversation.get_one`. */
   getOneConversation(request: GetOneConversationRequest): Promise<Conversation>;
   /** getGroupConversationByUserIds maps to `flare_sdk_invoke_json`. Operation: `conversation.get_group_by_user_ids`. */

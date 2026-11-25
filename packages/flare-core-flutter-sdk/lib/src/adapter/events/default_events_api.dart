@@ -72,8 +72,6 @@ final class DefaultEventsApi implements EventsApi {
         _emit(connectionSyncStateEventFromJson(eventPayload));
 
 
-      case EventCode.updateState:
-        _emit(updateStatusFromJson(eventPayload));
       case EventCode.messageSendAck:
         final rawAck = eventPayload['ack'];
         _emit(MessageSendAckEvent(
@@ -321,11 +319,6 @@ final class DefaultEventsApi implements EventsApi {
   ) =>
       _addTyped(listener);
   @override
-  EventSubscription onUpdateState(
-    EventCallback<UpdateStatus> listener,
-  ) =>
-      _addTyped(listener);
-  @override
   EventSubscription onMessageReceived(
     EventCallback<MessageReceivedEvent> listener,
   ) =>
@@ -563,8 +556,6 @@ final class _ListenerHandler {
         _dispatchLifecycle(event);
       case ConnectionStatus():
         listener.onConnectionStatusChanged(event);
-      case UpdateStatus():
-        listener.onUpdateState(event);
       case MessageReceivedEvent():
         listener.onMessageReceived(event);
       case MessageReceivedBatchEvent():

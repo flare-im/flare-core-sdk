@@ -1,5 +1,7 @@
 package flare_core_harmony_cangjie_sdk.model.catalog
 
+import flare_core_harmony_cangjie_sdk.model.common.enums.MessageContentType
+
 // GENERATED. Do not edit by hand.
 // Collection/map payloads are represented as raw JSON strings at the bridge boundary.
 // One supported quick-build operation exposed on MessageBuilderApi.

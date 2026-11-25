@@ -3,7 +3,8 @@
  *
  * Module API: `media` — Media access URL and local cache operations.
  */
-import type { CacheRemoteMediaRequest, CancelUserFileDownloadRequest, DeleteMediaFileRequest, DeleteMediaFileResponse, DeleteUserDownloadRecordRequest, DownloadFileToDownloadsRequest, DownloadToUserDirectoryRequest, GetMediaUrlRequest, GetUserDownloadSavedPathRequest, MediaAccessUrl, MediaCacheEntry, MediaCacheStats, MediaResolvedAccess, MediaUploadResponse, ResolveMediaAccessRequest, SetMediaCacheMaxBytesRequest, SetMediaCacheRootRequest, SetUserDownloadDirectoryRequest, SetUserDownloadSubfolderRequest, TempDownloadUrlRequest, UploadBytesRequest, UploadFileRequest, UserDownloadDirectory, UserDownloadSavedPathResponse, UserDownloadSubfolderResponse, UserFileDownloadResult } from '../types';
+import type { MediaTransferCancellation, MediaTransferRequest, MediaUploadRecovery, MediaUploadRecoveryRequest } from '../../model';
+import type { CacheRemoteMediaRequest, CancelUserFileDownloadRequest, DeleteMediaFileRequest, DeleteMediaFileResponse, DeleteUserDownloadRecordRequest, DownloadFileToDownloadsRequest, DownloadToUserDirectoryRequest, GetMediaUrlRequest, GetUserDownloadSavedPathRequest, MediaAccessUrl, MediaCacheEntry, MediaCacheStats, MediaResolvedAccess, MediaUploadResponse, ResolveAttachmentRequest, ResolveMediaAccessRequest, SetMediaCacheMaxBytesRequest, SetMediaCacheRootRequest, SetUserDownloadDirectoryRequest, SetUserDownloadSubfolderRequest, TempDownloadUrlRequest, UploadBytesRequest, UploadFileRequest, UserDownloadDirectory, UserDownloadSavedPathResponse, UserDownloadSubfolderResponse, UserFileDownloadResult } from '../types';
 
 /** Media access URL and local cache operations. */
 export interface MediaApi {
@@ -19,6 +20,8 @@ export interface MediaApi {
   deleteFile(request: DeleteMediaFileRequest): Promise<DeleteMediaFileResponse>;
   /** getMediaUrl maps to `flare_media_dispatch_json`, dispatch op `get_url`. Operation: `media.get_url`. */
   getMediaUrl(request: GetMediaUrlRequest): Promise<MediaAccessUrl>;
+  /** resolveAttachment maps to `flare_media_dispatch_json`, dispatch op `resolve_attachment`. Operation: `media.resolve_attachment`. */
+  resolveAttachment(request: ResolveAttachmentRequest): Promise<MediaAccessUrl>;
   /** getTempDownloadUrl maps to `flare_media_dispatch_json`, dispatch op `temp_download_url`. Operation: `media.temp_download_url`. */
   getTempDownloadUrl(request: TempDownloadUrlRequest): Promise<MediaAccessUrl>;
   /** resolveMediaAccess maps to `flare_media_dispatch_json`, dispatch op `resolve_access`. Operation: `media.resolve_access`. */
@@ -49,6 +52,12 @@ export interface MediaApi {
   setUserDownloadDirectory(request: SetUserDownloadDirectoryRequest): Promise<UserDownloadDirectory>;
   /** downloadToUserDirectory maps to `flare_media_dispatch_json`, dispatch op `download_to_user_directory`. Operation: `media.download_to_user_directory`. */
   downloadToUserDirectory(request: DownloadToUserDirectoryRequest): Promise<UserFileDownloadResult>;
+  /** uploadRecovery maps to `flare_media_dispatch_json`, dispatch op `upload_recovery`. Operation: `media.upload_recovery`. */
+  uploadRecovery(request: MediaUploadRecoveryRequest): Promise<MediaUploadRecovery>;
+  /** cancelUpload maps to `flare_media_dispatch_json`, dispatch op `cancel_upload`. Operation: `media.cancel_upload`. */
+  cancelUpload(request: MediaTransferRequest): Promise<MediaTransferCancellation>;
+  /** cancelTransfer maps to `flare_media_dispatch_json`, dispatch op `cancel_transfer`. Operation: `media.cancel_transfer`. */
+  cancelTransfer(request: MediaTransferRequest): Promise<MediaTransferCancellation>;
   /** cancelUserFileDownload maps to `flare_media_cancel_user_file_download` via `ffi-symbol`. Operation: `media.cancel_user_file_download`. */
   cancelUserFileDownload(request: CancelUserFileDownloadRequest): Promise<boolean>;
   /** downloadFileToDownloads maps to `flare_media_download_file_to_downloads` via `ffi-symbol`. Operation: `media.download_file_to_downloads`. */

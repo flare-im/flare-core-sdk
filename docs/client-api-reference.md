@@ -67,6 +67,7 @@ Conversation query and local conversation state.
 | `listConversationsByQuery` | `ConversationListQuery` | `ListConversationsResponse` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `listConversationsIncludingArchived` | `Unit` | `ListConversationsResponse` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `getConversation` | `GetConversationRequest` | `Conversation` | `contract-invoke-json` | `flare_sdk_invoke_json` |
+| `getConversationMember` | `ConversationMemberRequest` | `JsonValue` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `getOneConversation` | `GetOneConversationRequest` | `Conversation` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `getGroupConversationByUserIds` | `GetGroupConversationByUserIdsRequest` | `Conversation` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 | `getMultipleConversations` | `GetMultipleConversationsRequest` | `ListConversationsResponse` | `contract-invoke-json` | `flare_sdk_invoke_json` |
@@ -151,6 +152,8 @@ Message build, send, query and mutation.
 | `markMessageById` | `MessageMutationRequest` | `Unit` | `message-dispatch-json` | `flare_message_dispatch_json` |
 | `unmarkMessageById` | `MessageMutationRequest` | `Unit` | `message-dispatch-json` | `flare_message_dispatch_json` |
 | `getMessage` | `GetMessageRequest` | `Message` | `message-dispatch-json` | `flare_message_dispatch_json` |
+| `getMessageByKey` | `MessageKey` | `MessageByKeyResponse` | `message-dispatch-json` | `flare_message_dispatch_json` |
+| `awaitMessageConfirmation` | `ConfirmationRequest` | `JsonValue` | `message-dispatch-json` | `flare_message_dispatch_json` |
 | `getRawMessage` | `GetMessageRequest` | `JsonValue` | `message-dispatch-json` | `flare_message_dispatch_json` |
 | `searchMessages` | `MessageSearchQuery` | `ListMessagesResponse` | `message-dispatch-json` | `flare_message_dispatch_json` |
 | `searchMessagesByQuery` | `MessageSearchQuery` | `ListMessagesResponse` | `message-dispatch-json` | `flare_message_dispatch_json` |
@@ -202,6 +205,7 @@ Media access URL and local cache operations.
 | `uploadBytes` | `UploadBytesRequest` | `MediaUploadResponse` | `ffi-symbol` | `flare_media_upload_bytes` |
 | `deleteFile` | `DeleteMediaFileRequest` | `DeleteMediaFileResponse` | `ffi-symbol` | `flare_media_delete_file` |
 | `getMediaUrl` | `GetMediaUrlRequest` | `MediaAccessUrl` | `media-dispatch-json` | `flare_media_dispatch_json` |
+| `resolveAttachment` | `ResolveAttachmentRequest` | `MediaAccessUrl` | `media-dispatch-json` | `flare_media_dispatch_json` |
 | `getTempDownloadUrl` | `TempDownloadUrlRequest` | `MediaAccessUrl` | `media-dispatch-json` | `flare_media_dispatch_json` |
 | `resolveMediaAccess` | `ResolveMediaAccessRequest` | `MediaResolvedAccess` | `media-dispatch-json` | `flare_media_dispatch_json` |
 | `cacheRemoteMedia` | `CacheRemoteMediaRequest` | `MediaCacheEntry` | `media-dispatch-json` | `flare_media_dispatch_json` |
@@ -216,6 +220,9 @@ Media access URL and local cache operations.
 | `getUserDownloadDirectory` | `Unit` | `UserDownloadDirectory` | `media-dispatch-json` | `flare_media_dispatch_json` |
 | `setUserDownloadDirectory` | `SetUserDownloadDirectoryRequest` | `UserDownloadDirectory` | `media-dispatch-json` | `flare_media_dispatch_json` |
 | `downloadToUserDirectory` | `DownloadToUserDirectoryRequest` | `UserFileDownloadResult` | `media-dispatch-json` | `flare_media_dispatch_json` |
+| `uploadRecovery` | `MediaUploadRecoveryRequest` | `MediaUploadRecovery` | `media-dispatch-json` | `flare_media_dispatch_json` |
+| `cancelUpload` | `MediaTransferRequest` | `MediaTransferCancellation` | `media-dispatch-json` | `flare_media_dispatch_json` |
+| `cancelTransfer` | `MediaTransferRequest` | `MediaTransferCancellation` | `media-dispatch-json` | `flare_media_dispatch_json` |
 | `cancelUserFileDownload` | `CancelUserFileDownloadRequest` | `BooleanResponse` | `ffi-symbol` | `flare_media_cancel_user_file_download` |
 | `downloadFileToDownloads` | `DownloadFileToDownloadsRequest` | `UserDownloadSavedPathResponse` | `ffi-symbol` | `flare_media_download_file_to_downloads` |
 

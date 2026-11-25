@@ -1,5 +1,7 @@
 package flare_core_harmony_cangjie_sdk.model.response
 
+import flare_core_harmony_cangjie_sdk.model.entity.ViewSnapshot
+
 // GENERATED. Do not edit by hand.
 // Collection/map payloads are represented as raw JSON strings at the bridge boundary.
 // Response returned when opening an observable view and by timelineSnapshot.

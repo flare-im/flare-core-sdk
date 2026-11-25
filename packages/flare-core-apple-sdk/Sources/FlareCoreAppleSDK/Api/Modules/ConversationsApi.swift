@@ -7,6 +7,7 @@ public protocol ConversationsApiProtocol: AnyObject {
     func listConversationsByQuery(_ request: ConversationListQuery) async throws -> ListConversationsResponse
     func listConversationsIncludingArchived() async throws -> ListConversationsResponse
     func getConversation(_ request: [String: AnySendable]) async throws -> Conversation
+    func getConversationMember(_ request: [String: AnySendable]) async throws -> [String: AnySendable]
     func getOneConversation(_ request: [String: AnySendable]) async throws -> Conversation
     func getGroupConversationByUserIds(_ request: [String: AnySendable]) async throws -> Conversation
     func getMultipleConversations(_ request: [String: AnySendable]) async throws -> ListConversationsResponse

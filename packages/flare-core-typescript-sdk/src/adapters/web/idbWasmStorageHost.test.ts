@@ -36,6 +36,27 @@ afterEach(() => {
 });
 
 describe("Web storage durability", () => {
+  it("two clients reading the same revision can commit it only once", async () => {
+    const first = (await import("./idbWasmStorageHost")).createWasmIndexedDbStorageHost();
+    vi.resetModules();
+    const second = (await import("./idbWasmStorageHost")).createWasmIndexedDbStorageHost();
+    const userId = "tenant/account";
+    const expected = {conversationId:"room", maxSeq:2, unreadCount:2, lastReadSeq:0};
+    await first.saveConversation({userId,conversation:expected});
+    const pending = {...expected, unreadCount:1, lastReadSeq:1, ext:{"_local.pendingReadSeq":"1"}};
+    const request = {userId,expected,conversation:pending};
+    const replies = (await Promise.all([first.commitProjection!(request),second.commitProjection!(request)])).map(s => JSON.parse(s));
+    expect(replies.filter(r => r.committed)).toHaveLength(1);
+    expect(replies.find(r => !r.committed).conversation).toMatchObject(pending);
+    await second.saveConversation({userId,conversation:{...expected,isPinned:true}});
+    const latest = JSON.parse(await first.loadSnapshot({userId})).conversations[0];
+    expect(latest).toMatchObject({...pending,isPinned:true});
+    const confirmed = await first.commitProjection!({userId,expected:latest,conversation:{...latest,ext:{}}});
+    expect(JSON.parse(confirmed).committed).toBe(true);
+    await second.saveConversation({userId,conversation:pending});
+    expect(JSON.parse(await first.loadSnapshot({userId})).conversations[0].ext).toEqual({});
+  });
+
   it.each(["wasmMessages", "wasmConversations", "wasmPendingSends"])(
     "rolls back the entire outgoing transaction on a failed %s write", async (store) => {
       const userId = "scope";

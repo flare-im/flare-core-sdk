@@ -1,5 +1,7 @@
 package flare_core_harmony_cangjie_sdk.model.event.sync
 
+import flare_core_harmony_cangjie_sdk.model.common.error.SdkErrorPayload
+
 // GENERATED. Do not edit by hand.
 // Collection/map payloads are represented as raw JSON strings at the bridge boundary.
 // Sync orchestration notification payload.

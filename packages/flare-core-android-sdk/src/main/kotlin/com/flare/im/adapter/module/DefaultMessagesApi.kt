@@ -140,6 +140,14 @@ class DefaultMessagesApi(
         return invokeMessage(bridge, NativeCallMap.MESSAGE_GET, request)
     }
 
+    override suspend fun getMessageByKey(request: MessageKey): MessageByKeyResponse {
+        return messageByKeyResponseFromJson(invokeMap(bridge, NativeCallMap.MESSAGE_GET_BY_KEY, messageKeyToMap(request)))
+    }
+
+    override suspend fun awaitMessageConfirmation(request: Map<String, Any?>): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.MESSAGE_AWAIT_CONFIRMATION, request)
+    }
+
     override suspend fun getRawMessage(request: Map<String, Any?>): Map<String, Any?> {
         return invokeMap(bridge, NativeCallMap.MESSAGE_GET_RAW, request)
     }

@@ -12,6 +12,8 @@ abstract interface class ConversationsApi {
   Future<ListConversationsResponse> listConversationsIncludingArchived();
   /// getConversation maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.get`.
   Future<Conversation> getConversation(Map<String, Object?> request);
+  /// getConversationMember maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.member`.
+  Future<Map<String, Object?>> getConversationMember(Map<String, Object?> request);
   /// getOneConversation maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.get_one`.
   Future<Conversation> getOneConversation(Map<String, Object?> request);
   /// getGroupConversationByUserIds maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.get_group_by_user_ids`.

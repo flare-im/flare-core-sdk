@@ -1,10 +1,11 @@
 // GENERATED. Do not edit by hand.
 import { NativeBridge, NativeCallMap } from '../../contract/bridge_contract';
 import type { MediaApi } from '../../api/modules/media';
+import { MediaTransferCancellation, MediaTransferRequest, MediaUploadRecovery, MediaUploadRecoveryRequest } from '../../model';
 import { FlareSdkException } from '../../bridge/flareSdkException';
 import { pickDisplayUrlFromResolved } from '../media/mediaAccess';
 import { invokeBool, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeList, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError, withoutNullFields } from '../codec/nativeInvoke';
-import { conversationFromJson, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, messageFromJson, sendAckFromJson, sendMessageRequestToMap } from '../codec/wireCodec';
+import { conversationFromJson, listConversationsResponseFromJson, listMessagesResponseFromJson, listOfMaps, mediaTransferRequestToMap, mediaUploadRecoveryRequestToMap, messageFromJson, sendAckFromJson, sendMessageRequestToMap } from '../codec/wireCodec';
 
 export class DefaultMediaApi implements MediaApi {
   constructor(private readonly bridge: NativeBridge) {}
@@ -31,6 +32,10 @@ export class DefaultMediaApi implements MediaApi {
 
   async getMediaUrl(request: Record<string, unknown>): Promise<Record<string, unknown>> {
     return await invokeMap(this.bridge, NativeCallMap.mediaGetUrl, request);
+  }
+
+  async resolveAttachment(request: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return await invokeMap(this.bridge, NativeCallMap.mediaResolveAttachment, request);
   }
 
   async getTempDownloadUrl(request: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -87,6 +92,18 @@ export class DefaultMediaApi implements MediaApi {
 
   async downloadToUserDirectory(request: Record<string, unknown>): Promise<Record<string, unknown>> {
     return await invokeMap(this.bridge, NativeCallMap.mediaDownloadToUserDirectory, request);
+  }
+
+  async uploadRecovery(request: MediaUploadRecoveryRequest): Promise<MediaUploadRecovery> {
+    return await invokeMap(this.bridge, NativeCallMap.mediaUploadRecovery, mediaUploadRecoveryRequestToMap(request)) as unknown as MediaUploadRecovery;
+  }
+
+  async cancelUpload(request: MediaTransferRequest): Promise<MediaTransferCancellation> {
+    return await invokeMap(this.bridge, NativeCallMap.mediaCancelUpload, mediaTransferRequestToMap(request)) as unknown as MediaTransferCancellation;
+  }
+
+  async cancelTransfer(request: MediaTransferRequest): Promise<MediaTransferCancellation> {
+    return await invokeMap(this.bridge, NativeCallMap.mediaCancelTransfer, mediaTransferRequestToMap(request)) as unknown as MediaTransferCancellation;
   }
 
   async cancelUserFileDownload(request: Record<string, unknown>): Promise<boolean> {

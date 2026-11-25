@@ -897,6 +897,14 @@ Message models mirrored from flare-core-sdk-engine/src/model/message.rs and mess
 
 - `MessageReceiptStatus`: Receipt state the core SDK projects for a message: pending (built locally, not yet sending), sending (no server sequence yet, media uploading included), sent (the server has it), read (single chat: the peer read it; group: the read summary says all members read it), failed (retryable). There is no delivered state. Values: `pending`, `sending`, `sent`, `read`, `failed`
 
+### MessageByKeyResponse
+
+A local lookup within one conversation and sender. Missing or ambiguous messages have no value.
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `message` | `message` | `Message` | no |  |
+
 ### MessageContent
 
 Decoded content envelope. Type-specific payload lives in `data` until per-content models are generated.
@@ -924,6 +932,16 @@ The receipt projection of a message, computed by the core SDK; kits draw it as i
 |-------|-----------|------|----------|-------------|
 | `status` | `status` | `MessageReceiptStatus` | yes | Receipt state. |
 | `readSummary` | `readSummary` | `MessageReadSummary` | no | Only on the viewer's own messages in groups, once the core SDK has read it from Core for a message a view shows (and refreshed on read receipts); absent in single chats, in groups above the large-group threshold, and before it is known. Never a made-up number. |
+
+### MessageKey
+
+
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `conversationId` | `conversationId` | `String` | yes |  |
+| `senderId` | `senderId` | `String` | yes |  |
+| `clientMsgId` | `clientMsgId` | `String` | yes |  |
 
 ### CreateTextMessageRequest
 
@@ -1782,11 +1800,46 @@ Typed optional publication intent for existing media upload request options; mir
 
 - `MediaUploadPurpose`: general remains private; avatar explicitly publishes a validated image under the dedicated anonymous-read prefix. Values: `general`, `avatar`
 
+### MediaUploadRecoveryRequest
+
+
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `sourceKind` | `sourceKind` | `String` | yes |  |
+
+### MediaUploadRecovery
+
+
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `sameSession` | `sameSession` | `Boolean` | yes |  |
+| `afterRestart` | `afterRestart` | `Boolean` | yes |  |
+| `requiresSourceReselection` | `requiresSourceReselection` | `Boolean` | yes |  |
+
+### MediaTransferRequest
+
+
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `transferId` | `transferId` | `String` | yes |  |
+
+### MediaTransferCancellation
+
+
+
+| Field | Wire name | Type | Required | Description |
+|-------|-----------|------|----------|-------------|
+| `cancelled` | `cancelled` | `Boolean` | yes |  |
+
 ### MediaUploadOptions
 
 Optional upload options. Omitted chunkSize defaults to 256 KiB; omitted purpose defaults to general. options may contain purpose alone. No arbitrary Public access flag exists.
 
 | Field | Wire name | Type | Required | Description |
 |-------|-----------|------|----------|-------------|
+| `transferId` | `transferId` | `String` | no |  |
 | `chunkSize` | `chunkSize` | `UInt32` | no | Optional positive part size, in bytes; absent preserves the existing default. |
 | `purpose` | `purpose` | `MediaUploadPurpose` | no | Explicit avatar publication intent. General uploads stay private. Avatar returns stable unsigned url/cdnUrl after real image validation. |

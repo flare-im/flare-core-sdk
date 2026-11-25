@@ -7,6 +7,7 @@ export interface ConversationsApi {
   listConversationsByQuery(request: ConversationListQuery): Promise<ListConversationsResponse>;
   listConversationsIncludingArchived(): Promise<ListConversationsResponse>;
   getConversation(request: Record<string, Object>): Promise<Conversation>;
+  getConversationMember(request: Record<string, Object>): Promise<Record<string, Object>>;
   getOneConversation(request: Record<string, Object>): Promise<Conversation>;
   getGroupConversationByUserIds(request: Record<string, Object>): Promise<Conversation>;
   getMultipleConversations(request: Record<string, Object>): Promise<ListConversationsResponse>;

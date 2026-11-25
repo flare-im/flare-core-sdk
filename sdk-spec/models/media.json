@@ -13,9 +13,71 @@
   ],
   "models": [
     {
+      "name": "MediaUploadRecoveryRequest",
+      "fields": [
+        {
+          "name": "sourceKind",
+          "wireName": "sourceKind",
+          "type": "String",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "MediaUploadRecovery",
+      "fields": [
+        {
+          "name": "sameSession",
+          "wireName": "sameSession",
+          "type": "Boolean",
+          "required": true
+        },
+        {
+          "name": "afterRestart",
+          "wireName": "afterRestart",
+          "type": "Boolean",
+          "required": true
+        },
+        {
+          "name": "requiresSourceReselection",
+          "wireName": "requiresSourceReselection",
+          "type": "Boolean",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "MediaTransferRequest",
+      "fields": [
+        {
+          "name": "transferId",
+          "wireName": "transferId",
+          "type": "String",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "MediaTransferCancellation",
+      "fields": [
+        {
+          "name": "cancelled",
+          "wireName": "cancelled",
+          "type": "Boolean",
+          "required": true
+        }
+      ]
+    },
+    {
       "name": "MediaUploadOptions",
       "description": "Optional upload options. Omitted chunkSize defaults to 256 KiB; omitted purpose defaults to general. options may contain purpose alone. No arbitrary Public access flag exists.",
       "fields": [
+        {
+          "name": "transferId",
+          "wireName": "transferId",
+          "type": "String",
+          "required": false
+        },
         {
           "name": "chunkSize",
           "wireName": "chunkSize",

@@ -1,5 +1,7 @@
 package flare_core_harmony_cangjie_sdk.model.command.message
 
+import flare_core_harmony_cangjie_sdk.model.entity.Message
+
 // GENERATED. Do not edit by hand.
 // Collection/map payloads are represented as raw JSON strings at the bridge boundary.
 // Send a fully built message.

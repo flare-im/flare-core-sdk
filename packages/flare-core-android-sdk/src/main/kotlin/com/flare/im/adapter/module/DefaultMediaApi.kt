@@ -56,6 +56,10 @@ class DefaultMediaApi(
         return invokeMap(bridge, NativeCallMap.MEDIA_GET_URL, request)
     }
 
+    override suspend fun resolveAttachment(request: Map<String, Any?>): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.MEDIA_RESOLVE_ATTACHMENT, request)
+    }
+
     override suspend fun getTempDownloadUrl(request: Map<String, Any?>): Map<String, Any?> {
         return invokeMap(bridge, NativeCallMap.MEDIA_TEMP_DOWNLOAD_URL, request)
     }
@@ -110,6 +114,18 @@ class DefaultMediaApi(
 
     override suspend fun downloadToUserDirectory(request: Map<String, Any?>): Map<String, Any?> {
         return invokeMap(bridge, NativeCallMap.MEDIA_DOWNLOAD_TO_USER_DIRECTORY, request)
+    }
+
+    override suspend fun uploadRecovery(request: MediaUploadRecoveryRequest): MediaUploadRecovery {
+        return mediaUploadRecoveryFromJson(invokeMap(bridge, NativeCallMap.MEDIA_UPLOAD_RECOVERY, mediaUploadRecoveryRequestToMap(request)))
+    }
+
+    override suspend fun cancelUpload(request: MediaTransferRequest): MediaTransferCancellation {
+        return mediaTransferCancellationFromJson(invokeMap(bridge, NativeCallMap.MEDIA_CANCEL_UPLOAD, mediaTransferRequestToMap(request)))
+    }
+
+    override suspend fun cancelTransfer(request: MediaTransferRequest): MediaTransferCancellation {
+        return mediaTransferCancellationFromJson(invokeMap(bridge, NativeCallMap.MEDIA_CANCEL_TRANSFER, mediaTransferRequestToMap(request)))
     }
 
     override suspend fun cancelUserFileDownload(request: Map<String, Any?>): Boolean {

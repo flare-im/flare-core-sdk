@@ -36,6 +36,10 @@ public class DefaultMediaApi <: MediaApi {
         return bridge.invoke(descriptor: NativeCallMap.mediaGetUrl, requestJson: wireEncodeRequest(requestJson))
     }
 
+    public func resolveAttachment(requestJson: String): String {
+        return bridge.invoke(descriptor: NativeCallMap.mediaResolveAttachment, requestJson: wireEncodeRequest(requestJson))
+    }
+
     public func getTempDownloadUrl(requestJson: String): String {
         return bridge.invoke(descriptor: NativeCallMap.mediaTempDownloadUrl, requestJson: wireEncodeRequest(requestJson))
     }
@@ -90,6 +94,21 @@ public class DefaultMediaApi <: MediaApi {
 
     public func downloadToUserDirectory(requestJson: String): String {
         return bridge.invoke(descriptor: NativeCallMap.mediaDownloadToUserDirectory, requestJson: wireEncodeRequest(requestJson))
+    }
+
+    public func uploadRecovery(request: MediaUploadRecoveryRequest): MediaUploadRecovery {
+        let raw = bridge.invoke(descriptor: NativeCallMap.mediaUploadRecovery, requestJson: wireEncodeRequest(mediaUploadRecoveryRequestToJson(request)))
+        return mediaUploadRecoveryFromJson(raw)
+    }
+
+    public func cancelUpload(request: MediaTransferRequest): MediaTransferCancellation {
+        let raw = bridge.invoke(descriptor: NativeCallMap.mediaCancelUpload, requestJson: wireEncodeRequest(mediaTransferRequestToJson(request)))
+        return mediaTransferCancellationFromJson(raw)
+    }
+
+    public func cancelTransfer(request: MediaTransferRequest): MediaTransferCancellation {
+        let raw = bridge.invoke(descriptor: NativeCallMap.mediaCancelTransfer, requestJson: wireEncodeRequest(mediaTransferRequestToJson(request)))
+        return mediaTransferCancellationFromJson(raw)
     }
 
     public func cancelUserFileDownload(requestJson: String): BooleanResponse {

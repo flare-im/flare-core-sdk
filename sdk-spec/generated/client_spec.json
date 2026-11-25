@@ -3978,6 +3978,18 @@
       "group": "messages",
       "models": [
         {
+          "description": "A local lookup within one conversation and sender. Missing or ambiguous messages have no value.",
+          "fields": [
+            {
+              "name": "message",
+              "required": false,
+              "type": "Message",
+              "wireName": "message"
+            }
+          ],
+          "name": "MessageByKeyResponse"
+        },
+        {
           "description": "Decoded content envelope. Type-specific payload lives in `data` until per-content models are generated.",
           "fields": [
             {
@@ -4043,6 +4055,29 @@
             }
           ],
           "name": "MessageReceiptView"
+        },
+        {
+          "fields": [
+            {
+              "name": "conversationId",
+              "required": true,
+              "type": "String",
+              "wireName": "conversationId"
+            },
+            {
+              "name": "senderId",
+              "required": true,
+              "type": "String",
+              "wireName": "senderId"
+            },
+            {
+              "name": "clientMsgId",
+              "required": true,
+              "type": "String",
+              "wireName": "clientMsgId"
+            }
+          ],
+          "name": "MessageKey"
         },
         {
           "description": "Create a text message draft for a conversation.",
@@ -6662,8 +6697,70 @@
       "group": "media",
       "models": [
         {
+          "fields": [
+            {
+              "name": "sourceKind",
+              "required": true,
+              "type": "String",
+              "wireName": "sourceKind"
+            }
+          ],
+          "name": "MediaUploadRecoveryRequest"
+        },
+        {
+          "fields": [
+            {
+              "name": "sameSession",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "sameSession"
+            },
+            {
+              "name": "afterRestart",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "afterRestart"
+            },
+            {
+              "name": "requiresSourceReselection",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "requiresSourceReselection"
+            }
+          ],
+          "name": "MediaUploadRecovery"
+        },
+        {
+          "fields": [
+            {
+              "name": "transferId",
+              "required": true,
+              "type": "String",
+              "wireName": "transferId"
+            }
+          ],
+          "name": "MediaTransferRequest"
+        },
+        {
+          "fields": [
+            {
+              "name": "cancelled",
+              "required": true,
+              "type": "Boolean",
+              "wireName": "cancelled"
+            }
+          ],
+          "name": "MediaTransferCancellation"
+        },
+        {
           "description": "Optional upload options. Omitted chunkSize defaults to 256 KiB; omitted purpose defaults to general. options may contain purpose alone. No arbitrary Public access flag exists.",
           "fields": [
+            {
+              "name": "transferId",
+              "required": false,
+              "type": "String",
+              "wireName": "transferId"
+            },
             {
               "description": "Optional positive part size, in bytes; absent preserves the existing default.",
               "name": "chunkSize",
@@ -7332,6 +7429,24 @@
           "operation": "conversation.get",
           "request": "GetConversationRequest",
           "response": "Conversation",
+          "stability": "stable",
+          "transport": "contract-invoke-json"
+        },
+        {
+          "cApi": "flare_sdk_invoke_json",
+          "description": "Request {conversationId, user:{userId}}. Returns {member}: the participant fact synced from the server with its projected name, or no member when the user is not in the conversation.",
+          "name": "getConversationMember",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json",
+            "returnMode": "callback"
+          },
+          "operation": "conversation.member",
+          "request": "ConversationMemberRequest",
+          "response": "JsonValue",
           "stability": "stable",
           "transport": "contract-invoke-json"
         },
@@ -8237,6 +8352,8 @@
         "ops": [
           "get",
           "get_raw",
+          "get_by_key",
+          "await_confirmation",
           "search",
           "search_by_query",
           "send",
@@ -8673,6 +8790,43 @@
           "operation": "message.get",
           "request": "GetMessageRequest",
           "response": "Message",
+          "stability": "stable",
+          "transport": "message-dispatch-json"
+        },
+        {
+          "cApi": "flare_message_dispatch_json",
+          "dispatchOp": "get_by_key",
+          "name": "getMessageByKey",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "message.get_by_key",
+          "request": "MessageKey",
+          "response": "MessageByKeyResponse",
+          "stability": "stable",
+          "transport": "message-dispatch-json"
+        },
+        {
+          "cApi": "flare_message_dispatch_json",
+          "description": "send returns once the message and its outbox entry are committed on this device. This waits for the server: {state:\"persisted\", serverId, conversationSeq} or {state:\"failed\", reason}. Request {conversationId, senderId, clientMsgId, timeoutMs}; a timeout fails with OPERATION_TIMEOUT and the message keeps retrying.",
+          "dispatchOp": "await_confirmation",
+          "name": "awaitMessageConfirmation",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "json",
+            "responseEncoding": "json",
+            "returnMode": "callback"
+          },
+          "operation": "message.await_confirmation",
+          "request": "ConfirmationRequest",
+          "response": "JsonValue",
           "stability": "stable",
           "transport": "message-dispatch-json"
         },
@@ -9115,6 +9269,25 @@
         },
         {
           "cApi": "flare_media_dispatch_json",
+          "description": "Request {fileId, conversationId, messageSeq, expiresIn?}: a message attachment's short-lived access URL. messageSeq is the message's conversationSeq.",
+          "dispatchOp": "resolve_attachment",
+          "name": "resolveAttachment",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "typed-ffi",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "media.resolve_attachment",
+          "request": "ResolveAttachmentRequest",
+          "response": "MediaAccessUrl",
+          "stability": "stable",
+          "transport": "media-dispatch-json"
+        },
+        {
+          "cApi": "flare_media_dispatch_json",
           "dispatchOp": "temp_download_url",
           "name": "getTempDownloadUrl",
           "nativeBinding": {
@@ -9363,6 +9536,61 @@
           "operation": "media.download_to_user_directory",
           "request": "DownloadToUserDirectoryRequest",
           "response": "UserFileDownloadResult",
+          "stability": "stable",
+          "transport": "media-dispatch-json"
+        },
+        {
+          "cApi": "flare_media_dispatch_json",
+          "dispatchOp": "upload_recovery",
+          "name": "uploadRecovery",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "typed-ffi",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "media.upload_recovery",
+          "request": "MediaUploadRecoveryRequest",
+          "response": "MediaUploadRecovery",
+          "stability": "stable",
+          "transport": "media-dispatch-json"
+        },
+        {
+          "cApi": "flare_media_dispatch_json",
+          "dispatchOp": "cancel_upload",
+          "name": "cancelUpload",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "typed-ffi",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "media.cancel_upload",
+          "request": "MediaTransferRequest",
+          "response": "MediaTransferCancellation",
+          "stability": "stable",
+          "transport": "media-dispatch-json"
+        },
+        {
+          "cApi": "flare_media_dispatch_json",
+          "description": "One cancel for an upload's transferId or a saved download's downloadKey. A cancelled download never publishes a partial file.",
+          "dispatchOp": "cancel_transfer",
+          "name": "cancelTransfer",
+          "nativeBinding": {
+            "asyncReturn": "i32 immediate_submit_code",
+            "callback": "FlareResultCallback",
+            "handlePolicy": "client-handle",
+            "requestEncoding": "typed-ffi",
+            "responseEncoding": "json-object",
+            "returnMode": "callback"
+          },
+          "operation": "media.cancel_transfer",
+          "request": "MediaTransferRequest",
+          "response": "MediaTransferCancellation",
           "stability": "stable",
           "transport": "media-dispatch-json"
         },

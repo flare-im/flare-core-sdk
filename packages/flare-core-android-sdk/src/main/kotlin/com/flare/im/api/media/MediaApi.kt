@@ -38,6 +38,8 @@ interface MediaApi {
     suspend fun deleteFile(request: Map<String, Any?>): Map<String, Any?>
     /** getMediaUrl maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `get_url`. Operation: `media.get_url`. */
     suspend fun getMediaUrl(request: Map<String, Any?>): Map<String, Any?>
+    /** resolveAttachment maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `resolve_attachment`. Operation: `media.resolve_attachment`. */
+    suspend fun resolveAttachment(request: Map<String, Any?>): Map<String, Any?>
     /** getTempDownloadUrl maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `temp_download_url`. Operation: `media.temp_download_url`. */
     suspend fun getTempDownloadUrl(request: Map<String, Any?>): Map<String, Any?>
     /** resolveMediaAccess maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `resolve_access`. Operation: `media.resolve_access`. */
@@ -66,6 +68,12 @@ interface MediaApi {
     suspend fun setUserDownloadDirectory(request: Map<String, Any?>): Map<String, Any?>
     /** downloadToUserDirectory maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `download_to_user_directory`. Operation: `media.download_to_user_directory`. */
     suspend fun downloadToUserDirectory(request: Map<String, Any?>): Map<String, Any?>
+    /** uploadRecovery maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `upload_recovery`. Operation: `media.upload_recovery`. */
+    suspend fun uploadRecovery(request: MediaUploadRecoveryRequest): MediaUploadRecovery
+    /** cancelUpload maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `cancel_upload`. Operation: `media.cancel_upload`. */
+    suspend fun cancelUpload(request: MediaTransferRequest): MediaTransferCancellation
+    /** cancelTransfer maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `cancel_transfer`. Operation: `media.cancel_transfer`. */
+    suspend fun cancelTransfer(request: MediaTransferRequest): MediaTransferCancellation
     /** cancelUserFileDownload maps to `flare_media_cancel_user_file_download` via `ffi-symbol`. Operation: `media.cancel_user_file_download`. */
     suspend fun cancelUserFileDownload(request: Map<String, Any?>): Boolean
     /** downloadFileToDownloads maps to `flare_media_download_file_to_downloads` via `ffi-symbol`. Operation: `media.download_file_to_downloads`. */

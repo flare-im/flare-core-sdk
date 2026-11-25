@@ -44,6 +44,10 @@ class DefaultConversationsApi(
         return invokeListConversations(bridge, NativeCallMap.CONVERSATION_LIST_INCLUDING_ARCHIVED)
     }
 
+    override suspend fun getConversationMember(request: Map<String, Any?>): Map<String, Any?> {
+        return invokeMap(bridge, NativeCallMap.CONVERSATION_MEMBER, request)
+    }
+
     override suspend fun getConversation(request: Map<String, Any?>): Conversation {
         return invokeConversation(bridge, NativeCallMap.CONVERSATION_GET, request)
     }

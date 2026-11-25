@@ -513,6 +513,19 @@ abstract final class NativeCallMap {
       handlePolicy: "client-handle",
       callback: "FlareResultCallback");
 
+  /// getConversationMember maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.member`.
+  static const conversationMember = NativeCallDescriptor(
+      module: "conversations",
+      method: "getConversationMember",
+      operation: "conversation.member",
+      transport: "contract-invoke-json",
+      cApi: "flare_sdk_invoke_json",
+      requestEncoding: "json",
+      responseEncoding: "json",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      callback: "FlareResultCallback");
+
   /// getOneConversation maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.get_one`.
   static const conversationGetOne = NativeCallDescriptor(
       module: "conversations",
@@ -1466,6 +1479,34 @@ abstract final class NativeCallMap {
       dispatchOp: "get",
       callback: "FlareResultCallback");
 
+  /// getMessageByKey maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `get_by_key`. Operation: `message.get_by_key`.
+  static const messageGetByKey = NativeCallDescriptor(
+      module: "messages",
+      method: "getMessageByKey",
+      operation: "message.get_by_key",
+      transport: "message-dispatch-json",
+      cApi: "flare_message_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "get_by_key",
+      callback: "FlareResultCallback");
+
+  /// awaitMessageConfirmation maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `await_confirmation`. Operation: `message.await_confirmation`.
+  static const messageAwaitConfirmation = NativeCallDescriptor(
+      module: "messages",
+      method: "awaitMessageConfirmation",
+      operation: "message.await_confirmation",
+      transport: "message-dispatch-json",
+      cApi: "flare_message_dispatch_json",
+      requestEncoding: "json",
+      responseEncoding: "json",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "await_confirmation",
+      callback: "FlareResultCallback");
+
   /// getRawMessage maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `get_raw`. Operation: `message.get_raw`.
   static const messageGetRaw = NativeCallDescriptor(
       module: "messages",
@@ -1773,6 +1814,20 @@ abstract final class NativeCallMap {
       dispatchOp: "get_url",
       callback: "FlareResultCallback");
 
+  /// resolveAttachment maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `resolve_attachment`. Operation: `media.resolve_attachment`.
+  static const mediaResolveAttachment = NativeCallDescriptor(
+      module: "media",
+      method: "resolveAttachment",
+      operation: "media.resolve_attachment",
+      transport: "media-dispatch-json",
+      cApi: "flare_media_dispatch_json",
+      requestEncoding: "typed-ffi",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "resolve_attachment",
+      callback: "FlareResultCallback");
+
   /// getTempDownloadUrl maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `temp_download_url`. Operation: `media.temp_download_url`.
   static const mediaTempDownloadUrl = NativeCallDescriptor(
       module: "media",
@@ -1967,6 +2022,48 @@ abstract final class NativeCallMap {
       returnMode: "callback",
       handlePolicy: "client-handle",
       dispatchOp: "download_to_user_directory",
+      callback: "FlareResultCallback");
+
+  /// uploadRecovery maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `upload_recovery`. Operation: `media.upload_recovery`.
+  static const mediaUploadRecovery = NativeCallDescriptor(
+      module: "media",
+      method: "uploadRecovery",
+      operation: "media.upload_recovery",
+      transport: "media-dispatch-json",
+      cApi: "flare_media_dispatch_json",
+      requestEncoding: "typed-ffi",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "upload_recovery",
+      callback: "FlareResultCallback");
+
+  /// cancelUpload maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `cancel_upload`. Operation: `media.cancel_upload`.
+  static const mediaCancelUpload = NativeCallDescriptor(
+      module: "media",
+      method: "cancelUpload",
+      operation: "media.cancel_upload",
+      transport: "media-dispatch-json",
+      cApi: "flare_media_dispatch_json",
+      requestEncoding: "typed-ffi",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "cancel_upload",
+      callback: "FlareResultCallback");
+
+  /// cancelTransfer maps to `flare_media_dispatch_json` via `media-dispatch-json`, dispatch op `cancel_transfer`. Operation: `media.cancel_transfer`.
+  static const mediaCancelTransfer = NativeCallDescriptor(
+      module: "media",
+      method: "cancelTransfer",
+      operation: "media.cancel_transfer",
+      transport: "media-dispatch-json",
+      cApi: "flare_media_dispatch_json",
+      requestEncoding: "typed-ffi",
+      responseEncoding: "json-object",
+      returnMode: "callback",
+      handlePolicy: "client-handle",
+      dispatchOp: "cancel_transfer",
       callback: "FlareResultCallback");
 
   /// cancelUserFileDownload maps to `flare_media_cancel_user_file_download` via `ffi-symbol`. Operation: `media.cancel_user_file_download`.

@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, ViewUpdate } from '../../model';
+import { ConnectionStatus, ConversationEvent, LifecycleEvent, MediaTransferCancellation, MediaTransferRequest, MediaUploadRecovery, MediaUploadRecoveryRequest, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, ViewUpdate } from '../../model';
 
 /** Media access URL and local cache operations. */
 export interface MediaApi {
@@ -9,6 +9,7 @@ export interface MediaApi {
   uploadBytes(request: Record<string, Object>): Promise<Record<string, Object>>;
   deleteFile(request: Record<string, Object>): Promise<Record<string, Object>>;
   getMediaUrl(request: Record<string, Object>): Promise<Record<string, Object>>;
+  resolveAttachment(request: Record<string, Object>): Promise<Record<string, Object>>;
   getTempDownloadUrl(request: Record<string, Object>): Promise<Record<string, Object>>;
   resolveMediaAccess(request: Record<string, Object>): Promise<Record<string, Object>>;
   cacheRemoteMedia(request: Record<string, Object>): Promise<Record<string, Object>>;
@@ -23,6 +24,9 @@ export interface MediaApi {
   getUserDownloadDirectory(): Promise<Record<string, Object>>;
   setUserDownloadDirectory(request: Record<string, Object>): Promise<Record<string, Object>>;
   downloadToUserDirectory(request: Record<string, Object>): Promise<Record<string, Object>>;
+  uploadRecovery(request: MediaUploadRecoveryRequest): Promise<MediaUploadRecovery>;
+  cancelUpload(request: MediaTransferRequest): Promise<MediaTransferCancellation>;
+  cancelTransfer(request: MediaTransferRequest): Promise<MediaTransferCancellation>;
   cancelUserFileDownload(request: Record<string, Object>): Promise<boolean>;
   downloadFileToDownloads(request: Record<string, Object>): Promise<Record<string, Object>>;
 }

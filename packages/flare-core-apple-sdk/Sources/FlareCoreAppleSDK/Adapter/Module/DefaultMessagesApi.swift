@@ -120,8 +120,17 @@ public final class DefaultMessagesApi: MessagesApiProtocol {
         return try messageFromJson(raw["message"] ?? raw)
     }
 
+    public func getMessageByKey(_ request: MessageKey) async throws -> MessageByKeyResponse {
+        let raw = try await invokeMap(bridge, descriptor: NativeCallMap.messageGetByKey, request: messageKeyToMap(request))
+        return try messageByKeyResponseFromJson(raw)
+    }
+
     public func getRawMessage(_ request: [String: AnySendable]) async throws -> [String: AnySendable] {
         return try await invokeMap(bridge, descriptor: NativeCallMap.messageGetRaw, request: unwrapRequest(AnySendable(request)))
+    }
+
+    public func awaitMessageConfirmation(_ request: [String: AnySendable]) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.messageAwaitConfirmation, request: unwrapRequest(AnySendable(request)))
     }
 
     public func searchMessages(_ request: MessageSearchQuery) async throws -> ListMessagesResponse {

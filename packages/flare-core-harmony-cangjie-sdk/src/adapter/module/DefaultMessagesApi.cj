@@ -123,6 +123,11 @@ public class DefaultMessagesApi <: MessagesApi {
         return messageFromEnvelopeJson(raw)
     }
 
+    public func getMessageByKey(request: MessageKey): MessageByKeyResponse {
+        let raw = bridge.invoke(descriptor: NativeCallMap.messageGetByKey, requestJson: wireEncodeRequest(messageKeyToJson(request)))
+        return messageByKeyResponseFromJson(raw)
+    }
+
     public func getRawMessage(requestJson: String): JsonValue {
         let raw = bridge.invoke(descriptor: NativeCallMap.messageGetRaw, requestJson: wireEncodeRequest(requestJson))
         return JsonValue(raw)

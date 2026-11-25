@@ -5,7 +5,12 @@
     {
       "name": "MessageSendStage",
       "description": "Stage reached by an outbound message.",
-      "values": ["queued", "accepted", "persisted", "failed"]
+      "values": [
+        "queued",
+        "accepted",
+        "persisted",
+        "failed"
+      ]
     },
     {
       "name": "MessageContentType",
@@ -87,6 +92,18 @@
           "type": "UInt32",
           "required": true,
           "description": "Reaction count."
+        }
+      ]
+    },
+    {
+      "name": "MessageByKeyResponse",
+      "description": "A local lookup within one conversation and sender. Missing or ambiguous messages have no value.",
+      "fields": [
+        {
+          "name": "message",
+          "wireName": "message",
+          "type": "Message",
+          "required": false
         }
       ]
     },
@@ -202,6 +219,29 @@
           "type": "MessageReadSummary",
           "required": false,
           "description": "Only on the viewer's own messages in groups, once the core SDK has read it from Core for a message a view shows (and refreshed on read receipts); absent in single chats, in groups above the large-group threshold, and before it is known. Never a made-up number."
+        }
+      ]
+    },
+    {
+      "name": "MessageKey",
+      "fields": [
+        {
+          "name": "conversationId",
+          "wireName": "conversationId",
+          "type": "String",
+          "required": true
+        },
+        {
+          "name": "senderId",
+          "wireName": "senderId",
+          "type": "String",
+          "required": true
+        },
+        {
+          "name": "clientMsgId",
+          "wireName": "clientMsgId",
+          "type": "String",
+          "required": true
         }
       ]
     },

@@ -32,6 +32,10 @@ public final class DefaultMediaApi: MediaApiProtocol {
         return try await invokeMap(bridge, descriptor: NativeCallMap.mediaGetUrl, request: unwrapRequest(AnySendable(request)))
     }
 
+    public func resolveAttachment(_ request: [String: AnySendable]) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.mediaResolveAttachment, request: unwrapRequest(AnySendable(request)))
+    }
+
     public func getTempDownloadUrl(_ request: [String: AnySendable]) async throws -> [String: AnySendable] {
         return try await invokeMap(bridge, descriptor: NativeCallMap.mediaTempDownloadUrl, request: unwrapRequest(AnySendable(request)))
     }
@@ -86,6 +90,21 @@ public final class DefaultMediaApi: MediaApiProtocol {
 
     public func downloadToUserDirectory(_ request: [String: AnySendable]) async throws -> [String: AnySendable] {
         return try await invokeMap(bridge, descriptor: NativeCallMap.mediaDownloadToUserDirectory, request: unwrapRequest(AnySendable(request)))
+    }
+
+    public func uploadRecovery(_ request: MediaUploadRecoveryRequest) async throws -> MediaUploadRecovery {
+        let raw = try await invokeMap(bridge, descriptor: NativeCallMap.mediaUploadRecovery, request: mediaUploadRecoveryRequestToMap(request))
+        return try mediaUploadRecoveryFromJson(raw)
+    }
+
+    public func cancelUpload(_ request: MediaTransferRequest) async throws -> MediaTransferCancellation {
+        let raw = try await invokeMap(bridge, descriptor: NativeCallMap.mediaCancelUpload, request: mediaTransferRequestToMap(request))
+        return try mediaTransferCancellationFromJson(raw)
+    }
+
+    public func cancelTransfer(_ request: MediaTransferRequest) async throws -> MediaTransferCancellation {
+        let raw = try await invokeMap(bridge, descriptor: NativeCallMap.mediaCancelTransfer, request: mediaTransferRequestToMap(request))
+        return try mediaTransferCancellationFromJson(raw)
     }
 
     public func cancelUserFileDownload(_ request: [String: AnySendable]) async throws -> Bool {

@@ -1,5 +1,7 @@
 package flare_core_harmony_cangjie_sdk.model.command
 
+import flare_core_harmony_cangjie_sdk.model.entity.NetworkInterfaceKind
+
 // GENERATED. Do not edit by hand.
 // Collection/map payloads are represented as raw JSON strings at the bridge boundary.
 // Platform network-change notification. The link supervisor alone decides whether and how to reconnect.

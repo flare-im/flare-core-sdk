@@ -9,6 +9,7 @@ public interface ConversationsApi {
     func listConversationsByQuery(request: ConversationListQuery): ListConversationsResponse
     func listConversationsIncludingArchived(): ListConversationsResponse
     func getConversation(requestJson: String): Conversation
+    func getConversationMember(requestJson: String): JsonValue
     func getOneConversation(requestJson: String): Conversation
     func getGroupConversationByUserIds(requestJson: String): Conversation
     func getMultipleConversations(requestJson: String): ListConversationsResponse

@@ -1,5 +1,11 @@
 import type { MediaApi } from '../../../api/modules/media';
 import type {
+  MediaTransferCancellation,
+  MediaTransferRequest,
+  MediaUploadRecovery,
+  MediaUploadRecoveryRequest,
+} from '../../../model';
+import type {
   CacheRemoteMediaRequest,
   CancelUserFileDownloadRequest,
   DeleteMediaFileRequest,
@@ -14,6 +20,7 @@ import type {
   MediaCacheStats,
   MediaResolvedAccess,
   MediaUploadResponse,
+  ResolveAttachmentRequest,
   ResolveMediaAccessRequest,
   SetMediaCacheMaxBytesRequest,
   SetMediaCacheRootRequest,
@@ -123,6 +130,25 @@ export class WebMediaApi implements MediaApi {
 
   async deleteFile(request: DeleteMediaFileRequest): Promise<DeleteMediaFileResponse> {
     return this.inner.deleteFile(request);
+  }
+
+  async uploadRecovery(request: MediaUploadRecoveryRequest): Promise<MediaUploadRecovery> {
+    return this.inner.uploadRecovery(request);
+  }
+
+  async cancelUpload(request: MediaTransferRequest): Promise<MediaTransferCancellation> {
+    return this.inner.cancelUpload(request);
+  }
+
+  /** The core cancels uploads; browser saves run here, keyed by their download key. */
+  async cancelTransfer(request: MediaTransferRequest): Promise<MediaTransferCancellation> {
+    const upload = await this.inner.cancelTransfer(request);
+    if (upload.cancelled) return upload;
+    return {cancelled: await this.cancelUserFileDownload({downloadKey: request.transferId})};
+  }
+
+  async resolveAttachment(request: ResolveAttachmentRequest): Promise<MediaAccessUrl> {
+    return this.inner.resolveAttachment(request);
   }
 
   async getMediaUrl(request: GetMediaUrlRequest): Promise<MediaAccessUrl> {

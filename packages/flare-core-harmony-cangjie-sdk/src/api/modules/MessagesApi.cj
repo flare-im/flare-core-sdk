@@ -28,6 +28,8 @@ public interface MessagesApi {
     func markMessageById(requestJson: String): Unit
     func unmarkMessageById(requestJson: String): Unit
     func getMessage(requestJson: String): Message
+    func getMessageByKey(request: MessageKey): MessageByKeyResponse
+    func awaitMessageConfirmation(requestJson: String): JsonValue
     func getRawMessage(requestJson: String): JsonValue
     func searchMessages(request: MessageSearchQuery): ListMessagesResponse
     func searchMessagesByQuery(request: MessageSearchQuery): ListMessagesResponse

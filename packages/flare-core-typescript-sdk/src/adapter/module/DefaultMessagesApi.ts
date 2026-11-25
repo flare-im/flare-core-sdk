@@ -3,9 +3,9 @@ import { NativeBridge, NativeCallMap } from '../../contract/bridge_contract';
 import type { MessagesApi } from '../../api/modules/messages';
 import type { MessageSendCallback } from '../../callback';
 import type { DeleteMessageRequest, EditRichDocByMessageIdRequest, EditTextByMessageIdRequest, GetMessageRequest, MarkMessageReadAndBurnRequest, MessageDispatchRequest, MessageMutationRequest, ReactionMutationRequest, RecallMessageRequest, SetTypingRequest } from '../../api/types';
-import { CreateTextMessageRequest, ListMessagesRequest, ListMessagesResponse, Message, MessageReadReceiptMembersRequest, MessageSearchQuery, SendMessageRequest, SendMessageResponse } from '../../model';
+import { CreateTextMessageRequest, ListMessagesRequest, ListMessagesResponse, Message, MessageByKeyResponse, MessageKey, MessageReadReceiptMembersRequest, MessageSearchQuery, SendMessageRequest, SendMessageResponse } from '../../model';
 import { invokeBool, invokeConversation, invokeConversationTimelineSnapshot, invokeHomeTimelineSnapshot, invokeList, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError, withoutNullFields } from '../codec/nativeInvoke';
-import { conversationFromJson, createTextMessageRequestToMap, listConversationsResponseFromJson, listMessagesRequestToMap, listMessagesResponseFromJson, listOfMaps, messageFromJson, messageReadReceiptMembersRequestToMap, messageSearchQueryToMap, sendAckFromJson, sendMessageRequestToMap } from '../codec/wireCodec';
+import { conversationFromJson, createTextMessageRequestToMap, listConversationsResponseFromJson, listMessagesRequestToMap, listMessagesResponseFromJson, listOfMaps, messageFromJson, messageKeyToMap, messageReadReceiptMembersRequestToMap, messageSearchQueryToMap, sendAckFromJson, sendMessageRequestToMap } from '../codec/wireCodec';
 
 export class DefaultMessagesApi implements MessagesApi {
   constructor(private readonly bridge: NativeBridge) {}
@@ -136,6 +136,15 @@ export class DefaultMessagesApi implements MessagesApi {
 
   async getMessage(request: GetMessageRequest): Promise<Message> {
     return await invokeMessage(this.bridge, NativeCallMap.messageGet, request);
+  }
+
+  async getMessageByKey(request: MessageKey): Promise<MessageByKeyResponse> {
+    const raw = await invokeMap(this.bridge, NativeCallMap.messageGetByKey, messageKeyToMap(request));
+    return raw.message == null ? {} : { message: messageFromJson(raw.message) };
+  }
+
+  async awaitMessageConfirmation(request: Record<string, unknown>): Promise<unknown> {
+    return await this.bridge.invoke<unknown>(NativeCallMap.messageAwaitConfirmation, request);
   }
 
   async getRawMessage(request: GetMessageRequest): Promise<unknown> {

@@ -7,6 +7,8 @@
     "ops": [
       "get",
       "get_raw",
+      "get_by_key",
+      "await_confirmation",
       "search",
       "search_by_query",
       "send",
@@ -259,6 +261,27 @@
       "request": "GetMessageRequest",
       "response": "Message",
       "stability": "stable"
+    },
+    {
+      "name": "getMessageByKey",
+      "operation": "message.get_by_key",
+      "transport": "message-dispatch-json",
+      "cApi": "flare_message_dispatch_json",
+      "dispatchOp": "get_by_key",
+      "request": "MessageKey",
+      "response": "MessageByKeyResponse",
+      "stability": "stable"
+    },
+    {
+      "name": "awaitMessageConfirmation",
+      "operation": "message.await_confirmation",
+      "transport": "message-dispatch-json",
+      "cApi": "flare_message_dispatch_json",
+      "dispatchOp": "await_confirmation",
+      "request": "ConfirmationRequest",
+      "response": "JsonValue",
+      "stability": "stable",
+      "description": "send returns once the message and its outbox entry are committed on this device. This waits for the server: {state:\"persisted\", serverId, conversationSeq} or {state:\"failed\", reason}. Request {conversationId, senderId, clientMsgId, timeoutMs}; a timeout fails with OPERATION_TIMEOUT and the message keeps retrying."
     },
     {
       "name": "getRawMessage",

@@ -24,6 +24,10 @@ public final class DefaultConversationsApi: ConversationsApiProtocol {
         return try listConversationsResponseFromJson(raw)
     }
 
+    public func getConversationMember(_ request: [String: AnySendable]) async throws -> [String: AnySendable] {
+        return try await invokeMap(bridge, descriptor: NativeCallMap.conversationMember, request: unwrapRequest(AnySendable(request)))
+    }
+
     public func getConversation(_ request: [String: AnySendable]) async throws -> Conversation {
         let raw = try await invokeMap(bridge, descriptor: NativeCallMap.conversationGet, request: unwrapRequest(AnySendable(request)))
         if let first = listOfMaps(plainMap(raw)["conversations"]).first {

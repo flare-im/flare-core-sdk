@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { ConnectionStatus, ConversationEvent, CreateTextMessageRequest, LifecycleEvent, ListMessagesRequest, ListMessagesResponse, Message, MessageMutationEvent, MessageReadReceiptMembersRequest, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSearchQuery, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SendMessageRequest, SendMessageResponse, SyncEvent, TypingAggregateEvent, TypingEvent, ViewUpdate } from '../../model';
+import { ConnectionStatus, ConversationEvent, CreateTextMessageRequest, LifecycleEvent, ListMessagesRequest, ListMessagesResponse, Message, MessageByKeyResponse, MessageKey, MessageMutationEvent, MessageReadReceiptMembersRequest, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSearchQuery, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SendMessageRequest, SendMessageResponse, SyncEvent, TypingAggregateEvent, TypingEvent, ViewUpdate } from '../../model';
 import { EventCallback, EventSubscription, FlareImEventListener, MessageSendCallback } from '../../listener';
 
 /** Message build, send, query and mutation. */
@@ -27,6 +27,8 @@ export interface MessagesApi {
   markMessageById(request: Record<string, Object>): Promise<void>;
   unmarkMessageById(request: Record<string, Object>): Promise<void>;
   getMessage(request: Record<string, Object>): Promise<Message>;
+  getMessageByKey(request: MessageKey): Promise<MessageByKeyResponse>;
+  awaitMessageConfirmation(request: Record<string, Object>): Promise<Record<string, Object>>;
   getRawMessage(request: Record<string, Object>): Promise<Record<string, Object>>;
   searchMessages(request: MessageSearchQuery): Promise<ListMessagesResponse>;
   searchMessagesByQuery(request: MessageSearchQuery): Promise<ListMessagesResponse>;

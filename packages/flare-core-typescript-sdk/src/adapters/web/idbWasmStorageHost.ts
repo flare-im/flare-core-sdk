@@ -673,22 +673,79 @@ export async function wasmStorageCommitOutgoing({userId, message, conversation, 
   notifyStorageChanged({userId, kind: entry ? "pending_send" : "delete", id});
 }
 
+type ConversationRow = Record<string, unknown>;
+type ProjectionPayload = PersistConversationPayload & {expected: ConversationRow};
+const readIntent = "_local.pendingReadSeq";
+const projectionFields = ["unreadCount", "lastReadSeq", "maxSeq", "mentionCount", "mentionMe",
+  "lastMessageId", "lastSenderId", "lastMessageAt", "lastMessagePreview"] as const;
+
+function matchesProjection(current: ConversationRow, expected: ConversationRow): boolean {
+  const ext = isRecord(current.ext) ? current.ext : {};
+  const other = isRecord(expected.ext) ? expected.ext : {};
+  const defaults: ConversationRow = {unreadCount: 0, maxSeq: 0, lastReadSeq: 0, mentionCount: 0, mentionMe: false};
+  return projectionFields.every(k => (current[k] ?? defaults[k]) === (expected[k] ?? defaults[k]))
+    && Object.keys(ext).length === Object.keys(other).length
+    && Object.keys(ext).every(k => ext[k] === other[k]);
+}
+
+async function writeConversation(payload: PersistConversationPayload, expected?: ConversationRow) {
+  const userId = userPrefix(payload.userId);
+  const conversationId = conversationIdFromConversation(payload.conversation);
+  if (!userId || !conversationId) throw new Error("Missing conversation identity");
+  const key = `${userId}::${conversationId}`;
+  const db = await openDb();
+  let committed = false;
+  let conversation: ConversationRow | null = null;
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(WASM_CONVERSATIONS, "readwrite");
+    tx.onabort = () => reject(tx.error ?? new Error("Conversation transaction aborted"));
+    tx.oncomplete = () => resolve();
+    const store = tx.objectStore(WASM_CONVERSATIONS);
+    const read = store.get(key);
+    read.onsuccess = () => {
+      const current: ConversationRow | undefined = read.result?.conversation;
+      const next = payload.conversation;
+      if (expected) {
+        if (!current || !matchesProjection(current, expected)) { conversation = current ?? null; return; }
+        conversation = {...current};
+        for (const field of [...projectionFields, "lastMessage", "ext"]) {
+          if (field in next) conversation[field] = next[field];
+          else delete conversation[field];
+        }
+        if (next.updatedAtTs != null) {
+          conversation.updatedAtTs = Math.max(Number(current.updatedAtTs ?? 0), Number(next.updatedAtTs));
+        }
+      } else {
+        conversation = {...next};
+        if (current) {
+          // Only an explicit read projection can create or acknowledge the local intent.
+          const ext = {...(isRecord(next.ext) ? next.ext : {})};
+          const previous = isRecord(current.ext) ? current.ext : {};
+          if (previous[readIntent] != null) ext[readIntent] = previous[readIntent];
+          else delete ext[readIntent];
+          conversation.ext = ext;
+          if (Number(current.lastReadSeq ?? 0) > Number(next.lastReadSeq ?? 0)) {
+            conversation.lastReadSeq = current.lastReadSeq;
+            if (Number(current.maxSeq ?? 0) >= Number(next.maxSeq ?? 0)) conversation.unreadCount = current.unreadCount;
+            else conversation.unreadCount = Math.min(Number(next.unreadCount ?? 0), Number(next.maxSeq) - Number(current.lastReadSeq));
+          }
+          conversation.maxSeq = Math.max(Number(current.maxSeq ?? 0), Number(next.maxSeq ?? 0));
+        }
+      }
+      store.put({key, userId, conversation});
+      committed = true;
+    };
+  });
+  if (committed && conversation) notifyStorageChanged({userId, kind:"conversation", conversationId, conversation});
+  return {committed, conversation};
+}
+
+export async function wasmStorageCommitProjection(payload: ProjectionPayload): Promise<string> {
+  return JSON.stringify(await writeConversation(payload, payload.expected));
+}
+
 export async function wasmStorageSaveConversation(payload: PersistConversationPayload): Promise<void> {
-  const userId = payload.userId?.trim();
-  if (!userId) return;
-  const conversation = payload.conversation ?? {};
-  const conversationId = conversationIdFromConversation(conversation);
-  await putRow(WASM_CONVERSATIONS, {
-    key: `${userPrefix(userId)}::${conversationId}`,
-    userId: userPrefix(userId),
-    conversation,
-  });
-  notifyStorageChanged({
-    userId,
-    kind: "conversation",
-    conversationId,
-    conversation,
-  });
+  await writeConversation(payload);
 }
 
 export async function wasmStorageSaveCursor(payload: PersistCursorPayload): Promise<void> {
@@ -770,6 +827,7 @@ export type WasmStorageHostCallbacks = {
   loadSnapshot: (payload: LoadSnapshotPayload) => Promise<string>;
   readMessages?: (payload: ReadMessagesPayload) => Promise<string>;
   saveMessage: (payload: PersistMessagePayload) => Promise<void>;
+  commitProjection?: (payload: ProjectionPayload) => Promise<string>;
   commitOutgoing: (payload: OutgoingPayload) => Promise<void>;
   saveMessages?: (payload: PersistMessagesPayload) => Promise<string | void>;
   saveConversation: (payload: PersistConversationPayload) => Promise<void>;
@@ -785,6 +843,7 @@ export function createWasmIndexedDbStorageHost(): WasmStorageHostCallbacks {
     loadSnapshot: wasmStorageLoadSnapshot,
     readMessages: wasmStorageReadMessages,
     saveMessage: wasmStorageSaveMessage,
+    commitProjection: wasmStorageCommitProjection,
     commitOutgoing: wasmStorageCommitOutgoing,
     saveMessages: wasmStorageSaveMessages,
     saveConversation: wasmStorageSaveConversation,

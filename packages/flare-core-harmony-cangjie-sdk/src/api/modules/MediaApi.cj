@@ -11,6 +11,7 @@ public interface MediaApi {
     func uploadBytes(requestJson: String): String
     func deleteFile(requestJson: String): String
     func getMediaUrl(requestJson: String): String
+    func resolveAttachment(requestJson: String): String
     func getTempDownloadUrl(requestJson: String): String
     func resolveMediaAccess(requestJson: String): String
     func cacheRemoteMedia(requestJson: String): String
@@ -25,6 +26,9 @@ public interface MediaApi {
     func getUserDownloadDirectory(): String
     func setUserDownloadDirectory(requestJson: String): String
     func downloadToUserDirectory(requestJson: String): String
+    func uploadRecovery(request: MediaUploadRecoveryRequest): MediaUploadRecovery
+    func cancelUpload(request: MediaTransferRequest): MediaTransferCancellation
+    func cancelTransfer(request: MediaTransferRequest): MediaTransferCancellation
     func cancelUserFileDownload(requestJson: String): BooleanResponse
     func downloadFileToDownloads(requestJson: String): String
 }

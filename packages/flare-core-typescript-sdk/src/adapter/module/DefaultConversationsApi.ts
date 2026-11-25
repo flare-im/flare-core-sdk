@@ -24,6 +24,10 @@ export class DefaultConversationsApi implements ConversationsApi {
     return await invokeConversation(this.bridge, NativeCallMap.conversationGet, request);
   }
 
+  async getConversationMember(request: Record<string, unknown>): Promise<unknown> {
+    return await this.bridge.invoke<unknown>(NativeCallMap.conversationMember, request);
+  }
+
   async getOneConversation(request: Record<string, unknown>): Promise<Conversation> {
     return await invokeConversation(this.bridge, NativeCallMap.conversationGetOne, request);
   }

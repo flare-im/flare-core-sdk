@@ -26,6 +26,8 @@ public protocol MessagesApiProtocol: AnyObject {
     func markMessageById(_ request: [String: AnySendable]) async throws -> Void
     func unmarkMessageById(_ request: [String: AnySendable]) async throws -> Void
     func getMessage(_ request: [String: AnySendable]) async throws -> Message
+    func getMessageByKey(_ request: MessageKey) async throws -> MessageByKeyResponse
+    func awaitMessageConfirmation(_ request: [String: AnySendable]) async throws -> [String: AnySendable]
     func getRawMessage(_ request: [String: AnySendable]) async throws -> [String: AnySendable]
     func searchMessages(_ request: MessageSearchQuery) async throws -> ListMessagesResponse
     func searchMessagesByQuery(_ request: MessageSearchQuery) async throws -> ListMessagesResponse

@@ -51,6 +51,10 @@ abstract interface class MessagesApi {
   Future<void> unmarkMessageById(Map<String, Object?> request);
   /// getMessage maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `get`. Operation: `message.get`.
   Future<Message> getMessage(Map<String, Object?> request);
+  /// getMessageByKey maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `get_by_key`. Operation: `message.get_by_key`.
+  Future<MessageByKeyResponse> getMessageByKey(MessageKey request);
+  /// awaitMessageConfirmation maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `await_confirmation`. Operation: `message.await_confirmation`.
+  Future<Map<String, Object?>> awaitMessageConfirmation(Map<String, Object?> request);
   /// getRawMessage maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `get_raw`. Operation: `message.get_raw`.
   Future<Map<String, Object?>> getRawMessage(Map<String, Object?> request);
   /// searchMessages maps to `flare_message_dispatch_json` via `message-dispatch-json`, dispatch op `search`. Operation: `message.search`.

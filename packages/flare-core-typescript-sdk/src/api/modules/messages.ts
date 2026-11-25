@@ -4,8 +4,8 @@
  * Module API: `messages` — Message build, send, query and mutation.
  */
 import type { MessageSendCallback } from '../../callback';
-import type { CreateTextMessageRequest, ListMessagesRequest, ListMessagesResponse, Message, MessageReadReceiptMembersRequest, MessageSearchQuery, SendMessageRequest, SendMessageResponse } from '../../model';
-import type { DeleteMessageRequest, EditRichDocByMessageIdRequest, EditTextByMessageIdRequest, GetMessageRequest, JsonObject, MarkMessageReadAndBurnRequest, MessageDispatchRequest, MessageMutationRequest, ReactionMutationRequest, RecallMessageRequest, SetTypingRequest } from '../types';
+import type { CreateTextMessageRequest, ListMessagesRequest, ListMessagesResponse, Message, MessageByKeyResponse, MessageKey, MessageReadReceiptMembersRequest, MessageSearchQuery, SendMessageRequest, SendMessageResponse } from '../../model';
+import type { ConfirmationRequest, DeleteMessageRequest, EditRichDocByMessageIdRequest, EditTextByMessageIdRequest, GetMessageRequest, JsonObject, MarkMessageReadAndBurnRequest, MessageDispatchRequest, MessageMutationRequest, ReactionMutationRequest, RecallMessageRequest, SetTypingRequest } from '../types';
 
 /** Message build, send, query and mutation. */
 export interface MessagesApi {
@@ -55,6 +55,10 @@ export interface MessagesApi {
   unmarkMessageById(request: MessageMutationRequest): Promise<void>;
   /** getMessage maps to `flare_message_dispatch_json`, dispatch op `get`. Operation: `message.get`. */
   getMessage(request: GetMessageRequest): Promise<Message>;
+  /** getMessageByKey maps to `flare_message_dispatch_json`, dispatch op `get_by_key`. Operation: `message.get_by_key`. */
+  getMessageByKey(request: MessageKey): Promise<MessageByKeyResponse>;
+  /** awaitMessageConfirmation maps to `flare_message_dispatch_json`, dispatch op `await_confirmation`. Operation: `message.await_confirmation`. */
+  awaitMessageConfirmation(request: ConfirmationRequest): Promise<unknown>;
   /** getRawMessage maps to `flare_message_dispatch_json`, dispatch op `get_raw`. Operation: `message.get_raw`. */
   getRawMessage(request: GetMessageRequest): Promise<unknown>;
   /** searchMessages maps to `flare_message_dispatch_json`, dispatch op `search`. Operation: `message.search`. */

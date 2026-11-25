@@ -1,7 +1,9 @@
 // GENERATED. Do not edit by hand.
 import { NativeBridge, NativeCallMap } from '../../contract/BridgeContract';
 import type { MediaApi } from '../../api/modules/media';
+import type { MediaTransferCancellation, MediaTransferRequest, MediaUploadRecovery, MediaUploadRecoveryRequest } from '../../model';
 import { invokeBool, invokeMap, invokeVoid } from '../codec/NativeInvoke';
+import { mediaTransferCancellationFromJson, mediaTransferRequestToMap, mediaUploadRecoveryFromJson, mediaUploadRecoveryRequestToMap } from '../codec/WireCodec';
 
 export class DefaultMediaApi implements MediaApi {
   constructor(private readonly bridge: NativeBridge) {}
@@ -28,6 +30,10 @@ export class DefaultMediaApi implements MediaApi {
 
   async getMediaUrl(request: Record<string, Object>): Promise<Record<string, Object>> {
     return await invokeMap(this.bridge, NativeCallMap.mediaGetUrl, request);
+  }
+
+  async resolveAttachment(request: Record<string, Object>): Promise<Record<string, Object>> {
+    return await invokeMap(this.bridge, NativeCallMap.mediaResolveAttachment, request);
   }
 
   async getTempDownloadUrl(request: Record<string, Object>): Promise<Record<string, Object>> {
@@ -84,6 +90,21 @@ export class DefaultMediaApi implements MediaApi {
 
   async downloadToUserDirectory(request: Record<string, Object>): Promise<Record<string, Object>> {
     return await invokeMap(this.bridge, NativeCallMap.mediaDownloadToUserDirectory, request);
+  }
+
+  async uploadRecovery(request: MediaUploadRecoveryRequest): Promise<MediaUploadRecovery> {
+    const raw = await invokeMap(this.bridge, NativeCallMap.mediaUploadRecovery, mediaUploadRecoveryRequestToMap(request));
+    return mediaUploadRecoveryFromJson(raw);
+  }
+
+  async cancelUpload(request: MediaTransferRequest): Promise<MediaTransferCancellation> {
+    const raw = await invokeMap(this.bridge, NativeCallMap.mediaCancelUpload, mediaTransferRequestToMap(request));
+    return mediaTransferCancellationFromJson(raw);
+  }
+
+  async cancelTransfer(request: MediaTransferRequest): Promise<MediaTransferCancellation> {
+    const raw = await invokeMap(this.bridge, NativeCallMap.mediaCancelTransfer, mediaTransferRequestToMap(request));
+    return mediaTransferCancellationFromJson(raw);
   }
 
   async cancelUserFileDownload(request: Record<string, Object>): Promise<boolean> {

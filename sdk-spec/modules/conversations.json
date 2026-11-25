@@ -40,6 +40,16 @@
       "stability": "stable"
     },
     {
+      "name": "getConversationMember",
+      "operation": "conversation.member",
+      "transport": "contract-invoke-json",
+      "cApi": "flare_sdk_invoke_json",
+      "request": "ConversationMemberRequest",
+      "response": "JsonValue",
+      "stability": "stable",
+      "description": "Request {conversationId, user:{userId}}. Returns {member}: the participant fact synced from the server with its projected name, or no member when the user is not in the conversation."
+    },
+    {
       "name": "getOneConversation",
       "operation": "conversation.get_one",
       "transport": "contract-invoke-json",

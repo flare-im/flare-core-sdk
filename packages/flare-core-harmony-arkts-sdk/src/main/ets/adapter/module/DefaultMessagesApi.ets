@@ -2,9 +2,9 @@
 import { NativeBridge, NativeCallMap } from '../../contract/BridgeContract';
 import type { MessagesApi } from '../../api/modules/messages';
 import type { MessageSendCallback } from '../../listener';
-import { CreateTextMessageRequest, ListMessagesRequest, ListMessagesResponse, Message, MessageReadReceiptMembersRequest, MessageSearchQuery, SendMessageRequest, SendMessageResponse } from '../../model';
+import { MessageKey, MessageByKeyResponse, CreateTextMessageRequest, ListMessagesRequest, ListMessagesResponse, Message, MessageReadReceiptMembersRequest, MessageSearchQuery, SendMessageRequest, SendMessageResponse } from '../../model';
 import { invokeBool, invokeConversation, invokeListConversations, invokeListMessages, invokeMap, invokeMessage, invokeSendAck, invokeVoid, sdkErrorPayloadFromError } from '../codec/NativeInvoke';
-import { conversationFromJson, createTextMessageRequestToMap, listConversationsResponseFromJson, listMessagesRequestToMap, listMessagesResponseFromJson, listOfMaps, messageFromJson, messageReadReceiptMembersRequestToMap, messageSearchQueryToMap, sendAckFromJson, sendMessageRequestToMap } from '../codec/WireCodec';
+import { messageKeyToMap, messageByKeyResponseFromJson, conversationFromJson, createTextMessageRequestToMap, listConversationsResponseFromJson, listMessagesRequestToMap, listMessagesResponseFromJson, listOfMaps, messageFromJson, messageReadReceiptMembersRequestToMap, messageSearchQueryToMap, sendAckFromJson, sendMessageRequestToMap } from '../codec/WireCodec';
 
 export class DefaultMessagesApi implements MessagesApi {
   constructor(private readonly bridge: NativeBridge) {}
@@ -113,6 +113,10 @@ export class DefaultMessagesApi implements MessagesApi {
 
   async getMessage(request: Record<string, Object>): Promise<Message> {
     return await invokeMessage(this.bridge, NativeCallMap.messageGet, request);
+  }
+
+  async getMessageByKey(request: MessageKey): Promise<MessageByKeyResponse> {
+    return messageByKeyResponseFromJson(await invokeMap(this.bridge, NativeCallMap.messageGetByKey, messageKeyToMap(request)));
   }
 
   async getRawMessage(request: Record<string, Object>): Promise<Record<string, Object>> {

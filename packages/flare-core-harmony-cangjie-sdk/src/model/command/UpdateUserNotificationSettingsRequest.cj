@@ -1,5 +1,9 @@
 package flare_core_harmony_cangjie_sdk.model.command
 
+import flare_core_harmony_cangjie_sdk.model.entity.MultiDeviceAlertPolicy
+import flare_core_harmony_cangjie_sdk.model.entity.NotificationPreview
+import flare_core_harmony_cangjie_sdk.model.entity.QuietHours
+
 // GENERATED. Do not edit by hand.
 // Collection/map payloads are represented as raw JSON strings at the bridge boundary.
 // A partial update of the user's notification settings: items left out keep their value; at least one item must be given.

@@ -1,5 +1,7 @@
 package flare_core_harmony_cangjie_sdk.model.entity
 
+import flare_core_harmony_cangjie_sdk.model.common.enums.ConversationType
+
 // GENERATED. Do not edit by hand.
 // Collection/map payloads are represented as raw JSON strings at the bridge boundary.
 // SDK 层会话类型：内部统一使用，从 proto ConversationSummary 获取后即转换为此类型。 与 message.rs 的 IMMessage 一致：扁平字段、serde camelCase。

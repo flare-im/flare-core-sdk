@@ -34,6 +34,8 @@ interface ConversationsApi {
     suspend fun listConversationsIncludingArchived(): ListConversationsResponse
     /** getConversation maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.get`. */
     suspend fun getConversation(request: Map<String, Any?>): Conversation
+    /** getConversationMember maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.member`. */
+    suspend fun getConversationMember(request: Map<String, Any?>): Map<String, Any?>
     /** getOneConversation maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.get_one`. */
     suspend fun getOneConversation(request: Map<String, Any?>): Conversation
     /** getGroupConversationByUserIds maps to `flare_sdk_invoke_json` via `contract-invoke-json`. Operation: `conversation.get_group_by_user_ids`. */

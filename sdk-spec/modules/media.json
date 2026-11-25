@@ -64,6 +64,17 @@
       "stability": "stable"
     },
     {
+      "name": "resolveAttachment",
+      "operation": "media.resolve_attachment",
+      "transport": "media-dispatch-json",
+      "cApi": "flare_media_dispatch_json",
+      "dispatchOp": "resolve_attachment",
+      "request": "ResolveAttachmentRequest",
+      "response": "MediaAccessUrl",
+      "stability": "stable",
+      "description": "Request {fileId, conversationId, messageSeq, expiresIn?}: a message attachment's short-lived access URL. messageSeq is the message's conversationSeq."
+    },
+    {
       "name": "getTempDownloadUrl",
       "operation": "media.temp_download_url",
       "transport": "media-dispatch-json",
@@ -203,6 +214,37 @@
       "request": "DownloadToUserDirectoryRequest",
       "response": "UserFileDownloadResult",
       "stability": "stable"
+    },
+    {
+      "name": "uploadRecovery",
+      "operation": "media.upload_recovery",
+      "transport": "media-dispatch-json",
+      "cApi": "flare_media_dispatch_json",
+      "dispatchOp": "upload_recovery",
+      "request": "MediaUploadRecoveryRequest",
+      "response": "MediaUploadRecovery",
+      "stability": "stable"
+    },
+    {
+      "name": "cancelUpload",
+      "operation": "media.cancel_upload",
+      "transport": "media-dispatch-json",
+      "cApi": "flare_media_dispatch_json",
+      "dispatchOp": "cancel_upload",
+      "request": "MediaTransferRequest",
+      "response": "MediaTransferCancellation",
+      "stability": "stable"
+    },
+    {
+      "name": "cancelTransfer",
+      "operation": "media.cancel_transfer",
+      "transport": "media-dispatch-json",
+      "cApi": "flare_media_dispatch_json",
+      "dispatchOp": "cancel_transfer",
+      "request": "MediaTransferRequest",
+      "response": "MediaTransferCancellation",
+      "stability": "stable",
+      "description": "One cancel for an upload's transferId or a saved download's downloadKey. A cancelled download never publishes a partial file."
     },
     {
       "name": "cancelUserFileDownload",

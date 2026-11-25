@@ -76,14 +76,20 @@ import {
   LoadNewerTimelineViewRequest,
   LoadOlderTimelineViewRequest,
   MediaSourceInfo,
+  MediaTransferCancellation,
+  MediaTransferRequest,
   MediaUploadOptions,
   MediaUploadPurpose,
+  MediaUploadRecovery,
+  MediaUploadRecoveryRequest,
   Message,
   MessageBuildCatalogEntry,
   MessageBuildOp,
+  MessageByKeyResponse,
   MessageContent,
   MessageContentType,
   MessageEventName,
+  MessageKey,
   MessageLocalState,
   MessageMutationEvent,
   MessagePreview,
@@ -809,6 +815,12 @@ export function conversationHistoryBackfillResponseToMap(request: ConversationHi
   };
 }
 
+export function messageByKeyResponseToMap(request: MessageByKeyResponse): Record<string, unknown> {
+  return {
+  ...(request.message !== undefined ? { message: messageToMap(request.message) } : {}),
+  };
+}
+
 export function messageContentToMap(request: MessageContent): Record<string, unknown> {
   return {
   contentType: request.contentType,
@@ -828,6 +840,14 @@ export function messageReceiptViewToMap(request: MessageReceiptView): Record<str
   return {
   status: request.status,
   ...(request.readSummary !== undefined ? { readSummary: messageReadSummaryToMap(request.readSummary) } : {}),
+  };
+}
+
+export function messageKeyToMap(request: MessageKey): Record<string, unknown> {
+  return {
+  conversationId: request.conversationId,
+  senderId: request.senderId,
+  clientMsgId: request.clientMsgId,
   };
 }
 
@@ -1479,8 +1499,35 @@ export function pluginCommandRequestToMap(request: PluginCommandRequest): Record
   };
 }
 
+export function mediaUploadRecoveryRequestToMap(request: MediaUploadRecoveryRequest): Record<string, unknown> {
+  return {
+  sourceKind: request.sourceKind,
+  };
+}
+
+export function mediaUploadRecoveryToMap(request: MediaUploadRecovery): Record<string, unknown> {
+  return {
+  sameSession: request.sameSession,
+  afterRestart: request.afterRestart,
+  requiresSourceReselection: request.requiresSourceReselection,
+  };
+}
+
+export function mediaTransferRequestToMap(request: MediaTransferRequest): Record<string, unknown> {
+  return {
+  transferId: request.transferId,
+  };
+}
+
+export function mediaTransferCancellationToMap(request: MediaTransferCancellation): Record<string, unknown> {
+  return {
+  cancelled: request.cancelled,
+  };
+}
+
 export function mediaUploadOptionsToMap(request: MediaUploadOptions): Record<string, unknown> {
   return {
+  ...(request.transferId !== undefined ? { transferId: request.transferId } : {}),
   ...(request.chunkSize !== undefined ? { chunkSize: request.chunkSize } : {}),
   ...(request.purpose !== undefined ? { purpose: request.purpose } : {}),
   };
