@@ -307,7 +307,7 @@ function createFlareCoreWebAppViteConfig(options) {
   const repoRoot = path.resolve(
     options.workspaceRoot ?? findWorkspaceRoot(sdkRoot) ?? findWorkspaceRoot(appDir) ?? appDir
   );
-  const wasmBindingRoot = path.resolve(
+  const wasmBindingRoot = options.wasmBindingRoot === null ? null : path.resolve(
     options.wasmBindingRoot ?? path.join(repoRoot, "flare-core-sdk-engine/bindings/wasm/pkg")
   );
   const typeScriptSdkRoot = path.resolve(options.sdkSourceRoot ?? path.join(sdkRoot, "src"));
@@ -375,11 +375,11 @@ function createFlareCoreWebAppViteConfig(options) {
       ];
   return options.defineConfig(({ mode }) => {
     const env = options.loadEnv(mode, appDir, "VITE_");
-    const wasmBuildId = wasmBindingBuildId(wasmBindingRoot);
+    const wasmBuildId = wasmBindingRoot ? wasmBindingBuildId(wasmBindingRoot) : "";
     return {
       plugins: [
         options.vuePlugin(),
-        flareWasmBindingAssets(wasmBindingRoot, appDir),
+        ...(wasmBindingRoot ? [flareWasmBindingAssets(wasmBindingRoot, appDir)] : []),
         flareVueImUiAssets(vueImUiAssetRoot, appDir),
         ...(options.extraPlugins?.({
           env,

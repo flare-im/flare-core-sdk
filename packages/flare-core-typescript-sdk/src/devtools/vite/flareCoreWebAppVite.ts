@@ -17,7 +17,8 @@ export type FlareCoreWebAppViteOptions = {
    */
   workspaceRoot?: string;
   /** wasm-bindgen output served at /flare-core-wasm/. Defaults to the engine's bindings/wasm/pkg. */
-  wasmBindingRoot?: string;
+  /** Use null for native renderer hosts that load the engine outside the WebView. */
+  wasmBindingRoot?: string | null;
   /** SDK sources the `@flare-im/sdk` aliases point at. Defaults to this package's own src. */
   sdkSourceRoot?: string;
   /** Optional app plugins can use the resolved WASM output paths. */
