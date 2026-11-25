@@ -87,10 +87,6 @@ public interface TypingEventCallback {
     func handle(event: TypingEvent): Unit
 }
 
-public interface UpdateStatusCallback {
-    func handle(event: UpdateStatus): Unit
-}
-
 public interface ViewUpdateCallback {
     func handle(event: ViewUpdate): Unit
 }

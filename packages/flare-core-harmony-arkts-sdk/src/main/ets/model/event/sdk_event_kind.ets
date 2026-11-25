@@ -3,7 +3,6 @@
 export enum SdkEventKind {
   Lifecycle = "lifecycle",
   Connection = "connection",
-  Update = "update",
   Message = "message",
   Notification = "notification",
   Conversation = "conversation",

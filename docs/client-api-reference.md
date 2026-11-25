@@ -57,25 +57,6 @@ Platform lifecycle signals the core needs (foreground and background).
 |--------|---------|----------|-----------|-------|
 | `setAppState` | `SetAppStateRequest` | `Unit` | `contract-invoke-json` | `flare_sdk_invoke_json` |
 
-## client.update
-
-Update center: release evaluation, download and the install plan. Works before sign-in and with every IM node down; the release manifest comes from the access mirrors.
-
-| Method | Request | Response | Transport | C API |
-|--------|---------|----------|-----------|-------|
-| `getState` | `UpdateGetStateRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `check` | `UpdateCheckRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `download` | `UpdateDownloadRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `install` | `Unit` | `UpdateInstallPlan` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `reportInstall` | `UpdateReportInstallRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `defer` | `Unit` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `skip` | `UpdateSkipRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `markPrompted` | `UpdateMarkPromptedRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `setLocale` | `UpdateSetLocaleRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `getResources` | `UpdateGetResourcesRequest` | `UpdateResources` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `pluginUpgradeStatus` | `UpdatePluginUpgradeStatusRequest` | `PluginUpgradeStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-| `openFlow` | `UpdateOpenFlowRequest` | `UpdateStatus` | `contract-invoke-json` | `flare_sdk_invoke_json` |
-
 ## client.conversations
 
 Conversation query and local conversation state.

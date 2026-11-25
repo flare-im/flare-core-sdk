@@ -129,4 +129,4 @@ cargo xtask wire-boundary-check
 
 ## 集成示例
 
-各端接入方式见 [Core 示例应用](https://github.com/flare-im/flare-core-examples)。共享的发送、排序和同步行为由 [Rust SDK 引擎](https://github.com/flare-im/flare-core-sdk-engine) 维护。
+各端接入方式见 [独立 Core Demo](examples/README.md)。共享的发送、排序和同步行为由 [Rust SDK 引擎](https://github.com/flare-im/flare-core-sdk-engine) 维护。

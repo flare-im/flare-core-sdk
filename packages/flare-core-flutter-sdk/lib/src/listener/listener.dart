@@ -8,7 +8,6 @@ export 'message.dart';
 export 'notification.dart';
 export 'plugin.dart';
 export 'sync.dart';
-export 'update.dart';
 export 'view.dart';
 
 import 'connection.dart';
@@ -19,11 +18,10 @@ import 'message.dart';
 import 'notification.dart';
 import 'plugin.dart';
 import 'sync.dart';
-import 'update.dart';
 import 'view.dart';
 
 /// Optional callback surface for apps that prefer one listener object.
 abstract class FlareImEventListener
-    implements ConnectionEventListener, ConversationEventListener, LifecycleEventListener, MediaEventListener, MessageEventListener, NotificationEventListener, PluginEventListener, SyncEventListener, UpdateEventListener, ViewEventListener {
+    implements ConnectionEventListener, ConversationEventListener, LifecycleEventListener, MediaEventListener, MessageEventListener, NotificationEventListener, PluginEventListener, SyncEventListener, ViewEventListener {
   const FlareImEventListener();
 }

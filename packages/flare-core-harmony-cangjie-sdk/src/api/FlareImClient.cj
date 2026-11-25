@@ -6,7 +6,6 @@ import flare_core_harmony_cangjie_sdk.api.modules.*
 public interface FlareImClient <: SessionApi {
     prop connection: ConnectionApi
     prop lifecycle: LifecycleApi
-    prop update: UpdateApi
     prop conversations: ConversationsApi
     prop messageBuilder: MessageBuilderApi
     prop messages: MessagesApi

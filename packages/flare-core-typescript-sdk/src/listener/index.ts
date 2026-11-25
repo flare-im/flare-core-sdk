@@ -8,7 +8,6 @@ export * from './message';
 export * from './notification';
 export * from './plugin';
 export * from './sync';
-export * from './update';
 export * from './view';
 
 import type { ConnectionEventListener } from './connection';
@@ -19,8 +18,7 @@ import type { MessageEventListener } from './message';
 import type { NotificationEventListener } from './notification';
 import type { PluginEventListener } from './plugin';
 import type { SyncEventListener } from './sync';
-import type { UpdateEventListener } from './update';
 import type { ViewEventListener } from './view';
 
 /** Optional callback surface for apps that prefer one listener object. */
-export interface FlareImEventListener extends ConnectionEventListener, ConversationEventListener, LifecycleEventListener, MediaEventListener, MessageEventListener, NotificationEventListener, PluginEventListener, SyncEventListener, UpdateEventListener, ViewEventListener {}
+export interface FlareImEventListener extends ConnectionEventListener, ConversationEventListener, LifecycleEventListener, MediaEventListener, MessageEventListener, NotificationEventListener, PluginEventListener, SyncEventListener, ViewEventListener {}

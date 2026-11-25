@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityCompletion, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginCommandRequest, PluginHostProfile, PluginRealtimeEvent, PluginUiEvaluationRequest, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
+import { ConnectionStatus, ConversationEvent, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityCompletion, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginCommandRequest, PluginHostProfile, PluginRealtimeEvent, PluginUiEvaluationRequest, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, SyncEvent, TypingAggregateEvent, TypingEvent, ViewUpdate } from '../../model';
 
 /** Capability discovery and optional plugin dispatch through capability dispatch ops. */
 export interface CapabilitiesApi {

@@ -5,7 +5,6 @@ import Foundation
 public enum SdkEventKind: String, Codable, Sendable {
     case lifecycle = "lifecycle"
     case connection = "connection"
-    case update = "update"
     case message = "message"
     case notification = "notification"
     case conversation = "conversation"

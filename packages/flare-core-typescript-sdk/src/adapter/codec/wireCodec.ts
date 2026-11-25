@@ -124,7 +124,6 @@ import {
   PluginHostProfile,
   PluginRealtimeEvent,
   PluginUiEvaluationRequest,
-  PluginUpgradeStatus,
   PresenceChangedEvent,
   ProgressEvent,
   ProgressEventName,
@@ -167,26 +166,7 @@ import {
   TimelineViewSnapshot,
   TypingAggregateEvent,
   TypingEvent,
-  UpdateCheckRequest,
   UpdateConversationDraftRequest,
-  UpdateCurrentApp,
-  UpdateDownloadRequest,
-  UpdateErrorInfo,
-  UpdateEventName,
-  UpdateGetResourcesRequest,
-  UpdateGetStateRequest,
-  UpdateInstallPlan,
-  UpdateMarkPromptedRequest,
-  UpdateOpenFlowRequest,
-  UpdatePluginUpgradeStatusRequest,
-  UpdateProgress,
-  UpdateReleaseSummary,
-  UpdateReportInstallRequest,
-  UpdateResourcePack,
-  UpdateResources,
-  UpdateSetLocaleRequest,
-  UpdateSkipRequest,
-  UpdateStatus,
   UpdateUserNotificationSettingsRequest,
   UserNotificationSettings,
   VideoContentPayload,
@@ -642,157 +622,6 @@ export function setAppStateRequestToMap(request: SetAppStateRequest): Record<str
   appState: request.appState,
   };
 }
-
-export function updateGetStateRequestToMap(request: UpdateGetStateRequest): Record<string, unknown> {
-  return {
-  foreground: request.foreground,
-  };
-}
-
-export function updateCheckRequestToMap(request: UpdateCheckRequest): Record<string, unknown> {
-  return {
-  manual: request.manual,
-  };
-}
-
-export function updateDownloadRequestToMap(request: UpdateDownloadRequest): Record<string, unknown> {
-  return {
-  allowMetered: request.allowMetered,
-  };
-}
-
-export function updateReportInstallRequestToMap(request: UpdateReportInstallRequest): Record<string, unknown> {
-  return {
-  outcome: request.outcome,
-  ...(request.code !== undefined ? { code: request.code } : {}),
-  };
-}
-
-export function updateSkipRequestToMap(request: UpdateSkipRequest): Record<string, unknown> {
-  return {
-  build: request.build,
-  };
-}
-
-export function updateMarkPromptedRequestToMap(request: UpdateMarkPromptedRequest): Record<string, unknown> {
-  return {
-  ...(request.build !== undefined ? { build: request.build } : {}),
-  form: request.form,
-  };
-}
-
-export function updateSetLocaleRequestToMap(request: UpdateSetLocaleRequest): Record<string, unknown> {
-  return {
-  locale: request.locale,
-  };
-}
-
-export function updateGetResourcesRequestToMap(request: UpdateGetResourcesRequest): Record<string, unknown> { return {}; }
-
-export function updateResourcePackToMap(request: UpdateResourcePack): Record<string, unknown> {
-  return {
-  id: request.id,
-  kind: request.kind,
-  packVersion: request.packVersion,
-  contentJson: request.contentJson,
-  };
-}
-
-export function updateResourcesToMap(request: UpdateResources): Record<string, unknown> {
-  return {
-  packs: request.packs.map((item) => updateResourcePackToMap(item)),
-  };
-}
-
-export function updateCurrentAppToMap(request: UpdateCurrentApp): Record<string, unknown> {
-  return {
-  ...(request.version !== undefined ? { version: request.version } : {}),
-  ...(request.build !== undefined ? { build: request.build } : {}),
-  channel: request.channel,
-  ...(request.distribution !== undefined ? { distribution: request.distribution } : {}),
-  };
-}
-
-export function updateReleaseSummaryToMap(request: UpdateReleaseSummary): Record<string, unknown> {
-  return {
-  releaseId: request.releaseId,
-  version: request.version,
-  build: request.build,
-  notes: request.notes,
-  ...(request.sizeBytes !== undefined ? { sizeBytes: request.sizeBytes } : {}),
-  mandatory: request.mandatory,
-  recommended: request.recommended,
-  kind: request.kind,
-  };
-}
-
-export function updateProgressToMap(request: UpdateProgress): Record<string, unknown> {
-  return {
-  received: request.received,
-  total: request.total,
-  };
-}
-
-export function updateErrorInfoToMap(request: UpdateErrorInfo): Record<string, unknown> {
-  return {
-  code: request.code,
-  retryable: request.retryable,
-  ...(request.fallbackUrl !== undefined ? { fallbackUrl: request.fallbackUrl } : {}),
-  };
-}
-
-export function updateStatusToMap(request: UpdateStatus): Record<string, unknown> {
-  return {
-  state: request.state,
-  current: updateCurrentAppToMap(request.current),
-  ...(request.release !== undefined ? { release: updateReleaseSummaryToMap(request.release) } : {}),
-  ...(request.progress !== undefined ? { progress: updateProgressToMap(request.progress) } : {}),
-  prompt: request.prompt,
-  blockUi: request.blockUi,
-  readOnly: request.readOnly,
-  ...(request.lastCheckedAt !== undefined ? { lastCheckedAt: request.lastCheckedAt } : {}),
-  ...(request.error !== undefined ? { error: updateErrorInfoToMap(request.error) } : {}),
-  ...(request.blockReason !== undefined ? { blockReason: request.blockReason } : {}),
-  };
-}
-
-export function updateInstallPlanToMap(request: UpdateInstallPlan): Record<string, unknown> {
-  return {
-  kind: request.kind,
-  ...(request.store !== undefined ? { store: request.store } : {}),
-  ...(request.url !== undefined ? { url: request.url } : {}),
-  ...(request.packageName !== undefined ? { packageName: request.packageName } : {}),
-  ...(request.appId !== undefined ? { appId: request.appId } : {}),
-  immediate: request.immediate,
-  ...(request.path !== undefined ? { path: request.path } : {}),
-  ...(request.sha256 !== undefined ? { sha256: request.sha256 } : {}),
-  ...(request.signingCertSha256 !== undefined ? { signingCertSha256: request.signingCertSha256 } : {}),
-  ...(request.build !== undefined ? { build: request.build } : {}),
-  ...(request.sizeBytes !== undefined ? { sizeBytes: request.sizeBytes } : {}),
-  ...(request.buildId !== undefined ? { buildId: request.buildId } : {}),
-  ...(request.assetManifestUrls !== undefined ? { assetManifestUrls: request.assetManifestUrls } : {}),
-  ...(request.assetManifestSha256 !== undefined ? { assetManifestSha256: request.assetManifestSha256 } : {}),
-  mandatory: request.mandatory,
-  blockUi: request.blockUi,
-  ...(request.version !== undefined ? { version: request.version } : {}),
-  ...(request.target !== undefined ? { target: request.target } : {}),
-  };
-}
-
-export function updatePluginUpgradeStatusRequestToMap(request: UpdatePluginUpgradeStatusRequest): Record<string, unknown> {
-  return {
-  ...(request.minBuild !== undefined ? { minBuild: request.minBuild } : {}),
-  };
-}
-
-export function pluginUpgradeStatusToMap(request: PluginUpgradeStatus): Record<string, unknown> {
-  return {
-  available: request.available,
-  ...(request.build !== undefined ? { build: request.build } : {}),
-  };
-}
-
-export function updateOpenFlowRequestToMap(request: UpdateOpenFlowRequest): Record<string, unknown> { return {}; }
 
 export function runtimeHealthResponseToMap(request: RuntimeHealthResponse): Record<string, unknown> {
   return {

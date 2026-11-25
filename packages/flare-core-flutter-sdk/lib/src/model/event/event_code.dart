@@ -3,7 +3,6 @@ final class EventCode {
   const EventCode._();
   static const int connectionSyncStateChanged = 1005;
   static const int connectionStatus = 1010;
-  static const int updateState = 1013;
   static const int messageReceived = 2001;
   static const int messageReceivedBatch = 2002;
   static const int messageSendAck = 2003;

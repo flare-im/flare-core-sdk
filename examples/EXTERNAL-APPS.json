@@ -1,66 +1,28 @@
 {
-  "$comment": "All complete reference apps and platform scaffolds are maintained in the sibling flare-core-examples checkout.",
-  "apps": [
-    {
-      "dir": "flare-core-web-app",
-      "platform": "Web (Vue 3, WASM)",
-      "sdk": "packages/flare-core-typescript-sdk (web target)",
-      "path": "apps/flare-core-web-app"
+  "demos": {
+    "android": {
+      "repository": "https://github.com/flare-im/flare-core-android-demo.git",
+      "branch": "dev"
     },
-    {
-      "dir": "flare-core-tauri-app",
-      "platform": "Tauri 2 (Vue 3)",
-      "sdk": "packages/flare-core-typescript-sdk (tauri target)",
-      "path": "apps/flare-core-tauri-app"
+    "electron": {
+      "repository": "https://github.com/flare-im/flare-core-electron-demo.git",
+      "branch": "dev"
     },
-    {
-      "dir": "flare-core-flutter-app",
-      "platform": "Flutter",
-      "sdk": "packages/flare-core-flutter-sdk",
-      "path": "apps/flare-core-flutter-app"
+    "flutter": {
+      "repository": "https://github.com/flare-im/flare-core-flutter-demo.git",
+      "branch": "dev"
     },
-    {
-      "dir": "flare-core-ios-app",
-      "platform": "iOS (SwiftUI)",
-      "sdk": "packages/flare-core-apple-sdk",
-      "path": "apps/flare-core-ios-app"
+    "ios": {
+      "repository": "https://github.com/flare-im/flare-core-ios-demo.git",
+      "branch": "dev"
     },
-    {
-      "dir": "flare-core-android-app",
-      "platform": "Android (Jetpack Compose)",
-      "sdk": "packages/flare-core-android-sdk",
-      "path": "apps/flare-core-android-app"
+    "tauri": {
+      "repository": "https://github.com/flare-im/flare-core-tauri-demo.git",
+      "branch": "dev"
     },
-    {
-      "dir": "flare-core-rn-app",
-      "platform": "React Native",
-      "sdk": "packages/flare-core-typescript-sdk",
-      "path": "apps/flare-core-rn-app"
-    },
-    {
-      "dir": "flare-core-electron-app",
-      "platform": "Electron",
-      "sdk": "packages/flare-core-typescript-sdk",
-      "path": "apps/flare-core-electron-app"
-    },
-    {
-      "dir": "flare-core-uni-app",
-      "platform": "uni-app",
-      "sdk": "packages/flare-core-typescript-sdk",
-      "path": "apps/flare-core-uni-app"
-    },
-    {
-      "dir": "flare-core-arkts-app",
-      "platform": "HarmonyOS ArkTS",
-      "sdk": "packages/flare-core-harmony-arkts-sdk",
-      "path": "apps/flare-core-arkts-app"
-    },
-    {
-      "dir": "flare-core-cangjie-app",
-      "platform": "HarmonyOS Cangjie",
-      "sdk": "packages/flare-core-harmony-cangjie-sdk",
-      "path": "apps/flare-core-cangjie-app"
+    "web": {
+      "repository": "https://github.com/flare-im/flare-core-web-demo.git",
+      "branch": "dev"
     }
-  ],
-  "repository": "https://github.com/flare-im/flare-core-examples.git"
+  }
 }

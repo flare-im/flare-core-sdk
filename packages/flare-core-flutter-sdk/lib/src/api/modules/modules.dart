@@ -2,7 +2,6 @@
 export 'session.dart' show SessionApi;
 export 'connection.dart' show ConnectionApi;
 export 'lifecycle.dart' show LifecycleApi;
-export 'update.dart' show UpdateApi;
 export 'conversations.dart' show ConversationsApi;
 export 'message_builder.dart' show MessageBuilderApi;
 export 'messages.dart' show MessagesApi;

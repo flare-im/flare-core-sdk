@@ -1,5 +1,5 @@
 const DB_NAME = "flare-core-web-app";
-const DB_VERSION = 8;
+const DB_VERSION = 9;
 const WASM_MESSAGES = "wasmMessages";
 const WASM_CONVERSATIONS = "wasmConversations";
 const WASM_CURSORS = "wasmCursors";
@@ -27,6 +27,8 @@ type PersistMessagePayload = {
 type PersistMessagesPayload = {
   userId: string;
   messages: Record<string, unknown>[];
+  previews?: Record<string, unknown>[];
+  redactedIds?: [conversationId: string, messageId: string][];
 };
 
 type LoadSnapshotPayload = { userId?: string; metadataOnly?: boolean };
@@ -116,7 +118,7 @@ function openDbConnection(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onerror = () => reject(request.error);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
       for (const storeName of [WASM_MESSAGES, WASM_CONVERSATIONS, WASM_CURSORS, WASM_PENDING_SENDS]) {
         const store = db.objectStoreNames.contains(storeName)
@@ -135,6 +137,27 @@ function openDbConnection(): Promise<IDBDatabase> {
             store.createIndex(MESSAGE_TIMELINE, ["userId", "message.conversationId", "message.conversationSeq"]);
           }
         }
+      }
+      // Older hosts could commit a confirmed message but leave its preview one row behind.
+      // Probe one index key per existing summary. Only torn summaries need body decoding at login.
+      if (event.oldVersion > 0 && event.oldVersion < 9) {
+        const tx = request.transaction!;
+        const timeline = tx.objectStore(WASM_MESSAGES).index(MESSAGE_TIMELINE);
+        const scan = tx.objectStore(WASM_CONVERSATIONS).openCursor();
+        scan.onsuccess = () => {
+          const cursor = scan.result;
+          if (!cursor) return;
+          const {userId, conversation} = cursor.value;
+          const cid = conversation?.conversationId;
+          if (!userId || !cid) { cursor.continue(); return; }
+          const lower = Math.max(0, Number(conversation.maxSeq ?? 0), Number(conversation.visibleAfterSeq ?? 0));
+          const keys = IDBKeyRange.bound([userId, cid, lower], [userId, cid, Infinity], true);
+          const latest = timeline.openKeyCursor(keys, "prev");
+          latest.onsuccess = () => {
+            if (latest.result) cursor.update({...cursor.value, repairPreviewKey: latest.result.primaryKey});
+            cursor.continue();
+          };
+        };
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -319,7 +342,7 @@ export async function wasmStorageLoadSnapshot(payload: LoadSnapshotPayload): Pro
   const tx = db.transaction(stores, "readonly");
   const [messageRows, conversationRows, cursorRows, pendingRows] = await Promise.all([
     payload.metadataOnly ? [] : getAllForUser<StoredMessageRow>(tx, WASM_MESSAGES, userId),
-    getAllForUser<{ key: string; conversation: Record<string, unknown> }>(tx, WASM_CONVERSATIONS, userId),
+    getAllForUser<{ key: string; conversation: Record<string, unknown>; repairPreviewKey?: string }>(tx, WASM_CONVERSATIONS, userId),
     getAllForUser<{ key: string; value: string; cursorKey?: string }>(tx, WASM_CURSORS, userId),
     getAllForUser<{ key: string; entry: Record<string, unknown> }>(tx, WASM_PENDING_SENDS, userId),
   ]);
@@ -373,8 +396,16 @@ export async function wasmStorageLoadSnapshot(payload: LoadSnapshotPayload): Pro
       for (const row of orphanPendingRows) store.delete(row.key);
     });
   }
+  const repairs = canonicalConversations.filter(row => row.repairPreviewKey);
+  let previewRepairs: Record<string, unknown>[] = [];
+  if (payload.metadataOnly && repairs.length) {
+    const store = db.transaction(WASM_MESSAGES).objectStore(WASM_MESSAGES);
+    const rows = await Promise.all(repairs.map(row => requestToPromise<StoredMessageRow>(store.get(row.repairPreviewKey!))));
+    previewRepairs = await Promise.all(rows.filter(row => row && row.userId === userId).map(restoreMessage));
+  }
   return JSON.stringify({
     messages: await Promise.all(canonicalMessages.map(restoreMessage)),
+    ...(previewRepairs.length ? {previewRepairs} : {}),
     conversations: canonicalConversations.map((row) => row.conversation),
     cursors,
     pendingSends: [...canonicalPending.values()],
@@ -455,60 +486,123 @@ export async function wasmStorageSaveMessage(payload: PersistMessagePayload): Pr
   await wasmStorageSaveMessages({ userId: payload.userId, messages: [payload.message ?? {}] });
 }
 
-export async function wasmStorageSaveMessages(payload: PersistMessagesPayload): Promise<void> {
+function putMessage(tx: IDBTransaction, row: StoredMessageRow, done: () => void, outgoing: boolean) {
+  const store = tx.objectStore(WASM_MESSAGES);
+  const { userId, message } = row;
+  const put = () => {
+    try {
+      // Keep writes ordered so an ACK can replace a pending row from this batch.
+      store.put(row).onsuccess = done;
+    } catch {
+      tx.abort();
+    }
+  };
+  const identities = [["serverId", message.serverId], ["clientMsgId", message.clientMsgId]]
+    .filter(([, id]) => typeof id === "string" && id.length > 0);
+  if (!identities.length) {
+    put();
+    return;
+  }
+  let remaining = identities.length;
+  for (const [name, id] of identities) {
+    const request = store.index(String(name)).openCursor([userId, String(id)]);
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) {
+        if (--remaining === 0) put();
+        return;
+      }
+      const previous = cursor.value.message as Record<string, unknown>;
+      const sameServer = previous.serverId && previous.serverId === message.serverId;
+      const previousLocal = !previous.serverId || (previous.localState as { isLocal?: boolean } | undefined)?.isLocal === true;
+      const sameSend = previous.clientMsgId === message.clientMsgId
+        && previous.conversationId === message.conversationId && previous.senderId === message.senderId;
+      if (outgoing && sameSend && !previousLocal && Number(previous.conversationSeq) > 0 &&
+          ((message.localState as { isLocal?: boolean } | undefined)?.isLocal || Number(previous.conversationSeq) > Number(message.conversationSeq))) {
+        tx.abort();
+        return;
+      }
+      if (sameServer || (sameSend && (previousLocal || outgoing))) cursor.delete();
+      cursor.continue();
+    };
+  }
+}
+
+function stageLatestPreview(current: Record<string, unknown> | undefined,
+  preview: Record<string, unknown>, redacted?: Set<string>): Record<string, unknown> {
+  const seq = Number(preview.maxSeq ?? 0);
+  const max = Number(current?.maxSeq ?? 0);
+  const ext = current?.ext as Record<string, string> | undefined;
+  const floor = Math.max(Number(ext?.local_cleared_through_seq ?? 0), Number(current?.visibleAfterSeq ?? 0));
+  let next = current ?? preview;
+  if (current && (seq === 0 || seq > floor) && (seq > max ||
+      ((seq === 0 || seq === max) && Number(preview.lastMessageAt) >= Number(current.lastMessageAt ?? 0)))) {
+    next = {...current, maxSeq: Math.max(max, seq), lastMessageId: preview.lastMessageId,
+      lastMessageAt: preview.lastMessageAt, lastSenderId: preview.lastSenderId,
+      lastMessagePreview: preview.lastMessagePreview, lastMessage: preview.lastMessage,
+      updatedAt: Math.max(Number(current.updatedAt ?? 0), Number(preview.updatedAt)),
+      updatedAtTs: Math.max(Number(current.updatedAtTs ?? 0), Number(preview.updatedAtTs))};
+  }
+  if (redacted?.has(String(next.lastMessageId))) {
+    next = {...next, lastMessagePreview: undefined,
+      lastMessage: next.lastMessage && {...(next.lastMessage as object), text: ""}};
+  }
+  return next;
+}
+
+export async function wasmStorageSaveMessages(payload: PersistMessagesPayload): Promise<string | void> {
   const userId = payload.userId?.trim();
-  if (!userId || !payload.messages.length) return;
+  if (!userId || (!payload.messages.length && !payload.previews?.length)) return;
   const writes = payload.messages.map((message) => ({
     message,
     row: messageRowForStorage(messageKey(userId, message), userId, message),
   }));
+  const previews = payload.previews ?? [];
+  const committed: Record<string, unknown>[] = [];
+  const redacted = new Map<string, Set<string>>();
+  for (const [cid, id] of payload.redactedIds ?? []) {
+    const ids = redacted.get(cid) ?? new Set<string>();
+    ids.add(id);
+    redacted.set(cid, ids);
+  }
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(WASM_MESSAGES, "readwrite");
+    const tx = db.transaction(previews.length ? [WASM_MESSAGES, WASM_CONVERSATIONS] : WASM_MESSAGES, "readwrite");
     tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed"));
     tx.onabort = () => reject(tx.error ?? new Error("IndexedDB message transaction aborted"));
     tx.oncomplete = () => resolve();
-    const store = tx.objectStore(WASM_MESSAGES);
     let index = 0;
     function queueNext() {
       const write = writes[index++];
-      if (!write) return;
-      const { message, row } = write;
-      const put = () => {
-        try {
-          // Keep writes ordered so an ACK can replace a pending row from this batch.
-          store.put(row).onsuccess = queueNext;
-        } catch (error) {
-          reject(error);
-          tx.abort();
-        }
-      };
-      const identities = [["serverId", message.serverId], ["clientMsgId", message.clientMsgId]]
-        .filter(([, id]) => typeof id === "string" && id.length > 0);
-      if (!identities.length) {
-        put();
-        return;
-      }
-      let remaining = identities.length;
-      for (const [name, id] of identities) {
-        const request = store.index(String(name)).openCursor([userId, String(id)]);
-        request.onsuccess = () => {
-          const cursor = request.result;
-          if (!cursor) {
-            if (--remaining === 0) put();
-            return;
+      if (write) putMessage(tx, write.row, queueNext, false);
+    }
+    queueNext();
+    if (previews.length) {
+      const summaries = tx.objectStore(WASM_CONVERSATIONS);
+      for (const preview of previews) {
+        const cid = conversationIdFromConversation(preview);
+        const key = `${userId}::${cid}`;
+        const read = summaries.get(key);
+        read.onsuccess = () => {
+          const current = read.result?.conversation;
+          const putPreview = () => {
+            const next = stageLatestPreview(current, preview, redacted.get(cid));
+            if (next !== current || read.result?.repairPreviewKey) summaries.put({key, userId, conversation: next});
+            committed.push(next);
+          };
+          if (writes.length) {
+            putPreview();
+          } else if (read.result?.repairPreviewKey) {
+            // A concurrent commit, deletion or clear can supersede an upgrade probe.
+            const row = tx.objectStore(WASM_MESSAGES).get(read.result.repairPreviewKey);
+            row.onsuccess = () => {
+              if (row.result?.message?.serverId === preview.lastMessageId &&
+                  row.result.message.conversationSeq === preview.maxSeq) putPreview();
+            };
           }
-          const previous = cursor.value.message as Record<string, unknown>;
-          const sameServer = previous.serverId && previous.serverId === message.serverId;
-          const previousLocal = !previous.serverId || (previous.localState as { isLocal?: boolean } | undefined)?.isLocal === true;
-          const sameSend = previous.clientMsgId === message.clientMsgId
-            && previous.conversationId === message.conversationId && previous.senderId === message.senderId;
-          if (sameServer || (previousLocal && sameSend)) cursor.delete();
-          cursor.continue();
         };
       }
     }
-    queueNext();
   });
   for (const { message } of writes) {
     notifyStorageChanged({
@@ -518,6 +612,65 @@ export async function wasmStorageSaveMessages(payload: PersistMessagesPayload): 
       message,
     });
   }
+  // Rust publishes these committed rows to its account cache under the same write permit.
+  if (payload.previews) return JSON.stringify(committed);
+}
+
+type OutgoingPayload = PersistMessagePayload & PersistConversationPayload & {
+  entry?: Record<string, unknown> | null;
+};
+
+export async function wasmStorageCommitOutgoing({userId, message, conversation, entry}: OutgoingPayload): Promise<void> {
+  userId = userId.trim();
+  const id = String(message.clientMsgId ?? "").trim();
+  const conversationId = messageConversationId(message);
+  if (!userId || !id || !conversationId || conversationId !== conversationIdFromConversation(conversation) ||
+      (entry && (id !== pendingSendClientMsgId(entry) || conversationId !== (entry.conversation_id ?? entry.conversationId)))) {
+    throw new Error("Outgoing transaction has inconsistent identity");
+  }
+  const row = messageRowForStorage(messageKey(userId, message), userId, message);
+  const key = `${userId}::${conversationId}`;
+  const pendingKey = `${userId}::${id}`;
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction([WASM_MESSAGES, WASM_CONVERSATIONS, WASM_PENDING_SENDS], "readwrite");
+    tx.oncomplete = () => resolve();
+    tx.onabort = () => reject(tx.error ?? new Error("Outgoing transaction aborted"));
+    putMessage(tx, row, () => {
+      const summaries = tx.objectStore(WASM_CONVERSATIONS);
+      const read = summaries.get(key);
+      read.onsuccess = () => {
+        try {
+          const current = read.result?.conversation;
+          if (current) {
+            const seq = Number(message.conversationSeq ?? 0);
+            const max = Number(current.maxSeq ?? 0);
+            const replace = current.lastMessageId === id || seq > max ||
+              ((seq === 0 || seq === max) && Number(conversation.lastMessageAt ?? 0) >= Number(current.lastMessageAt ?? 0));
+            const merged = {...current};
+            for (const field of ["updatedAt", "updatedAtTs"] as const) {
+              if (conversation[field] != null) merged[field] = Math.max(Number(current[field] ?? 0), Number(conversation[field]));
+            }
+            if (!merged.businessType && conversation.businessType) merged.businessType = conversation.businessType;
+            conversation = replace ? {
+              ...merged, maxSeq: Math.max(max, Number(conversation.maxSeq ?? 0)),
+              lastMessageId: conversation.lastMessageId, lastMessageAt: conversation.lastMessageAt,
+              lastSenderId: conversation.lastSenderId, lastMessagePreview: conversation.lastMessagePreview,
+            } : merged;
+          }
+          summaries.put({key, userId, conversation});
+          const outbox = tx.objectStore(WASM_PENDING_SENDS);
+          if (entry) outbox.put({key: pendingKey, userId, entry});
+          else outbox.delete(pendingKey);
+        } catch {
+          tx.abort();
+        }
+      };
+    }, true);
+  });
+  notifyStorageChanged({userId, kind: "message", conversationId, message});
+  notifyStorageChanged({userId, kind: "conversation", conversationId, conversation});
+  notifyStorageChanged({userId, kind: entry ? "pending_send" : "delete", id});
 }
 
 export async function wasmStorageSaveConversation(payload: PersistConversationPayload): Promise<void> {
@@ -617,7 +770,8 @@ export type WasmStorageHostCallbacks = {
   loadSnapshot: (payload: LoadSnapshotPayload) => Promise<string>;
   readMessages?: (payload: ReadMessagesPayload) => Promise<string>;
   saveMessage: (payload: PersistMessagePayload) => Promise<void>;
-  saveMessages?: (payload: PersistMessagesPayload) => Promise<void>;
+  commitOutgoing: (payload: OutgoingPayload) => Promise<void>;
+  saveMessages?: (payload: PersistMessagesPayload) => Promise<string | void>;
   saveConversation: (payload: PersistConversationPayload) => Promise<void>;
   saveCursor: (payload: PersistCursorPayload) => Promise<void>;
   savePendingSend: (payload: PersistPendingSendPayload) => Promise<void>;
@@ -631,6 +785,7 @@ export function createWasmIndexedDbStorageHost(): WasmStorageHostCallbacks {
     loadSnapshot: wasmStorageLoadSnapshot,
     readMessages: wasmStorageReadMessages,
     saveMessage: wasmStorageSaveMessage,
+    commitOutgoing: wasmStorageCommitOutgoing,
     saveMessages: wasmStorageSaveMessages,
     saveConversation: wasmStorageSaveConversation,
     saveCursor: wasmStorageSaveCursor,

@@ -21,7 +21,6 @@ Method return values remain the primary success/failure contract for commands su
 | `onLoggedOut` | `lifecycle` | `logged_out` | `LifecycleEvent` | The current SDK session logged out. |
 | `onDisposed` | `lifecycle` | `disposed` | `LifecycleEvent` | The SDK client has been disposed. |
 | `onConnectionStatusChanged` | `connection` | `status` | `ConnectionStatus` | The connection status changed (connection://status). Replace the held status whole and hand it to the Kit ConnectionNotice unchanged. |
-| `onUpdateState` | `update` | `state` | `UpdateStatus` | The update center state changed (update://state). Delivered with a session; before sign-in read update.getState. |
 | `onMessageReceived` | `message` | `received` | `MessageReceivedEvent` | A single message was received. |
 | `onMessageReceivedBatch` | `message` | `received_batch` | `MessageReceivedBatchEvent` | A batch of messages was received. |
 | `onMessageSendAck` | `message` | `send_ack` | `MessageSendAckEvent` | A message send operation was acknowledged. |
@@ -70,7 +69,6 @@ Method return values remain the primary success/failure contract for commands su
 | `plugin` | `realtime`, `catalog_changed`, `capability_request`, `bundle_event` |
 | `presence` | `changed` |
 | `sync` | `started`, `finished`, `failed`, `progress`, `task_completed`, `state_changed`, `resync_needed`, `readiness` |
-| `update` | `state` |
 | `view` | `updated` |
 
 Platform adapters should dispatch UI-facing callbacks on the platform's documented application/main context when required, while keeping native bridge callbacks non-blocking.

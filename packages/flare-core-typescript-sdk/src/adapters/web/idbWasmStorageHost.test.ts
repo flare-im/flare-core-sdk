@@ -36,6 +36,53 @@ afterEach(() => {
 });
 
 describe("Web storage durability", () => {
+  it.each(["wasmMessages", "wasmConversations", "wasmPendingSends"])(
+    "rolls back the entire outgoing transaction on a failed %s write", async (store) => {
+      const userId = "scope";
+      const local = {clientMsgId: "c", serverId: "c", conversationId: "chat", senderId: "me", conversationSeq: 0, localState: {isLocal: true}};
+      const confirmed = {...local, serverId: "s", conversationSeq: 7, localState: {isLocal: false}};
+      const summary = {conversationId: "chat", maxSeq: 0, lastMessageId: "c", lastMessageAt: 10};
+      const entry = {client_msg_id: "c", conversation_id: "chat", message: local};
+      const enqueue = {userId, message: local, conversation: summary, entry};
+      const complete = {userId, message: confirmed, conversation: {...summary, lastMessageId: "s", maxSeq: 7}, entry: null};
+      const events = new EventTarget();
+      vi.stubGlobal("window", events);
+      const notified = vi.fn();
+      events.addEventListener("flare:wasm-storage-changed", notified);
+      async function reopen() {
+        vi.resetModules();
+        return (await import("./idbWasmStorageHost")).createWasmIndexedDbStorageHost();
+      }
+      let host = await reopen();
+      for (const completing of [false, true]) {
+        const method = completing && store === "wasmPendingSends" ? "delete" : "put";
+        const original = IDBObjectStore.prototype[method];
+        const fault = vi.spyOn(IDBObjectStore.prototype, method).mockImplementation(function(this: IDBObjectStore, ...args: unknown[]) {
+          if (this.name === store) throw new DOMException("injected", "QuotaExceededError");
+          return Reflect.apply(original, this, args);
+        });
+        notified.mockClear();
+        await expect(host.commitOutgoing(completing ? complete : enqueue)).rejects.toThrow();
+        expect(notified).not.toHaveBeenCalled();
+        fault.mockRestore();
+        host = await reopen();
+        const snapshot = JSON.parse(await host.loadSnapshot({userId}));
+        expect(snapshot.messages).toEqual(completing ? [local] : []);
+        expect(snapshot.conversations).toEqual(completing ? [summary] : []);
+        expect(snapshot.pendingSends).toEqual(completing ? [entry] : []);
+        if (!completing) await host.commitOutgoing(enqueue);
+      }
+      await host.saveMessage({userId, message: confirmed});
+      await host.commitOutgoing(complete);
+      await host.commitOutgoing(complete);
+      await expect(host.commitOutgoing(enqueue)).rejects.toThrow();
+      const snapshot = JSON.parse(await (await reopen()).loadSnapshot({userId}));
+      expect(snapshot.messages).toEqual([confirmed]);
+      expect(snapshot.conversations).toEqual([complete.conversation]);
+      expect(snapshot.pendingSends).toEqual([]);
+    },
+  );
+
   it("deletes exact server and local client IDs without matching prefixes, conversations or other users", async () => {
     const host = await import("./idbWasmStorageHost");
     for (const [userId, serverId, conversationId, clientMsgId] of [
@@ -196,6 +243,66 @@ describe("Web storage durability", () => {
     expect(JSON.parse(await host.wasmStorageLoadSnapshot({ userId: "u" })).messages).toEqual([{ clientMsgId: "c", conversationId: "chat" }]);
     await host.wasmStorageSaveMessage({ userId: "u", message: { serverId: "s", clientMsgId: "c", conversationId: "chat", conversationSeq: 1 } });
     expect(JSON.parse(await host.wasmStorageLoadSnapshot({ userId: "u" })).messages).toHaveLength(1);
+  });
+
+  it("reopens a torn v8 summary offline and requests only its committed tail for repair", async () => {
+    const db = await seed(8);
+    const userId = "u";
+    const old = {conversationId: "chat", maxSeq: 1, lastMessageId: "s1", unreadCount: 1,
+      ext: {"_local.messageProjectionRanges": "receipt"}};
+    const message = {conversationId: "chat", serverId: "s2", conversationSeq: 2};
+    const tx = db.transaction(["wasmMessages", "wasmConversations"], "readwrite");
+    tx.objectStore("wasmConversations").put({key: "u::chat", userId, conversation: old});
+    tx.objectStore("wasmMessages").put({key: "u::row", userId, message});
+    await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); });
+    db.close();
+    const host = await import("./idbWasmStorageHost");
+    const read = async () => JSON.parse(await host.wasmStorageLoadSnapshot({userId, metadataOnly: true}));
+    const before = await read();
+    expect(before.messages).toEqual([]);
+    expect(before.previewRepairs).toEqual([message]);
+    const preview = {conversationId: "chat", maxSeq: 2, lastMessageId: "s2",
+      lastMessageAt: 20, lastMessagePreview: "second", updatedAt: 20, updatedAtTs: 20};
+    await host.wasmStorageSaveMessages({userId, messages: [], previews: [preview]});
+    const after = await read();
+    expect(after.previewRepairs).toBeUndefined();
+    expect(after.conversations[0]).toMatchObject({...old, ...preview});
+  });
+
+  it("stages previews with message rows while preserving unread, receipt and visibility", async () => {
+    const host = await import("./idbWasmStorageHost");
+    const userId = "u";
+    const chat = {conversationId: "chat", maxSeq: 1, unreadCount: 1, lastMessageId: "s1",
+      lastMessageAt: 10, ext: {"_local.messageProjectionRanges": "receipt"}, isPinned: true};
+    await host.wasmStorageSaveConversation({userId, conversation: chat});
+    const message = {conversationId: "chat", serverId: "s2", conversationSeq: 2};
+    const preview = {conversationId: "chat", maxSeq: 2, lastMessageId: "s2", lastMessageAt: 20,
+      lastSenderId: "peer", lastMessagePreview: "second", updatedAt: 20, updatedAtTs: 20};
+    const batch = {userId, messages: [message], previews: [preview]};
+    const snapshot = async () => JSON.parse(await host.wasmStorageLoadSnapshot({userId}));
+    const put = IDBObjectStore.prototype.put;
+    const spy = vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(function (...args) {
+      const request = put.apply(this, args);
+      if (this.name === "wasmConversations") this.transaction.abort();
+      return request;
+    });
+    await expect(host.wasmStorageSaveMessages(batch)).rejects.toThrow();
+    spy.mockRestore();
+    expect((await snapshot()).messages).toEqual([]);
+    expect((await snapshot()).conversations).toEqual([chat]);
+
+    await host.wasmStorageSaveMessages(batch);
+    const staged = (await snapshot()).conversations[0];
+    expect(staged).toMatchObject({...chat, ...preview});
+    await host.wasmStorageSaveMessages({userId,
+      messages: [{...message, serverId: "s1", conversationSeq: 1}],
+      previews: [{...preview, maxSeq: 1, lastMessageId: "s1", lastMessageAt: 30}]});
+    expect((await snapshot()).conversations).toEqual([staged]);
+
+    const cleared = {...chat, maxSeq: 2, visibleAfterSeq: 2, lastMessageId: "", unreadCount: 0};
+    await host.wasmStorageSaveConversation({userId, conversation: cleared});
+    await host.wasmStorageSaveMessages(batch);
+    expect((await snapshot()).conversations).toEqual([cleared]);
   });
 
   it("rolls back a message batch together and retries it in order", async () => {

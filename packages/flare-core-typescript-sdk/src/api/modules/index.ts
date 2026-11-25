@@ -2,7 +2,6 @@
 export type { SessionApi } from './session';
 export type { ConnectionApi } from './connection';
 export type { LifecycleApi } from './lifecycle';
-export type { UpdateApi } from './update';
 export type { ConversationsApi } from './conversations';
 export type { MessageBuilderApi } from './message_builder';
 export type { MessagesApi } from './messages';

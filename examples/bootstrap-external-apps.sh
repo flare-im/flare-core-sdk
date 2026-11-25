@@ -1,31 +1,26 @@
 #!/usr/bin/env bash
-# Bootstrap the sibling examples checkout. Optional arguments validate selected apps.
+# Clone each selected public demo at its published branch.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-manifest="$here/EXTERNAL-APPS.json"
-workspace="$(cd "$here/../.." && pwd)"
-checkout="$workspace/flare-core-examples"
-repo="$(node -p 'require(process.argv[1]).repository' "$manifest")"
-paths="$(node -e '
-  const manifest = require(process.argv[1]);
-  const wanted = process.argv.slice(2);
-  const selected = wanted.length ? wanted.map(name => {
-    const dir = name.startsWith("flare-core-") ? name : `flare-core-${name}-app`;
-    const app = manifest.apps.find(item => item.dir === dir);
-    if (!app) throw new Error("Unknown app: " + name);
-    return app;
-  }) : manifest.apps;
-  console.log(selected.map(app => app.path).join("\n"));
-' "$manifest" "$@")"
+workspace="${FLARE_DEMO_DIR:-$(cd "$here/../.." && pwd)}"
 
-if [ ! -e "$checkout/.git" ]; then
-  branch="${BRANCH:-dev}"
-  if ! git ls-remote --exit-code --heads "$repo" "refs/heads/$branch" >/dev/null; then
-    branch=dev
+entries="$(node -e '
+  const { demos } = require(process.argv[1]);
+  const wanted = process.argv.slice(2);
+  for (const platform of wanted.length ? wanted : Object.keys(demos)) {
+    if (!Object.hasOwn(demos, platform)) throw new Error("Unknown demo: " + platform);
+    const { repository, branch } = demos[platform];
+    console.log([platform, repository, branch].join("\t"));
+  }
+' "$here/EXTERNAL-APPS.json" "$@")"
+
+mkdir -p "$workspace"
+while IFS=$'\t' read -r platform repo branch; do
+  checkout="$workspace/flare-core-$platform-demo"
+  if [ ! -e "$checkout" ]; then
+    git clone --depth 1 --branch "$branch" "$repo" "$checkout"
   fi
-  git clone --depth 1 --branch "$branch" "$repo" "$checkout"
-fi
-while IFS= read -r path; do
-  test -d "$checkout/$path" || { echo "Missing $checkout/$path" >&2; exit 1; }
-done <<< "$paths"
+  test "$(git -C "$checkout" remote get-url origin)" = "$repo"
+  test -f "$checkout/demo.lock.json"
+done <<< "$entries"

@@ -17,7 +17,6 @@ public protocol EventsApiProtocol: AnyObject {
     func onLoggedOut(_ listener: @escaping EventCallback<LifecycleEvent>) -> any EventSubscription
     func onDisposed(_ listener: @escaping EventCallback<LifecycleEvent>) -> any EventSubscription
     func onConnectionStatusChanged(_ listener: @escaping EventCallback<ConnectionStatus>) -> any EventSubscription
-    func onUpdateState(_ listener: @escaping EventCallback<UpdateStatus>) -> any EventSubscription
     func onMessageReceived(_ listener: @escaping EventCallback<MessageReceivedEvent>) -> any EventSubscription
     func onMessageReceivedBatch(_ listener: @escaping EventCallback<MessageReceivedBatchEvent>) -> any EventSubscription
     func onMessageSendAck(_ listener: @escaping EventCallback<MessageSendAckEvent>) -> any EventSubscription

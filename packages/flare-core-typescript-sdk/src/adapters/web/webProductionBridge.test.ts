@@ -26,6 +26,7 @@ function storageHostStub() {
     saveMessage: async () => {},
     saveConversation: async () => {},
     saveCursor: async () => {},
+    commitOutgoing: async () => {},
     savePendingSend: async () => {},
     deleteMessage: async () => {},
     deleteConversation: async () => {},

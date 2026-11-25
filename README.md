@@ -9,7 +9,7 @@ The open-source stack provides business-neutral messaging and pluggable authenti
 
 This workspace contains typed client SDK adapters for `flare-im-core-sdk`.
 
-The Rust core remains the only place for IM behavior. This workspace owns platform API shape, generated contracts, native artifact placement, docs and contract tests. Complete reference apps live in the sibling `flare-core-examples` repository.
+The Rust core remains the only place for IM behavior. This workspace owns platform API shape, generated contracts, native artifact placement, docs and contract tests. Standalone reference apps are listed in [Core demos](examples/README.md).
 
 ## Architecture
 
@@ -85,4 +85,4 @@ The open-source Core provides messaging infrastructure. You can connect your own
 
 ## Integration Examples
 
-Use the [Core example apps](https://github.com/flare-im/flare-core-examples) for platform wiring. Changes to shared send, ordering, or sync behavior belong in the [Rust SDK engine](https://github.com/flare-im/flare-core-sdk-engine).
+Use the [Core demos](examples/README.md) for platform wiring. Changes to shared send, ordering, or sync behavior belong in the [Rust SDK engine](https://github.com/flare-im/flare-core-sdk-engine).

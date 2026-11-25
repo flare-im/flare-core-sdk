@@ -3,7 +3,7 @@
 `typescript-client.ts` creates the public Web SDK, reads its diagnostics and
 releases it even when a call fails. It has no UI, product state or server settings.
 Pass the host's WASM loader to `inspectWebSdk`; a full browser integration with
-asset URLs, access configuration and messaging lives in `flare-core-examples`.
+asset URLs, Core endpoints and messaging is available in the [standalone demos](../README.md).
 
 Run the small consumer against a deterministic WASM fixture, without native
 artifacts or a server:

@@ -33,8 +33,6 @@ abstract interface class EventsApi {
   EventSubscription onDisposed(EventCallback<LifecycleEvent> listener);
   /// The connection status changed (connection://status). Replace the held status whole and hand it to the Kit ConnectionNotice unchanged.
   EventSubscription onConnectionStatusChanged(EventCallback<ConnectionStatus> listener);
-  /// The update center state changed (update://state). Delivered with a session; before sign-in read update.getState.
-  EventSubscription onUpdateState(EventCallback<UpdateStatus> listener);
   /// A single message was received.
   EventSubscription onMessageReceived(EventCallback<MessageReceivedEvent> listener);
   /// A batch of messages was received.

@@ -6,7 +6,6 @@ public struct AnySendable: @unchecked Sendable { public let value: Any; public i
 public protocol FlareImClientProtocol: SessionApiProtocol {
     var connection: any ConnectionApiProtocol { get }
     var lifecycle: any LifecycleApiProtocol { get }
-    var update: any UpdateApiProtocol { get }
     var conversations: any ConversationsApiProtocol { get }
     var messageBuilder: any MessageBuilderApiProtocol { get }
     var messages: any MessagesApiProtocol { get }

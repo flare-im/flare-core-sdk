@@ -3,7 +3,6 @@ package com.flare.im.api
 import com.flare.im.api.session.SessionApi
 import com.flare.im.api.connection.ConnectionApi
 import com.flare.im.api.lifecycle.LifecycleApi
-import com.flare.im.api.update.UpdateApi
 import com.flare.im.api.conversations.ConversationsApi
 import com.flare.im.api.messagebuilder.MessageBuilderApi
 import com.flare.im.api.messages.MessagesApi
@@ -24,8 +23,6 @@ interface FlareImClient : SessionApi {
     val connection: ConnectionApi
     /** Platform lifecycle signals the core needs (foreground and background). */
     val lifecycle: LifecycleApi
-    /** Update center: release evaluation, download and the install plan. Works before sign-in and with every IM node down; the release manifest comes from the access mirrors. */
-    val update: UpdateApi
     /** Conversation query and local conversation state. */
     val conversations: ConversationsApi
     /** Typed quick-build APIs for all supported message content kinds. Prefer these over raw JSON in adapters. */

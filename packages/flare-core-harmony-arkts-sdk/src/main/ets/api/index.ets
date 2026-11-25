@@ -2,7 +2,6 @@
 export type { SessionApi } from './modules/session';
 export type { ConnectionApi } from './modules/connection';
 export type { LifecycleApi } from './modules/lifecycle';
-export type { UpdateApi } from './modules/update';
 export type { ConversationsApi } from './modules/conversations';
 export type { MessageBuilderApi } from './modules/message_builder';
 export type { MessagesApi } from './modules/messages';

@@ -1,34 +1,18 @@
-# SDK verification assets
+# Flare Core demos
 
-Complete applications and platform scaffolds are maintained only in the sibling
-[`flare-core-examples`](https://github.com/flare-im/flare-core-examples) repository.
-Its `apps/` directory contains Web, Tauri, Flutter, iOS, Android, Electron,
-React Native, uni-app, ArkTS, and Cangjie. Application composition shared by
-Vue consumers lives there in `shared/vue-reference`; SDK infrastructure stays in
-this repository's `packages/`.
+Clone or download a demo, then follow its README to install dependencies, configure your Core endpoints, and start the app.
 
-This directory retains a [minimal TypeScript consumer](minimal/README.md),
-`multidevice_conformance.json`, the external-app manifest, and a checkout helper.
-SDK package unit/contract tests remain beside the packages.
+| Platform | Standalone repository |
+| --- | --- |
+| Android | [flare-core-android-demo](https://github.com/flare-im/flare-core-android-demo) |
+| Electron | [flare-core-electron-demo](https://github.com/flare-im/flare-core-electron-demo) |
+| Flutter | [flare-core-flutter-demo](https://github.com/flare-im/flare-core-flutter-demo) |
+| iOS | [flare-core-ios-demo](https://github.com/flare-im/flare-core-ios-demo) |
+| Tauri | [flare-core-tauri-demo](https://github.com/flare-im/flare-core-tauri-demo) |
+| Web | [flare-core-web-demo](https://github.com/flare-im/flare-core-web-demo) |
 
-```bash
-bash examples/bootstrap-external-apps.sh             # all ten app roots
-bash examples/bootstrap-external-apps.sh web tauri   # validate a subset
-```
+Use your own Core server and tenant credentials. The application demonstrates the public SDK configuration, sign-in, conversations, messages, attachments, and endpoint replacement.
 
-The helper uses the local `dev` branch by default. CI may select its matching
-branch with `BRANCH`. It never creates nested application checkouts inside the SDK.
+`bash examples/bootstrap-external-apps.sh web tauri` clones selected demos next to this SDK checkout. Omit platform names to clone all six, or set `FLARE_DEMO_DIR` to choose a download directory.
 
-Run the SDK ownership gates from this repository after checking out the examples:
-
-```bash
-node scripts/example-public-api-check.mjs
-node scripts/real-sdk-example-assembly-check.mjs
-node scripts/example-no-duplicate-ui.mjs
-node scripts/reference-app-public-api-check.mjs
-node scripts/reference-app-no-duplicate-ui-check.mjs
-node scripts/reference-app-style-ownership-check.mjs
-```
-
-App build commands, platform maturity and composition conventions are documented
-in `flare-core-examples/README.md` and `flare-core-examples/docs/STRUCTURE.md`.
+This directory also contains the [minimal TypeScript consumer](minimal/) and the [multi-device conformance manifest](multidevice_conformance.json).

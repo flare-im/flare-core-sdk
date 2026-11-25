@@ -6,7 +6,6 @@
 import type { SessionApi } from './modules/session';
 import type { ConnectionApi } from './modules/connection';
 import type { LifecycleApi } from './modules/lifecycle';
-import type { UpdateApi } from './modules/update';
 import type { ConversationsApi } from './modules/conversations';
 import type { MessageBuilderApi } from './modules/message_builder';
 import type { MessagesApi } from './modules/messages';
@@ -26,8 +25,6 @@ export interface FlareImClient extends SessionApi {
   readonly connection: ConnectionApi;
   /** Platform lifecycle signals the core needs (foreground and background). */
   readonly lifecycle: LifecycleApi;
-  /** Update center: release evaluation, download and the install plan. Works before sign-in and with every IM node down; the release manifest comes from the access mirrors. */
-  readonly update: UpdateApi;
   /** Conversation query and local conversation state. */
   readonly conversations: ConversationsApi;
   /** Typed quick-build APIs for all supported message content kinds. Prefer these over raw JSON in adapters. */

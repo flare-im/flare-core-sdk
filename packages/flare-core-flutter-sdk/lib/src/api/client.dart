@@ -9,8 +9,6 @@ abstract interface class FlareImClient implements SessionApi {
   ConnectionApi get connection;
   /// Platform lifecycle signals the core needs (foreground and background).
   LifecycleApi get lifecycle;
-  /// Update center: release evaluation, download and the install plan. Works before sign-in and with every IM node down; the release manifest comes from the access mirrors.
-  UpdateApi get update;
   /// Conversation query and local conversation state.
   ConversationsApi get conversations;
   /// Typed quick-build APIs for all supported message content kinds. Prefer these over raw JSON in adapters.

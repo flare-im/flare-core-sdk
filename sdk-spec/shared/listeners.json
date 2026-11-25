@@ -57,13 +57,6 @@
       "description": "The connection status changed (connection://status). Replace the held status whole and hand it to the Kit ConnectionNotice unchanged."
     },
     {
-      "name": "onUpdateState",
-      "kind": "update",
-      "eventName": "state",
-      "payload": "UpdateStatus",
-      "description": "The update center state changed (update://state). Delivered with a session; before sign-in read update.getState."
-    },
-    {
       "name": "onMessageReceived",
       "kind": "message",
       "eventName": "received",

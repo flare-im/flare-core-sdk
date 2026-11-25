@@ -44,7 +44,6 @@ interface EventsApi {
     fun onLoggedOut(listener: EventCallback<LifecycleEvent>): EventSubscription
     fun onDisposed(listener: EventCallback<LifecycleEvent>): EventSubscription
     fun onConnectionStatusChanged(listener: EventCallback<ConnectionStatus>): EventSubscription
-    fun onUpdateState(listener: EventCallback<UpdateStatus>): EventSubscription
     fun onMessageReceived(listener: EventCallback<MessageReceivedEvent>): EventSubscription
     fun onMessageReceivedBatch(listener: EventCallback<MessageReceivedBatchEvent>): EventSubscription
     fun onMessageSendAck(listener: EventCallback<MessageSendAckEvent>): EventSubscription

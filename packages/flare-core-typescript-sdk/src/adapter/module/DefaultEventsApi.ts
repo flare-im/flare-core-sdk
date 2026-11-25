@@ -37,8 +37,6 @@ import {
   SyncEventName,
   TypingAggregateEvent,
   TypingEvent,
-  UpdateEventName,
-  UpdateStatus,
   ViewUpdate,
   ProgressEvent as SdkProgressEvent,
 } from '../../model';
@@ -48,7 +46,6 @@ import { FlareSdkException } from '../../bridge/flareSdkException';
 
 const EVENT_CODE_CONNECTION_SYNC_STATE_CHANGED = 1005;
 const EVENT_CODE_CONNECTION_STATUS = 1010;
-const EVENT_CODE_UPDATE_STATE = 1013;
 const EVENT_CODE_MESSAGE_RECEIVED = 2001;
 const EVENT_CODE_MESSAGE_RECEIVED_BATCH = 2002;
 const EVENT_CODE_MESSAGE_SEND_ACK = 2003;
@@ -98,7 +95,6 @@ const EVENT_CODE_PLUGIN_BUNDLE_EVENT = 7004;
 const WEB_EVENT_TYPE_BY_CHANNEL: Record<string, number> = {
   "im://sync_state_changed": EVENT_CODE_CONNECTION_SYNC_STATE_CHANGED,
   "connection://status": EVENT_CODE_CONNECTION_STATUS,
-  "update://state": EVENT_CODE_UPDATE_STATE,
   "im://message": EVENT_CODE_MESSAGE_RECEIVED,
   "im://message_batch": EVENT_CODE_MESSAGE_RECEIVED_BATCH,
   "im://send_ack": EVENT_CODE_MESSAGE_SEND_ACK,
@@ -284,10 +280,6 @@ function connectionStatusEvent(payload: unknown): ConnectionStatus & Record<stri
 function connectionSyncStateEvent(payload: unknown): ConnectionSyncStateEvent & Record<string, unknown> {
   const record = eventPayloadRecord(payload);
   return { type: 'connection', event: ConnectionEventName.SyncStateChanged, state: requiredString(record.state, 'state') };
-}
-
-function updateStateEvent(payload: unknown): UpdateStatus & Record<string, unknown> {
-  return { ...(withoutNullFields(eventPayloadRecord(payload)) as unknown as UpdateStatus), type: 'update', event: UpdateEventName.State };
 }
 
 /** The event's own payload without the `type` / `event` routing keys the decoder adds. */
@@ -523,7 +515,6 @@ export function nativeEventFromCode(eventType: number, payload: unknown): unknow
   switch (eventType) {
     case EVENT_CODE_CONNECTION_SYNC_STATE_CHANGED: return connectionSyncStateEvent(payload);
     case EVENT_CODE_CONNECTION_STATUS: return connectionStatusEvent(payload);
-    case EVENT_CODE_UPDATE_STATE: return updateStateEvent(payload);
     case EVENT_CODE_MESSAGE_RECEIVED: return messageReceivedEvent(payload);
     case EVENT_CODE_MESSAGE_RECEIVED_BATCH: return messageReceivedBatchEvent(payload);
     case EVENT_CODE_MESSAGE_SEND_ACK: return messageSendAckEvent(payload);
@@ -689,10 +680,6 @@ export class DefaultEventsApi implements EventsApi {
 
   onConnectionStatusChanged(listener: EventCallback<ConnectionStatus>): EventSubscription {
     return this.registerWhere(listener, (event) => eventEventIs(event, 'connection', ConnectionEventName.Status), eventPayloadOf);
-  }
-
-  onUpdateState(listener: EventCallback<UpdateStatus>): EventSubscription {
-    return this.registerWhere(listener, (event) => eventEventIs(event, 'update', UpdateEventName.State), eventPayloadOf);
   }
 
   onMessageReceived(listener: EventCallback<MessageReceivedEvent>): EventSubscription {
@@ -963,10 +950,6 @@ export class DefaultEventsApi implements EventsApi {
       if (eventName === ConnectionEventName.Status) {
         listener.onConnectionStatusChanged?.(eventPayloadOf<ConnectionStatus>(event));
       }
-      return;
-    }
-    if (type === 'update') {
-      if (eventName === UpdateEventName.State) listener.onUpdateState?.(eventPayloadOf<UpdateStatus>(event));
       return;
     }
     if (type === 'view') {

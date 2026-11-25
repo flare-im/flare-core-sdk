@@ -8,7 +8,6 @@
       "values": [
         "lifecycle",
         "connection",
-        "update",
         "message",
         "notification",
         "conversation",
@@ -40,13 +39,6 @@
       "values": [
         "status",
         "sync_state_changed"
-      ]
-    },
-    {
-      "name": "UpdateEventName",
-      "description": "Update event name.",
-      "values": [
-        "state"
       ]
     },
     {

@@ -1,5 +1,5 @@
 // GENERATED. Do not edit by hand.
-import { ConnectionStatus, ConversationEvent, CoreEndpoints, EndpointUpdate, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NetworkChangeRequest, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, ServerClockResponse, SetProtocolModeRequest, SyncEvent, TypingAggregateEvent, TypingEvent, UpdateStatus, ViewUpdate } from '../../model';
+import { ConnectionStatus, ConversationEvent, CoreEndpoints, EndpointUpdate, LifecycleEvent, MessageMutationEvent, MessageReceivedBatchEvent, MessageReceivedEvent, MessageSendAckEvent, MessageSendFailedEvent, NetworkChangeRequest, NotificationBadgeEvent, NotificationClearEvent, NotificationPresentation, PluginBundleEvent, PluginCapabilityRequestEvent, PluginCatalogChangedEvent, PluginRealtimeEvent, ProgressEvent, ReactionChangedEvent, ReadReceiptEvent, ServerClockResponse, SetProtocolModeRequest, SyncEvent, TypingAggregateEvent, TypingEvent, ViewUpdate } from '../../model';
 
 /** Connection status and manual network lifecycle. */
 export interface ConnectionApi {
